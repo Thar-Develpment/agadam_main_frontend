@@ -7,10 +7,10 @@ export default function QRCodeModal({ isOpen, onClose, shopInfo }) {
   if (!isOpen) return null;
 
   const qrData = shopInfo?.qrCode || {
-    imageUrl: "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://agadamjewellery.com&color=1c1917&bgcolor=faf9f6",
+    imageUrl: "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://aadagamjewellery.com&color=1c1917&bgcolor=faf9f6",
     title: "Scan to Visit Our Digital Store",
     subtitle: "Share our website easily with friends & family",
-    websiteUrl: "https://agadamjewellery.com",
+    websiteUrl: "https://aadagamjewellery.com",
   };
 
   const handleCopyLink = () => {
@@ -92,7 +92,7 @@ export default function QRCodeModal({ isOpen, onClose, shopInfo }) {
             </a>
             <a
               href={qrData.imageUrl}
-              download="Agadam_Jewellery_QR.png"
+              download="Aadagam_Jewellery_QR.png"
               className="inline-flex items-center justify-center gap-1.5 bg-stone-200 hover:bg-stone-300 text-stone-800 font-medium py-2.5 px-4 rounded-lg text-sm transition-colors"
               title="Download QR Image"
             >

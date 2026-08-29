@@ -104,7 +104,7 @@ export default function AboutSection({ aboutContent }) {
         <div className="mb-16">
           <div className="text-center mb-8">
             <h3 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
-              Pillars of Agadam Jewellery
+              Pillars of Aadagam Jewellery
             </h3>
           </div>
 
@@ -144,7 +144,7 @@ export default function AboutSection({ aboutContent }) {
               <div className="aspect-video w-full rounded-2xl overflow-hidden shadow-2xl border border-stone-800 mt-6">
                 <iframe
                   src={`https://www.youtube.com/embed/${aboutContent.featuredVideoId}`}
-                  title="Agadam Heritage Video"
+                  title="Aadagam Heritage Video"
                   className="w-full h-full border-0"
                   allowFullScreen
                 />

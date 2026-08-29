@@ -18,7 +18,7 @@ export default function ContactSection({ shopInfo }) {
     "104 Royal Heritage Plaza, MG Road, Jewellery Quarter, Mumbai 400001";
   const phonePrimary = shopInfo?.phonePrimary || "+91 98765 43210";
   const phoneSecondary = shopInfo?.phoneSecondary || "+91 98765 43211";
-  const email = shopInfo?.email || "contact@agadamjewellery.com";
+  const email = shopInfo?.email || "contact@aadagamjewellery.com";
   const whatsapp = shopInfo?.whatsapp || "919876543210";
   const socials = shopInfo?.socials || {};
 

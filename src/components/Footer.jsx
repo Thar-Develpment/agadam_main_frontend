@@ -21,7 +21,7 @@ export default function Footer({ shopInfo }) {
                 <Gem className="w-5 h-5 text-[#D4AF37]" />
               </div>
               <span className="font-serif text-2xl font-bold text-white tracking-wider">
-                {shopInfo?.name || "AGADAM JEWELLERY"}
+                {shopInfo?.name || "AADAGAM JEWELLERY"}
               </span>
             </div>
             <p className="text-stone-400 text-xs sm:text-sm font-light leading-relaxed max-w-sm">
@@ -118,11 +118,11 @@ export default function Footer({ shopInfo }) {
         {/* Bottom Copyright Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500 font-light">
           <p>
-            &copy; {new Date().getFullYear()} {shopInfo?.name || "Agadam Jewellery"}. All Rights Reserved.
+            &copy; {new Date().getFullYear()} {shopInfo?.name || "Aadagam Jewellery"}. All Rights Reserved.
           </p>
           <div className="flex items-center gap-1 text-stone-400">
             <span>Powered by</span>
-            <span className="font-bold text-[#D4AF37]">Agadam Platform</span>
+            <span className="font-bold text-[#D4AF37]">Aadagam Platform</span>
           </div>
           <button
             onClick={scrollToTop}

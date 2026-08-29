@@ -92,7 +92,7 @@ export default function Header({ shopInfo, onOpenQR }) {
             </div>
             <div className="text-left">
               <span className="block font-serif text-xl sm:text-2xl font-bold tracking-wider text-stone-900 group-hover:text-[#B8860B] transition-colors">
-                {shopInfo?.name || "AGADAM JEWELLERY"}
+                {shopInfo?.name || "AADAGAM JEWELLERY"}
               </span>
               <span className="block text-[10px] tracking-widest uppercase text-[#B8860B] font-semibold -mt-1">
                 Fine Jewels & Diamonds
@@ -176,7 +176,7 @@ export default function Header({ shopInfo, onOpenQR }) {
                     <Gem className="w-4 h-4 text-[#D4AF37]" />
                   </div>
                   <span className="font-serif font-bold text-lg text-stone-900">
-                    {shopInfo?.name || "AGADAM JEWELLERY"}
+                    {shopInfo?.name || "AADAGAM JEWELLERY"}
                   </span>
                 </div>
                 <button

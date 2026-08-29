@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { submitEnquiry } from "../services/api";
-import { Send, CheckCircle2, AlertCircle, Loader2, Phone, User, MessageSquare } from "lucide-react";
+import { Send, CheckCircle2, AlertCircle, Loader2, Phone, User, MessageSquare, Mail } from "lucide-react";
 
 export default function EnquiryForm() {
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
+    email: "",
     message: "",
   });
 
@@ -25,6 +26,12 @@ export default function EnquiryForm() {
       newErrors.phone = "Mobile number is required.";
     } else if (cleanPhone.length < 10) {
       newErrors.phone = "Please enter a valid 10-digit mobile number.";
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email address is required.";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address.";
     }
 
     if (!formData.message.trim()) {
@@ -49,7 +56,7 @@ export default function EnquiryForm() {
 
       if (response.success) {
         setSubmitResult(response);
-        setFormData({ name: "", phone: "", message: "" });
+        setFormData({ name: "", phone: "", email: "", message: "" });
         setErrors({});
       } else {
         setErrors({ submit: response.message || "Failed to submit enquiry." });
@@ -169,6 +176,37 @@ export default function EnquiryForm() {
             {errors.phone && (
               <span className="text-[11px] text-rose-500 font-medium mt-1 block">
                 {errors.phone}
+              </span>
+            )}
+          </div>
+
+          {/* Email Address */}
+          <div>
+            <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1.5">
+              Email Address <span className="text-rose-500">*</span>
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+                <Mail className="w-4 h-4" />
+              </div>
+              <input
+                type="email"
+                placeholder="e.g. customer@example.com"
+                value={formData.email}
+                onChange={(e) => {
+                  setFormData({ ...formData, email: e.target.value });
+                  if (errors.email) setErrors({ ...errors, email: null });
+                }}
+                className={`w-full pl-10 pr-4 py-3 bg-[#FAF9F5] border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all ${
+                  errors.email
+                    ? "border-rose-400 focus:ring-rose-200"
+                    : "border-stone-300 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20"
+                }`}
+              />
+            </div>
+            {errors.email && (
+              <span className="text-[11px] text-rose-500 font-medium mt-1 block">
+                {errors.email}
               </span>
             )}
           </div>

@@ -8,8 +8,8 @@ import {
   getVideos,
   getReviews,
   getAboutContent,
+  getGalleryCategories,
 } from "./services/api";
-import { mockCategories } from "./services/mockData";
 
 import Header from "./components/Header";
 import Slideshow from "./components/Slideshow";
@@ -36,7 +36,7 @@ function NavigationSwitcherBar() {
     <div className="bg-stone-900 text-white text-xs py-2 px-4 border-b border-stone-800 flex items-center justify-between sticky top-0 z-50 shadow-md">
       <div className="flex items-center gap-2">
         <Gem className="w-4 h-4 text-[#D4AF37]" />
-        <span className="font-serif font-bold text-stone-200 hidden sm:inline">Agadam Platform Navigation:</span>
+        <span className="font-serif font-bold text-stone-200 hidden sm:inline">Aadagam Platform Navigation:</span>
       </div>
 
       <div className="flex items-center gap-2">
@@ -80,6 +80,7 @@ function ClientStorefrontPage() {
   const [videos, setVideos] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [aboutContent, setAboutContent] = useState(null);
+  const [categories, setCategories] = useState(["All"]);
 
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
@@ -90,12 +91,13 @@ function ClientStorefrontPage() {
     async function loadInitialData() {
       try {
         setIsLoading(true);
-        const [info, slideData, videoData, reviewData, aboutData] = await Promise.all([
+        const [info, slideData, videoData, reviewData, aboutData, categoryData] = await Promise.all([
           getContactInfo(),
           getSlides(),
           getVideos(),
           getReviews(),
           getAboutContent(),
+          getGalleryCategories(),
         ]);
 
         setShopInfo(info);
@@ -103,6 +105,7 @@ function ClientStorefrontPage() {
         setVideos(videoData);
         setReviews(reviewData);
         setAboutContent(aboutData);
+        setCategories(categoryData);
       } catch (err) {
         console.error("Error loading website content:", err);
       } finally {
@@ -135,7 +138,7 @@ function ClientStorefrontPage() {
         </div>
         <div className="flex items-center gap-2 text-stone-700 font-serif font-bold text-xl">
           <Loader2 className="w-5 h-5 animate-spin text-[#B8860B]" />
-          <span>Loading Agadam Jewellery Storefront...</span>
+          <span>Loading Aadagam Jewellery Storefront...</span>
         </div>
         <p className="text-xs text-stone-500 font-light">Crafting Timeless Elegance</p>
       </div>
@@ -157,7 +160,7 @@ function ClientStorefrontPage() {
 
         {/* 2. Jewellery Gallery & Video Gallery */}
         <GallerySection
-          categories={mockCategories}
+          categories={categories}
           images={galleryImages}
           selectedCategory={selectedCategory}
           onSelectCategory={(cat) => setSelectedCategory(cat)}
@@ -190,10 +193,13 @@ function ClientStorefrontPage() {
   );
 }
 
-export default function App() {
+function MainLayout() {
+  const location = useLocation();
+  const showSwitcher = location.pathname === "/shop";
+
   return (
-    <BrowserRouter>
-      <NavigationSwitcherBar />
+    <>
+      {showSwitcher && <NavigationSwitcherBar />}
       <Routes>
         {/* Page 1: Platform Landing Page with Shop Registration */}
         <Route path="/" element={<PlatformLandingPage />} />
@@ -204,6 +210,14 @@ export default function App() {
         {/* Fallback route */}
         <Route path="*" element={<PlatformLandingPage />} />
       </Routes>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <MainLayout />
     </BrowserRouter>
   );
 }

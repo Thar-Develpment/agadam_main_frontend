@@ -32,13 +32,20 @@ export default function PlatformLandingPage() {
     phone: "",
     email: "",
     city: "",
-    specialization: "22K Gold & Diamonds",
     password: "",
   });
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationResult, setRegistrationResult] = useState(null);
+
+  const pwd = regData.password || "";
+  const checks = {
+    length: pwd.length === 8,
+    uppercase: /[A-Z]/.test(pwd),
+    lowercase: /[a-z]/.test(pwd),
+    number: /[0-9]/.test(pwd),
+  };
 
   const validate = () => {
     const newErrors = {};
@@ -64,8 +71,16 @@ export default function PlatformLandingPage() {
       newErrors.email = "Please enter a valid email address.";
     }
 
-    if (!regData.password || regData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters long.";
+    // Password validation: exactly 8 chars, 1 uppercase, 1 lowercase, 1 digit
+    const pwd = regData.password || "";
+    if (pwd.length !== 8) {
+      newErrors.password = "Password must be exactly 8 characters long.";
+    } else if (!/[A-Z]/.test(pwd)) {
+      newErrors.password = "Password must contain at least one uppercase letter.";
+    } else if (!/[a-z]/.test(pwd)) {
+      newErrors.password = "Password must contain at least one lowercase letter.";
+    } else if (!/[0-9]/.test(pwd)) {
+      newErrors.password = "Password must contain at least one number.";
     }
 
     setErrors(newErrors);
@@ -108,7 +123,7 @@ export default function PlatformLandingPage() {
             </div>
             <div>
               <span className="font-serif text-xl sm:text-2xl font-bold text-stone-900 tracking-wider block">
-                AGADAM PLATFORM
+                AADAGAM PLATFORM
               </span>
               <span className="text-[10px] text-[#B8860B] font-semibold uppercase tracking-widest block -mt-1">
                 Jewellery Business Platform
@@ -309,14 +324,28 @@ export default function PlatformLandingPage() {
                 </p>
               </div>
 
-              <div className="bg-white border border-stone-200 rounded-2xl p-4 max-w-sm mx-auto font-mono text-xs text-stone-700 space-y-1">
+              <div className="bg-white border border-stone-200 rounded-2xl p-5 max-w-sm mx-auto font-mono text-xs text-stone-700 space-y-2">
                 <div>Shop ID: <strong className="text-stone-900">{registrationResult.shopId}</strong></div>
                 <div>Registered: {new Date(registrationResult.registeredAt).toLocaleDateString()}</div>
+                <div className="border-t border-stone-100 pt-2 mt-2">
+                  <span className="block text-[10px] text-stone-400 font-sans uppercase font-bold tracking-wider mb-1">Your Store URL:</span>
+                  <a 
+                    href={`http://${registrationResult.domain}`} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="text-[#B8860B] hover:underline font-bold text-sm break-all"
+                  >
+                    {registrationResult.domain}
+                  </a>
+                </div>
               </div>
 
               <div className="pt-4 flex flex-col sm:flex-row justify-center gap-4">
                 <button
-                  onClick={() => navigate("/shop")}
+                  onClick={() => {
+                    const shopPrefix = registrationResult.domain.split(".")[0];
+                    navigate(`/shop?shop=${shopPrefix}`);
+                  }}
                   className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-stone-900 to-stone-800 hover:from-stone-800 hover:to-stone-700 text-[#FAF9F5] font-bold py-3.5 px-8 rounded-xl text-sm tracking-wider uppercase transition-all shadow-lg"
                 >
                   <Store className="w-4 h-4 text-[#D4AF37]" />
@@ -332,11 +361,11 @@ export default function PlatformLandingPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-[#FAF9F5] border border-[#D4AF37]/30 rounded-3xl p-6 sm:p-10 shadow-xl text-left">
+            <div className="bg-white border border-[#D4AF37]/20 rounded-[32px] p-8 sm:p-12 shadow-2xl shadow-stone-900/5 text-left transition-all">
               <form onSubmit={handleRegister} className="space-y-6">
                 {errors.submit && (
-                  <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs p-3.5 rounded-xl flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
+                  <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs p-4 rounded-2xl flex items-center gap-2">
+                    <AlertCircle className="w-4.5 h-4.5 shrink-0 text-rose-500" />
                     <span>{errors.submit}</span>
                   </div>
                 )}
@@ -344,25 +373,25 @@ export default function PlatformLandingPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {/* Shop Name */}
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
                       Jewellery Shop Name <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400">
                         <Store className="w-4 h-4" />
                       </div>
                       <input
                         type="text"
-                        placeholder="e.g. Agadam Jewellery & Gems"
+                        placeholder="e.g. Aadagam Jewellery & Gems"
                         value={regData.shopName}
                         onChange={(e) => {
                           setRegData({ ...regData, shopName: e.target.value });
                           if (errors.shopName) setErrors({ ...errors, shopName: null });
                         }}
-                        className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all ${
+                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${
                           errors.shopName
-                            ? "border-rose-400 focus:ring-rose-200"
-                            : "border-stone-300 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20"
+                            ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
+                            : "border-stone-200 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20 focus:bg-white"
                         }`}
                       />
                     </div>
@@ -375,25 +404,25 @@ export default function PlatformLandingPage() {
 
                   {/* Owner / Manager Name */}
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
                       Owner / Manager Name <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400">
                         <User className="w-4 h-4" />
                       </div>
                       <input
                         type="text"
-                        placeholder="e.g. Rajeshwar Agadam"
+                        placeholder="e.g. Rajeshwar Aadagam"
                         value={regData.ownerName}
                         onChange={(e) => {
                           setRegData({ ...regData, ownerName: e.target.value });
                           if (errors.ownerName) setErrors({ ...errors, ownerName: null });
                         }}
-                        className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all ${
+                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${
                           errors.ownerName
-                            ? "border-rose-400 focus:ring-rose-200"
-                            : "border-stone-300 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20"
+                            ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
+                            : "border-stone-200 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20 focus:bg-white"
                         }`}
                       />
                     </div>
@@ -406,11 +435,11 @@ export default function PlatformLandingPage() {
 
                   {/* Mobile Phone */}
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
                       Mobile Phone Number <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400">
                         <Phone className="w-4 h-4" />
                       </div>
                       <input
@@ -421,10 +450,10 @@ export default function PlatformLandingPage() {
                           setRegData({ ...regData, phone: e.target.value });
                           if (errors.phone) setErrors({ ...errors, phone: null });
                         }}
-                        className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all ${
+                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${
                           errors.phone
-                            ? "border-rose-400 focus:ring-rose-200"
-                            : "border-stone-300 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20"
+                            ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
+                            : "border-stone-200 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20 focus:bg-white"
                         }`}
                       />
                     </div>
@@ -437,25 +466,25 @@ export default function PlatformLandingPage() {
 
                   {/* Email Address */}
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
                       Email Address <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400">
                         <Mail className="w-4 h-4" />
                       </div>
                       <input
                         type="email"
-                        placeholder="e.g. owner@agadamjewellery.com"
+                        placeholder="e.g. owner@aadagamjewellery.com"
                         value={regData.email}
                         onChange={(e) => {
                           setRegData({ ...regData, email: e.target.value });
                           if (errors.email) setErrors({ ...errors, email: null });
                         }}
-                        className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all ${
+                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${
                           errors.email
-                            ? "border-rose-400 focus:ring-rose-200"
-                            : "border-stone-300 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20"
+                            ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
+                            : "border-stone-200 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20 focus:bg-white"
                         }`}
                       />
                     </div>
@@ -467,12 +496,12 @@ export default function PlatformLandingPage() {
                   </div>
 
                   {/* City / Location */}
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1.5">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
                       Showroom City / City
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400">
                         <MapPin className="w-4 h-4" />
                       </div>
                       <input
@@ -480,50 +509,33 @@ export default function PlatformLandingPage() {
                         placeholder="e.g. Mumbai, Maharashtra"
                         value={regData.city}
                         onChange={(e) => setRegData({ ...regData, city: e.target.value })}
-                        className="w-full pl-10 pr-4 py-3 bg-white border border-stone-300 rounded-xl text-sm focus:outline-none focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all"
+                        className="w-full pl-10 pr-4 py-3.5 bg-stone-50/50 border border-stone-200 rounded-2xl text-sm focus:outline-none focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:bg-white transition-all"
                       />
                     </div>
-                  </div>
-
-                  {/* Specialization */}
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1.5">
-                      Primary Specialization
-                    </label>
-                    <select
-                      value={regData.specialization}
-                      onChange={(e) => setRegData({ ...regData, specialization: e.target.value })}
-                      className="w-full px-4 py-3 bg-white border border-stone-300 rounded-xl text-sm focus:outline-none focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all"
-                    >
-                      <option value="22K Gold & Diamonds">22K Gold & Solitaire Diamonds</option>
-                      <option value="Antique Kundan & Polki">Antique Kundan & Polki Bridal</option>
-                      <option value="Temple Nakshi Gold">Temple Nakshi Gold</option>
-                      <option value="Silver & Lightweight Fashion">Silver & Lightweight Fashion</option>
-                    </select>
                   </div>
                 </div>
 
                 {/* Password */}
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
                     Account Secret Pin / Password <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400">
                       <Lock className="w-4 h-4" />
                     </div>
                     <input
                       type="password"
-                      placeholder="Minimum 6 characters"
+                      placeholder="Enter exactly 8 characters"
                       value={regData.password}
                       onChange={(e) => {
                         setRegData({ ...regData, password: e.target.value });
                         if (errors.password) setErrors({ ...errors, password: null });
                       }}
-                      className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all ${
+                      className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${
                         errors.password
-                          ? "border-rose-400 focus:ring-rose-200"
-                          : "border-stone-300 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20"
+                          ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
+                          : "border-stone-200 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20 focus:bg-white"
                       }`}
                     />
                   </div>
@@ -532,13 +544,36 @@ export default function PlatformLandingPage() {
                       {errors.password}
                     </span>
                   )}
+
+                  {/* Password Checklist Signal Display */}
+                  <div className="mt-3.5 space-y-2 bg-stone-50 border border-stone-100 rounded-2xl p-4 text-xs text-stone-600 shadow-inner">
+                    <p className="font-semibold text-stone-700 mb-1">Password Requirements Checklist:</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+                      <div className={`flex items-center gap-2 transition-colors duration-250 ${checks.length ? "text-emerald-700 font-medium" : "text-stone-400"}`}>
+                        <CheckCircle2 className={`w-4 h-4 transition-all ${checks.length ? "text-emerald-500 fill-emerald-50" : "text-stone-300"}`} />
+                        <span>Exactly 8 characters</span>
+                      </div>
+                      <div className={`flex items-center gap-2 transition-colors duration-250 ${checks.uppercase ? "text-emerald-700 font-medium" : "text-stone-400"}`}>
+                        <CheckCircle2 className={`w-4 h-4 transition-all ${checks.uppercase ? "text-emerald-500 fill-emerald-50" : "text-stone-300"}`} />
+                        <span>At least 1 uppercase letter</span>
+                      </div>
+                      <div className={`flex items-center gap-2 transition-colors duration-250 ${checks.lowercase ? "text-emerald-700 font-medium" : "text-stone-400"}`}>
+                        <CheckCircle2 className={`w-4 h-4 transition-all ${checks.lowercase ? "text-emerald-500 fill-emerald-50" : "text-stone-300"}`} />
+                        <span>At least 1 lowercase letter</span>
+                      </div>
+                      <div className={`flex items-center gap-2 transition-colors duration-250 ${checks.number ? "text-emerald-700 font-medium" : "text-stone-400"}`}>
+                        <CheckCircle2 className={`w-4 h-4 transition-all ${checks.number ? "text-emerald-500 fill-emerald-50" : "text-stone-300"}`} />
+                        <span>At least 1 number</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Submit Register Button */}
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-stone-900 via-stone-800 to-stone-950 hover:from-stone-800 hover:to-stone-900 text-[#FAF9F5] font-bold py-4 px-6 rounded-xl text-sm tracking-wider uppercase transition-all shadow-lg disabled:opacity-75"
+                  className="w-full flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-[#FAF9F5] border border-[#D4AF37]/30 hover:border-[#D4AF37] font-bold py-4 px-6 rounded-2xl text-sm tracking-wider uppercase transition-all shadow-md shadow-stone-950/10 hover:shadow-xl hover:shadow-[#D4AF37]/5 hover:-translate-y-0.5 disabled:opacity-75 disabled:hover:translate-y-0 disabled:hover:shadow-md"
                 >
                   {isSubmitting ? (
                     <>
@@ -559,13 +594,69 @@ export default function PlatformLandingPage() {
       </section>
 
       {/* Platform Footer */}
-      <footer className="bg-stone-950 text-stone-400 text-xs py-8 border-t border-stone-800 text-center">
-        <div className="max-w-7xl mx-auto px-4 space-y-3">
-          <div className="flex justify-center items-center gap-2">
-            <Gem className="w-4 h-4 text-[#D4AF37]" />
-            <span className="font-serif font-bold text-stone-200 text-base">AGADAM PLATFORM</span>
+      <footer className="bg-stone-950 text-stone-400 border-t border-stone-850 pt-16 pb-8 text-left">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-12 border-b border-stone-900">
+            {/* Column 1: Brand Info */}
+            <div className="lg:col-span-5 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37] flex items-center justify-center">
+                  <Gem className="w-5 h-5 text-[#D4AF37]" />
+                </div>
+                <span className="font-serif text-2xl font-bold text-white tracking-wider">
+                  AADAGAM PLATFORM
+                </span>
+              </div>
+              <p className="text-stone-450 text-xs sm:text-sm font-light leading-relaxed max-w-sm">
+                Empowering independent jewellery showrooms and boutique goldsmiths to build premium digital catalogues, display artisan craftsmanship, and receive client enquiries directly via WhatsApp.
+              </p>
+            </div>
+
+            {/* Column 2: Platform Features */}
+            <div className="lg:col-span-3 space-y-3">
+              <h4 className="font-serif font-bold text-white text-base tracking-wider uppercase">
+                Platform Features
+              </h4>
+              <ul className="space-y-2 text-xs sm:text-sm font-light text-stone-400">
+                <li className="hover:text-[#D4AF37] transition-colors">Instant Tenant Onboarding</li>
+                <li className="hover:text-[#D4AF37] transition-colors">Dynamic Image Catalogue</li>
+                <li className="hover:text-[#D4AF37] transition-colors">YouTube Atelier Showcase</li>
+                <li className="hover:text-[#D4AF37] transition-colors">Direct WhatsApp Messaging</li>
+                <li className="hover:text-[#D4AF37] transition-colors">Bespoke QR Code Countertop</li>
+              </ul>
+            </div>
+
+            {/* Column 3: Contact & Support */}
+            <div className="lg:col-span-4 space-y-3">
+              <h4 className="font-serif font-bold text-white text-base tracking-wider uppercase">
+                Contact & Support
+              </h4>
+              <p className="text-xs sm:text-sm text-stone-400 font-light leading-relaxed">
+                Have questions about our single-tenant plans, hosting custom subdomains, or technical integrations?
+              </p>
+              <div className="pt-2 text-xs text-stone-500 font-mono space-y-1">
+                <p>Support: <a href="mailto:support@aadagam.com" className="hover:text-[#D4AF37]">support@aadagam.com</a></p>
+                <p>Partnerships: <a href="mailto:partner@aadagam.com" className="hover:text-[#D4AF37]">partner@aadagam.com</a></p>
+                <p className="text-[#D4AF37] font-sans text-[11px] font-semibold mt-1">Available 24/7 for technical assistance</p>
+              </div>
+            </div>
           </div>
-          <p>© {new Date().getFullYear()} Agadam SaaS Platform. All Rights Reserved.</p>
+
+          {/* Bottom Copyright Bar */}
+          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500 font-light">
+            <p>
+              &copy; {new Date().getFullYear()} Aadagam SaaS Platform. All Rights Reserved.
+            </p>
+            <div className="flex items-center gap-1 text-stone-400">
+              <span>Crafted for luxury retail showrooms</span>
+            </div>
+            <a
+              href="#register"
+              className="text-[#D4AF37] hover:underline font-semibold"
+            >
+              Start Your Showroom &rarr;
+            </a>
+          </div>
         </div>
       </footer>
     </div>

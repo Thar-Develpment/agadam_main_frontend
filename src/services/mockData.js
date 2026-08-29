@@ -1,5 +1,5 @@
 export const mockShopInfo = {
-  name: "AGADAM JEWELLERY",
+  name: "AADAGAM JEWELLERY",
   tagline: "Timeless Elegance, Handcrafted Perfection",
   subTagline: "Crafting exquisite gold, diamond, & antique polki treasures since 1988",
   logoUrl: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=200&q=80",
@@ -7,18 +7,18 @@ export const mockShopInfo = {
   mapDirectionsUrl: "https://maps.google.com/?q=Mumbai+Jewellery+Quarter",
   phonePrimary: "+91 98765 43210",
   phoneSecondary: "+91 98765 43211",
-  email: "contact@agadamjewellery.com",
+  email: "contact@aadagamjewellery.com",
   whatsapp: "919876543210",
   socials: {
-    facebook: "https://facebook.com/agadamjewellery",
-    instagram: "https://instagram.com/agadamjewellery",
-    youtube: "https://youtube.com/@agadamjewellery",
+    facebook: "https://facebook.com/aadagamjewellery",
+    instagram: "https://instagram.com/aadagamjewellery",
+    youtube: "https://youtube.com/@aadagamjewellery",
   },
   qrCode: {
-    imageUrl: "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://agadamjewellery.com&color=1c1917&bgcolor=faf9f6",
+    imageUrl: "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://aadagamjewellery.com&color=1c1917&bgcolor=faf9f6",
     title: "Scan to Visit Our Digital Store",
     subtitle: "Share our website easily with friends & family",
-    websiteUrl: "https://agadamjewellery.com",
+    websiteUrl: "https://aadagamjewellery.com",
   },
 };
 
@@ -200,7 +200,7 @@ export const mockVideos = [
   },
   {
     id: "v2",
-    title: "Agadam Bridal Campaign 2026 | Royal Reflections",
+    title: "Aadagam Bridal Campaign 2026 | Royal Reflections",
     youtubeId: "LXb3EKWsInQ",
     thumbnail: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=800&q=80",
     category: "Bridal Showcase",
@@ -209,7 +209,7 @@ export const mockVideos = [
   },
   {
     id: "v3",
-    title: "Understanding Diamond Purity: 4Cs Guide by Agadam",
+    title: "Understanding Diamond Purity: 4Cs Guide by Aadagam",
     youtubeId: "J---aiyznGQ",
     thumbnail: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=800&q=80",
     category: "Jewellery Guide",
@@ -231,12 +231,12 @@ export const mockAboutContent = {
   title: "Our Heritage & Passion for Perfection",
   subtitle: "Blending Traditional Indian Artistry with Contemporary Refinement Since 1988",
   historyParagraphs: [
-    "Founded in 1988 by master goldsmith Rajeshwar Agadam, Agadam Jewellery began as a humble boutique studio with a single vision: to create authentic, heirloom-quality gold and diamond jewellery that celebrates life's most precious milestones.",
-    "Over three decades later, Agadam Jewellery has grown into a trusted hallmark of purity and artistic excellence. Every piece in our showroom is meticulously designed, ethically sourced, and handcrafted by seasoned artisans whose skills have been refined over generations.",
+    "Founded in 1988 by master goldsmith Rajeshwar Aadagam, Aadagam Jewellery began as a humble boutique studio with a single vision: to create authentic, heirloom-quality gold and diamond jewellery that celebrates life's most precious milestones.",
+    "Over three decades later, Aadagam Jewellery has grown into a trusted hallmark of purity and artistic excellence. Every piece in our showroom is meticulously designed, ethically sourced, and handcrafted by seasoned artisans whose skills have been refined over generations.",
     "Whether it is an ornate Kundan bridal ensemble, a timeless solitaire engagement ring, or lightweight daily wear, our commitment to 100% BIS hallmarked gold and certified diamonds remains unwavering.",
   ],
   founder: {
-    name: "Rajeshwar Agadam",
+    name: "Rajeshwar Aadagam",
     role: "Founder & Master Craftsman",
     quote: "Jewellery is not merely an ornament; it is a sacred record of love, heritage, and emotion passed from one generation to the next.",
     image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80",
@@ -271,7 +271,7 @@ export const mockAboutContent = {
     },
   ],
   featuredVideoId: "dQw4w9WgXcQ",
-  featuredVideoTitle: "Behind the Scenes at Agadam Jewellery Studio",
+  featuredVideoTitle: "Behind the Scenes at Aadagam Jewellery Studio",
 };
 
 export const mockReviews = [
@@ -281,7 +281,7 @@ export const mockReviews = [
     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80",
     rating: 5,
     date: "2 weeks ago",
-    review: "Purchased my entire wedding bridal jewellery set from Agadam Jewellery. The Polki necklace and matching jhumkas were breathtaking! The staff was incredibly patient and guided us through purity testing.",
+    review: "Purchased my entire wedding bridal jewellery set from Aadagam Jewellery. The Polki necklace and matching jhumkas were breathtaking! The staff was incredibly patient and guided us through purity testing.",
     purchasedItem: "Maharani Polki Bridal Set",
     verified: true,
   },
@@ -301,7 +301,7 @@ export const mockReviews = [
     avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80",
     rating: 5,
     date: "2 months ago",
-    review: "We have been buying all our anniversary and festival gold from Agadam for over 15 years. Their antique Nakshi temple work is unmatched in the city. Highly recommended!",
+    review: "We have been buying all our anniversary and festival gold from Aadagam for over 15 years. Their antique Nakshi temple work is unmatched in the city. Highly recommended!",
     purchasedItem: "Temple Gold Choker & Kadas",
     verified: true,
   },

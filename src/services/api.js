@@ -1,123 +1,289 @@
+import { apiClient, getTenantSubdomain } from "./apiClient";
 import {
   mockShopInfo,
   mockSlides,
-  mockGalleryImages,
-  mockVideos,
-  mockAboutContent,
   mockReviews,
+  mockAboutContent,
 } from "./mockData";
 
-// Helper helper to simulate network delay
-const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms));
+/**
+ * Utility helper to extract YouTube ID from standard video URLs
+ * Supports: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID, etc.
+ */
+function extractYoutubeId(url) {
+  if (!url) return "";
+  // Check if it's already just an ID (no slashes)
+  if (!url.includes("/") && !url.includes("?")) {
+    return url;
+  }
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : url;
+}
 
 /**
- * Fetch hero carousel slides
+ * Fetch hero carousel slides (No backend API, fallback to mock slides)
  * @returns {Promise<Array>} Array of slide objects
  */
 export async function getSlides() {
-  await delay(300);
   return mockSlides;
 }
 
 /**
- * Fetch gallery images filtered optionally by category
- * @param {string} category Optional category name filter ('All' or specific category)
- * @returns {Promise<Array>} Array of gallery image items
+ * Fetch list of category names from backend `/user/gallery_categories`
+ * @returns {Promise<Array>} Array of category names (e.g., ["All", "Necklaces", "Earrings"])
  */
-export async function getGalleryImages(category = "All") {
-  await delay(350);
-  if (!category || category === "All") {
-    return mockGalleryImages;
+export async function getGalleryCategories() {
+  try {
+    const subdomain = getTenantSubdomain();
+    const res = await apiClient.post("/user/gallery_categories", { subdomain });
+    if (res.data && res.data.status === 1 && Array.isArray(res.data.data)) {
+      const names = res.data.data.map(cat => cat.category_name);
+      return ["All", ...names];
+    }
+    return ["All"];
+  } catch (err) {
+    console.error("Error in getGalleryCategories:", err);
+    return ["All"];
   }
-  return mockGalleryImages.filter(
-    (item) => item.category.toLowerCase() === category.toLowerCase()
-  );
 }
 
 /**
- * Fetch embedded YouTube videos list
+ * Fetch gallery images filtered optionally by category name
+ * Hits the backend `/user/gallery_categories` and `/user/galler_details` (preserving backend typo)
+ * @param {string} categoryName Optional category name filter ('All' or specific category)
+ * @returns {Promise<Array>} Array of gallery image items
+ */
+export async function getGalleryImages(categoryName = "All") {
+  try {
+    const subdomain = getTenantSubdomain();
+    
+    // 1. Fetch categories to build an ID-to-Name map
+    let categoriesMap = new Map();
+    try {
+      const catRes = await apiClient.post("/user/gallery_categories", { subdomain });
+      if (catRes.data && catRes.data.status === 1 && Array.isArray(catRes.data.data)) {
+        catRes.data.data.forEach((cat) => {
+          categoriesMap.set(cat.id, cat.category_name);
+        });
+      }
+    } catch (catErr) {
+      console.warn("Failed to fetch gallery categories from backend:", catErr);
+    }
+
+    // 2. Fetch the gallery details
+    const res = await apiClient.post("/user/galler_details", { subdomain });
+    if (res.data && res.data.status === 1 && Array.isArray(res.data.data)) {
+      // Map backend database format to frontend card format
+      const mappedImages = res.data.data.map((item) => {
+        const mappedCategory = categoriesMap.get(item.category_id) || "General";
+        return {
+          id: item.id.toString(),
+          title: `${mappedCategory} Collection`, // Fallback title based on category
+          category: mappedCategory,
+          purity: "22K BIS Hallmarked", // Standard default
+          imageUrl: item.image_url,
+          description: "Exquisite handcrafted design.", // Placeholder description
+          code: `AG-ITM-${item.id}`, // Generated fallback code
+        };
+      });
+
+      if (!categoryName || categoryName === "All") {
+        return mappedImages;
+      }
+      return mappedImages.filter(
+        (img) => img.category.toLowerCase() === categoryName.toLowerCase()
+      );
+    }
+    return [];
+  } catch (err) {
+    console.error("Error in getGalleryImages:", err);
+    return [];
+  }
+}
+
+/**
+ * Fetch embedded YouTube videos list from backend `/user/videos_details`
  * @returns {Promise<Array>} Array of video objects
  */
 export async function getVideos() {
-  await delay(300);
-  return mockVideos;
+  try {
+    const subdomain = getTenantSubdomain();
+    const res = await apiClient.post("/user/videos_details", { subdomain });
+    
+    if (res.data && res.data.status === 1 && Array.isArray(res.data.data)) {
+      return res.data.data.map((item) => {
+        const youtubeId = extractYoutubeId(item.video_url);
+        return {
+          id: item.id.toString(),
+          title: "Featured Video Showcase", // Placeholder title
+          youtubeId: youtubeId,
+          thumbnail: youtubeId 
+            ? `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg`
+            : "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=800&q=80",
+          category: "Showcase",
+          duration: "Video",
+          description: "Watch our exclusive collections and craftsmanship story.",
+        };
+      });
+    }
+    return [];
+  } catch (err) {
+    console.error("Error in getVideos:", err);
+    return [];
+  }
 }
 
 /**
- * Fetch customer reviews
+ * Fetch customer reviews (No backend API, fallback to mock reviews)
  * @returns {Promise<Array>} Array of review objects
  */
 export async function getReviews() {
-  await delay(300);
   return mockReviews;
 }
 
 /**
- * Fetch About Us story & content
+ * Fetch About Us story & content from backend `/user/our_stories`
  * @returns {Promise<Object>} About content object
  */
 export async function getAboutContent() {
-  await delay(300);
-  return mockAboutContent;
+  try {
+    const subdomain = getTenantSubdomain();
+    const res = await apiClient.post("/user/our_stories", { subdomain });
+    
+    if (res.data && res.data.status === 1 && Array.isArray(res.data.data) && res.data.data.length > 0) {
+      // Find the first active story or the latest one
+      const activeStory = res.data.data.find(story => story.status === 1) || res.data.data[0];
+      return {
+        ...mockAboutContent,
+        historyParagraphs: [activeStory.content],
+      };
+    }
+    return mockAboutContent;
+  } catch (err) {
+    console.error("Error in getAboutContent:", err);
+    return mockAboutContent;
+  }
 }
 
 /**
- * Fetch shop contact info, address, socials, and QR code info
+ * Fetch shop contact info (No backend API, fallback to mock with dynamic shop name if URL available)
  * @returns {Promise<Object>} Shop info object
  */
 export async function getContactInfo() {
-  await delay(250);
-  return mockShopInfo;
+  const subdomain = getTenantSubdomain();
+  // Extract clean name prefix for branding purposes
+  const shopNamePrefix = subdomain.split(".")[0].toUpperCase();
+  return {
+    ...mockShopInfo,
+    name: shopNamePrefix !== "MYCOMPANY" ? shopNamePrefix : mockShopInfo.name,
+  };
 }
 
 /**
- * Submit an enquiry form
- * @param {Object} formData { name: string, phone: string, message: string }
- * @returns {Promise<Object>} Response object { success: boolean, message: string, enquiryId: string }
+ * Submit an enquiry form to backend `/user/ask_question`
+ * @param {Object} formData { name: string, email: string, message: string }
+ * @returns {Promise<Object>} Response object { success: boolean, message: string }
  */
 export async function submitEnquiry(formData) {
-  await delay(700);
+  try {
+    const subdomain = getTenantSubdomain();
+    const payload = {
+      subdomain,
+      customer_name: formData.name,
+      email: formData.email,
+      query: formData.message,
+    };
 
-  // Simple runtime validation safeguard
-  if (!formData.name || !formData.phone || !formData.message) {
+    const res = await apiClient.post("/user/ask_question", payload);
+    
+    if (res.data && res.data.status === 1) {
+      return {
+        success: true,
+        message: res.data.message || "Submitted successfully!",
+      };
+    } else {
+      return {
+        success: false,
+        message: res.data.message || "Failed to submit enquiry. Please try again.",
+      };
+    }
+  } catch (err) {
+    console.error("Error in submitEnquiry:", err);
+    let errorMsg = "An unexpected error occurred.";
+    if (err.response?.data?.errors) {
+      const errs = err.response.data.errors;
+      // Handle express-validator style validation objects or database strings
+      if (typeof errs === "object") {
+        errorMsg = Object.values(errs)
+          .map((e) => e.message || e)
+          .join(" ");
+      } else if (Array.isArray(errs)) {
+        errorMsg = errs.join(" ");
+      }
+    } else if (err.response?.data?.message) {
+      errorMsg = err.response.data.message;
+    }
     return {
       success: false,
-      message: "Please complete all required fields.",
+      message: errorMsg,
     };
   }
-
-  // Return simulated successful response
-  return {
-    success: true,
-    message: "Thank you for reaching out! Our jewellery expert will contact you shortly.",
-    enquiryId: `ENQ-${Math.floor(100000 + Math.random() * 900000)}`,
-    submittedAt: new Date().toISOString(),
-  };
 }
 
 /**
- * Register a new jewellery shop on the platform
- * @param {Object} regData { shopName, ownerName, phone, email, city, specialization, password }
- * @returns {Promise<Object>} Response object { success: boolean, shopId: string, message: string }
+ * Register a new jewellery shop on the platform via backend `/auth/register`
+ * @param {Object} regData { shopName, ownerName, email, password, city }
+ * @returns {Promise<Object>} Response object { success: boolean, message: string, domain: string }
  */
 export async function registerShop(regData) {
-  await delay(600);
+  try {
+    const payload = {
+      shop_name: regData.shopName,
+      owner_name: regData.ownerName,
+      email: regData.email,
+      password: regData.password,
+      city: regData.city,
+    };
 
-  if (!regData.shopName || !regData.ownerName || !regData.phone || !regData.email) {
+    const res = await apiClient.post("/auth/register", payload);
+    
+    if (res.data && res.data.success === 1) {
+      return {
+        success: true,
+        message: res.data.message || "Registered successfully!",
+        domain: res.data.data?.domain || `${regData.shopName.toLowerCase()}.aadagam.com`,
+        shopName: res.data.data?.shop_name || regData.shopName,
+        shopId: res.data.data?.id || `SHOP-${Math.floor(1000 + Math.random() * 9000)}`,
+        registeredAt: new Date().toISOString(),
+      };
+    } else {
+      return {
+        success: false,
+        message: res.data.message || "Registration failed.",
+      };
+    }
+  } catch (err) {
+    console.error("Error in registerShop:", err);
+    let errorMsg = "Registration failed.";
+    
+    if (err.response?.data) {
+      const body = err.response.data;
+      if (body.errors) {
+        if (Array.isArray(body.errors)) {
+          errorMsg = body.errors.join("\n");
+        } else if (typeof body.errors === "object") {
+          errorMsg = Object.values(body.errors)
+            .map((e) => e.message || e)
+            .join("\n");
+        }
+      } else if (body.message) {
+        errorMsg = body.message;
+      }
+    }
     return {
       success: false,
-      message: "Please fill in all required registration fields.",
+      message: errorMsg,
     };
   }
-
-  const shopId = `SHOP-${Math.floor(1000 + Math.random() * 9000)}`;
-
-  return {
-    success: true,
-    shopId,
-    shopName: regData.shopName,
-    message: `Congratulations! ${regData.shopName} has been registered successfully on Agadam Platform.`,
-    registeredAt: new Date().toISOString(),
-  };
 }
-
