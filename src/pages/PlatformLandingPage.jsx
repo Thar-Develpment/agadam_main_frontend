@@ -100,6 +100,21 @@ export default function PlatformLandingPage() {
       setIsSubmitting(false);
 
       if (response.success) {
+        // Save credentials in simulated localStorage tenant list for local admin login
+        const tenants = JSON.parse(localStorage.getItem("aadagam_registered_tenants") || "[]");
+        const exists = tenants.some((t) => t.email.toLowerCase() === regData.email.toLowerCase());
+        if (!exists) {
+          tenants.push({
+            email: regData.email,
+            password: regData.password,
+            shopName: regData.shopName,
+            ownerName: regData.ownerName,
+            domain: response.domain || `${regData.shopName.replace(/\s+/g, "").toLowerCase()}.aadagam.com`,
+            registeredAt: response.registeredAt || new Date().toISOString()
+          });
+          localStorage.setItem("aadagam_registered_tenants", JSON.stringify(tenants));
+        }
+
         setRegistrationResult(response);
         setErrors({});
       } else {
@@ -132,7 +147,16 @@ export default function PlatformLandingPage() {
           </div>
 
           {/* Desktop Nav Actions */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <Link
+              to="/admin"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-850 hover:text-[#B8860B] transition-colors"
+            >
+              <span>Admin Sign In</span>
+            </Link>
+
+            <span className="text-stone-300 hidden sm:inline">|</span>
+
             <Link
               to="/shop"
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-700 hover:text-[#B8860B] transition-colors"
@@ -329,9 +353,9 @@ export default function PlatformLandingPage() {
                 <div>Registered: {new Date(registrationResult.registeredAt).toLocaleDateString()}</div>
                 <div className="border-t border-stone-100 pt-2 mt-2">
                   <span className="block text-[10px] text-stone-400 font-sans uppercase font-bold tracking-wider mb-1">Your Store URL:</span>
-                  <a 
-                    href={`http://${registrationResult.domain}`} 
-                    target="_blank" 
+                  <a
+                    href={`http://${registrationResult.domain}`}
+                    target="_blank"
                     rel="noreferrer"
                     className="text-[#B8860B] hover:underline font-bold text-sm break-all"
                   >
@@ -353,10 +377,10 @@ export default function PlatformLandingPage() {
                 </button>
 
                 <button
-                  onClick={() => setRegistrationResult(null)}
-                  className="bg-stone-200 hover:bg-stone-300 text-stone-800 font-semibold py-3.5 px-6 rounded-xl text-sm transition-colors"
+                  onClick={() => navigate("/admin")}
+                  className="bg-stone-900 hover:bg-stone-850 text-white border border-stone-800 font-semibold py-3.5 px-6 rounded-xl text-sm transition-colors"
                 >
-                  Register Another Shop
+                  Admin Sign In
                 </button>
               </div>
             </div>
@@ -388,11 +412,10 @@ export default function PlatformLandingPage() {
                           setRegData({ ...regData, shopName: e.target.value });
                           if (errors.shopName) setErrors({ ...errors, shopName: null });
                         }}
-                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${
-                          errors.shopName
+                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${errors.shopName
                             ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
                             : "border-stone-200 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20 focus:bg-white"
-                        }`}
+                          }`}
                       />
                     </div>
                     {errors.shopName && (
@@ -419,11 +442,10 @@ export default function PlatformLandingPage() {
                           setRegData({ ...regData, ownerName: e.target.value });
                           if (errors.ownerName) setErrors({ ...errors, ownerName: null });
                         }}
-                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${
-                          errors.ownerName
+                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${errors.ownerName
                             ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
                             : "border-stone-200 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20 focus:bg-white"
-                        }`}
+                          }`}
                       />
                     </div>
                     {errors.ownerName && (
@@ -450,11 +472,10 @@ export default function PlatformLandingPage() {
                           setRegData({ ...regData, phone: e.target.value });
                           if (errors.phone) setErrors({ ...errors, phone: null });
                         }}
-                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${
-                          errors.phone
+                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${errors.phone
                             ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
                             : "border-stone-200 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20 focus:bg-white"
-                        }`}
+                          }`}
                       />
                     </div>
                     {errors.phone && (
@@ -481,11 +502,10 @@ export default function PlatformLandingPage() {
                           setRegData({ ...regData, email: e.target.value });
                           if (errors.email) setErrors({ ...errors, email: null });
                         }}
-                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${
-                          errors.email
+                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${errors.email
                             ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
                             : "border-stone-200 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20 focus:bg-white"
-                        }`}
+                          }`}
                       />
                     </div>
                     {errors.email && (
@@ -532,11 +552,10 @@ export default function PlatformLandingPage() {
                         setRegData({ ...regData, password: e.target.value });
                         if (errors.password) setErrors({ ...errors, password: null });
                       }}
-                      className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${
-                        errors.password
+                      className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${errors.password
                           ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
                           : "border-stone-200 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20 focus:bg-white"
-                      }`}
+                        }`}
                     />
                   </div>
                   {errors.password && (
@@ -547,7 +566,6 @@ export default function PlatformLandingPage() {
 
                   {/* Password Checklist Signal Display */}
                   <div className="mt-3.5 space-y-2 bg-stone-50 border border-stone-100 rounded-2xl p-4 text-xs text-stone-600 shadow-inner">
-                    <p className="font-semibold text-stone-700 mb-1">Password Requirements Checklist:</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                       <div className={`flex items-center gap-2 transition-colors duration-250 ${checks.length ? "text-emerald-700 font-medium" : "text-stone-400"}`}>
                         <CheckCircle2 className={`w-4 h-4 transition-all ${checks.length ? "text-emerald-500 fill-emerald-50" : "text-stone-300"}`} />

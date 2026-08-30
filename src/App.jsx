@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import PlatformLandingPage from "./pages/PlatformLandingPage";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
 import {
   getContactInfo,
   getSlides,
@@ -22,6 +24,7 @@ import Footer from "./components/Footer";
 import QRCodeModal from "./components/QRCodeModal";
 import WhatsAppButton from "./components/WhatsAppButton";
 import { Gem, Loader2, Store, Home } from "lucide-react";
+import { getTenantSubdomain } from "./services/apiClient";
 
 
 /**
@@ -100,12 +103,66 @@ function ClientStorefrontPage() {
           getGalleryCategories(),
         ]);
 
-        setShopInfo(info);
-        setSlides(slideData);
-        setVideos(videoData);
+        const subdomain = getTenantSubdomain();
+        const shopPrefix = subdomain.split(".")[0];
+
+        // 1. Contact Settings
+        const localContact = localStorage.getItem(`aadagam_contact_info_${shopPrefix}`);
+        if (localContact) {
+          setShopInfo(JSON.parse(localContact));
+        } else {
+          setShopInfo({
+            ...info,
+            name: shopPrefix.toUpperCase() + " JEWELLERY",
+            email: `contact@${shopPrefix}jewellery.com`,
+          });
+        }
+
+        // 2. Slides
+        const localSlides = localStorage.getItem(`aadagam_carousel_slides_${shopPrefix}`);
+        if (localSlides) {
+          setSlides(JSON.parse(localSlides));
+        } else {
+          setSlides(slideData);
+        }
+
+        // 3. Videos
+        const localVideo = localStorage.getItem(`aadagam_video_url_${shopPrefix}`);
+        if (localVideo) {
+          setVideos([
+            {
+              id: "v1",
+              title: "Showroom Atelier Film",
+              youtubeId: localVideo,
+              description: "Explore our latest bespoke collections.",
+            }
+          ]);
+        } else {
+          setVideos(videoData);
+        }
+
+        // 4. About Content
+        const localAbout = localStorage.getItem(`aadagam_about_content_${shopPrefix}`);
+        if (localAbout) {
+          const parsedAbout = JSON.parse(localAbout);
+          setAboutContent({
+            ...aboutData,
+            title: parsedAbout.title || aboutData.title,
+            historyParagraphs: parsedAbout.historyParagraphs || aboutData.historyParagraphs
+          });
+        } else {
+          setAboutContent(aboutData);
+        }
+
+        // 5. Categories
+        const localCats = localStorage.getItem(`aadagam_gallery_categories_${shopPrefix}`);
+        if (localCats) {
+          setCategories(JSON.parse(localCats));
+        } else {
+          setCategories(categoryData);
+        }
+
         setReviews(reviewData);
-        setAboutContent(aboutData);
-        setCategories(categoryData);
       } catch (err) {
         console.error("Error loading website content:", err);
       } finally {
@@ -120,8 +177,21 @@ function ClientStorefrontPage() {
   useEffect(() => {
     async function fetchGallery() {
       try {
-        const images = await getGalleryImages(selectedCategory);
-        setGalleryImages(images);
+        const subdomain = getTenantSubdomain();
+        const shopPrefix = subdomain.split(".")[0];
+        const localImages = localStorage.getItem(`aadagam_gallery_images_${shopPrefix}`);
+        
+        if (localImages) {
+          const allImages = JSON.parse(localImages);
+          if (selectedCategory === "All") {
+            setGalleryImages(allImages);
+          } else {
+            setGalleryImages(allImages.filter((img) => img.categoryId === selectedCategory));
+          }
+        } else {
+          const images = await getGalleryImages(selectedCategory);
+          setGalleryImages(images);
+        }
       } catch (err) {
         console.error("Error fetching gallery images:", err);
       }
@@ -170,9 +240,6 @@ function ClientStorefrontPage() {
         {/* 3. About Us Article Section */}
         <AboutSection aboutContent={aboutContent} />
 
-        {/* 4. Google Reviews Section */}
-        <ReviewsSection reviews={reviews} />
-
         {/* 5. Contact Us & Enquiry Form Section */}
         <ContactSection shopInfo={shopInfo} />
       </main>
@@ -206,6 +273,12 @@ function MainLayout() {
 
         {/* Page 2: Client Site Storefront Page */}
         <Route path="/shop" element={<ClientStorefrontPage />} />
+
+        {/* Page 3: Admin Sign In */}
+        <Route path="/admin" element={<AdminLogin />} />
+
+        {/* Page 4: Admin Management Dashboard */}
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
         {/* Fallback route */}
         <Route path="*" element={<PlatformLandingPage />} />

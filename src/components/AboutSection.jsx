@@ -100,37 +100,6 @@ export default function AboutSection({ aboutContent }) {
           </div>
         </div>
 
-        {/* Core Values Cards */}
-        <div className="mb-16">
-          <div className="text-center mb-8">
-            <h3 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
-              Pillars of Aadagam Jewellery
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {aboutContent.values?.map((val, idx) => {
-              const IconComp = valueIcons[val.icon] || Sparkles;
-              return (
-                <div
-                  key={idx}
-                  className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow text-left space-y-3"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-[#D4AF37]/10 text-[#B8860B] flex items-center justify-center">
-                    <IconComp className="w-6 h-6" />
-                  </div>
-                  <h4 className="font-serif font-bold text-stone-900 text-lg">
-                    {val.title}
-                  </h4>
-                  <p className="text-xs text-stone-600 font-light leading-relaxed">
-                    {val.description}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Embedded Featured Article Video */}
         {aboutContent.featuredVideoId && (
           <div className="bg-stone-900 rounded-3xl p-6 sm:p-10 border border-[#D4AF37]/30 text-white">
