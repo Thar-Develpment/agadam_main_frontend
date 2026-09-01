@@ -116,7 +116,7 @@ export default function VideoGallery({ videos = [] }) {
             {/* Video Description Footer */}
             <div className="p-4 bg-stone-900 text-xs text-stone-300 font-light flex items-center justify-between">
               <span>Category: {activeVideo.category}</span>
-              <span className="text-[#D4AF37]">Official Aadagam Jewellery YouTube Channel</span>
+              <span className="text-[#D4AF37]">Official Store Showcase Video</span>
             </div>
           </div>
         </div>

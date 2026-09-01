@@ -50,12 +50,18 @@ export default function PlatformLandingPage() {
   const validate = () => {
     const newErrors = {};
 
-    if (!regData.shopName.trim()) {
+    const shopName = regData.shopName.trim();
+    if (!shopName) {
       newErrors.shopName = "Jewellery shop name is required.";
+    } else if (shopName.length > 10) {
+      newErrors.shopName = "Shop name must not exceed 10 characters (backend constraint).";
     }
 
-    if (!regData.ownerName.trim()) {
+    const ownerName = regData.ownerName.trim();
+    if (!ownerName) {
       newErrors.ownerName = "Owner / Contact person name is required.";
+    } else if (ownerName.length > 150) {
+      newErrors.ownerName = "Owner name must not exceed 150 characters.";
     }
 
     const cleanPhone = regData.phone.replace(/\D/g, "");
@@ -65,10 +71,20 @@ export default function PlatformLandingPage() {
       newErrors.phone = "Please enter a valid 10-digit mobile number.";
     }
 
-    if (!regData.email.trim()) {
+    const email = regData.email.trim();
+    if (!email) {
       newErrors.email = "Email address is required.";
-    } else if (!/\S+@\S+\.\S+/.test(regData.email)) {
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
       newErrors.email = "Please enter a valid email address.";
+    } else if (email.length > 255) {
+      newErrors.email = "Email must not exceed 255 characters.";
+    }
+
+    const city = regData.city.trim();
+    if (!city) {
+      newErrors.city = "City is required.";
+    } else if (city.length > 12) {
+      newErrors.city = "City name must not exceed 12 characters (backend constraint).";
     }
 
     // Password validation: exactly 8 chars, 1 uppercase, 1 lowercase, 1 digit
@@ -159,10 +175,10 @@ export default function PlatformLandingPage() {
 
             <Link
               to="/shop"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-700 hover:text-[#B8860B] transition-colors"
+              className="inline-flex items-center gap-1.5 bg-[#D4AF37]/15 hover:bg-[#D4AF37]/25 text-stone-900 border border-[#D4AF37]/50 font-bold px-3.5 py-2 rounded-xl text-xs tracking-wider transition-all shadow-sm hover:shadow"
             >
-              <span>View Client Storefront Demo</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <span>View Demo Website</span>
+              <ExternalLink className="w-3.5 h-3.5 text-[#B8860B]" />
             </Link>
 
             <a
@@ -406,10 +422,11 @@ export default function PlatformLandingPage() {
                       </div>
                       <input
                         type="text"
-                        placeholder="e.g. Aadagam Jewellery & Gems"
+                        maxLength={10}
+                        placeholder="e.g. royaljewel (max 10)"
                         value={regData.shopName}
                         onChange={(e) => {
-                          setRegData({ ...regData, shopName: e.target.value });
+                          setRegData({ ...regData, shopName: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "") });
                           if (errors.shopName) setErrors({ ...errors, shopName: null });
                         }}
                         className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${errors.shopName
@@ -418,6 +435,7 @@ export default function PlatformLandingPage() {
                           }`}
                       />
                     </div>
+                    <span className="text-[10px] text-stone-400 mt-1 block">Subdomain: {regData.shopName || "yourshop"}.aadagam.com (max 10 chars)</span>
                     {errors.shopName && (
                       <span className="text-[11px] text-rose-500 font-medium mt-1 block">
                         {errors.shopName}
@@ -436,7 +454,8 @@ export default function PlatformLandingPage() {
                       </div>
                       <input
                         type="text"
-                        placeholder="e.g. Rajeshwar Aadagam"
+                        maxLength={150}
+                        placeholder="e.g. Rajesh Kumar"
                         value={regData.ownerName}
                         onChange={(e) => {
                           setRegData({ ...regData, ownerName: e.target.value });
@@ -466,6 +485,7 @@ export default function PlatformLandingPage() {
                       </div>
                       <input
                         type="tel"
+                        maxLength={15}
                         placeholder="e.g. +91 98765 43210"
                         value={regData.phone}
                         onChange={(e) => {
@@ -496,7 +516,8 @@ export default function PlatformLandingPage() {
                       </div>
                       <input
                         type="email"
-                        placeholder="e.g. owner@aadagamjewellery.com"
+                        maxLength={255}
+                        placeholder="e.g. owner@example.com"
                         value={regData.email}
                         onChange={(e) => {
                           setRegData({ ...regData, email: e.target.value });
@@ -518,7 +539,7 @@ export default function PlatformLandingPage() {
                   {/* City / Location */}
                   <div className="sm:col-span-2">
                     <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
-                      Showroom City / City
+                      Showroom City <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400">
@@ -526,12 +547,24 @@ export default function PlatformLandingPage() {
                       </div>
                       <input
                         type="text"
-                        placeholder="e.g. Mumbai, Maharashtra"
+                        maxLength={12}
+                        placeholder="e.g. Mumbai (max 12 chars)"
                         value={regData.city}
-                        onChange={(e) => setRegData({ ...regData, city: e.target.value })}
-                        className="w-full pl-10 pr-4 py-3.5 bg-stone-50/50 border border-stone-200 rounded-2xl text-sm focus:outline-none focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:bg-white transition-all"
+                        onChange={(e) => {
+                          setRegData({ ...regData, city: e.target.value });
+                          if (errors.city) setErrors({ ...errors, city: null });
+                        }}
+                        className={`w-full pl-10 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 focus:bg-white transition-all ${errors.city
+                            ? "border-rose-400 focus:ring-rose-200"
+                            : "border-stone-200 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20"
+                          }`}
                       />
                     </div>
+                    {errors.city && (
+                      <span className="text-[11px] text-rose-500 font-medium mt-1 block">
+                        {errors.city}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -546,6 +579,7 @@ export default function PlatformLandingPage() {
                     </div>
                     <input
                       type="password"
+                      maxLength={8}
                       placeholder="Enter exactly 8 characters"
                       value={regData.password}
                       onChange={(e) => {

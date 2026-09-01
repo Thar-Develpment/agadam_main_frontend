@@ -113,7 +113,7 @@ export default function AboutSection({ aboutContent }) {
               <div className="aspect-video w-full rounded-2xl overflow-hidden shadow-2xl border border-stone-800 mt-6">
                 <iframe
                   src={`https://www.youtube.com/embed/${aboutContent.featuredVideoId}`}
-                  title="Aadagam Heritage Video"
+                  title={aboutContent.featuredVideoTitle || "Showroom Heritage Video"}
                   className="w-full h-full border-0"
                   allowFullScreen
                 />

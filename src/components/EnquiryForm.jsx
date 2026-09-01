@@ -17,8 +17,11 @@ export default function EnquiryForm() {
   const validate = () => {
     const newErrors = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = "Full name is required.";
+    const name = formData.name.trim();
+    if (!name) {
+      newErrors.name = "Customer name is required.";
+    } else if (name.length > 20) {
+      newErrors.name = "Name must not exceed 20 characters (backend constraint).";
     }
 
     const cleanPhone = formData.phone.replace(/\D/g, "");
@@ -28,14 +31,20 @@ export default function EnquiryForm() {
       newErrors.phone = "Please enter a valid 10-digit mobile number.";
     }
 
-    if (!formData.email.trim()) {
+    const email = formData.email.trim();
+    if (!email) {
       newErrors.email = "Email address is required.";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
       newErrors.email = "Please enter a valid email address.";
+    } else if (email.length > 255) {
+      newErrors.email = "Email must not exceed 255 characters.";
     }
 
-    if (!formData.message.trim()) {
+    const message = formData.message.trim();
+    if (!message) {
       newErrors.message = "Please write a brief message or request.";
+    } else if (message.length > 1000) {
+      newErrors.message = "Message must not exceed 1000 characters.";
     }
 
     setErrors(newErrors);
@@ -129,7 +138,8 @@ export default function EnquiryForm() {
               </div>
               <input
                 type="text"
-                placeholder="e.g. Priyadarshini Sharma"
+                maxLength={20}
+                placeholder="e.g. Priyadarshini (max 20)"
                 value={formData.name}
                 onChange={(e) => {
                   setFormData({ ...formData, name: e.target.value });
@@ -160,6 +170,7 @@ export default function EnquiryForm() {
               </div>
               <input
                 type="tel"
+                maxLength={15}
                 placeholder="e.g. +91 98765 43210"
                 value={formData.phone}
                 onChange={(e) => {
@@ -191,6 +202,7 @@ export default function EnquiryForm() {
               </div>
               <input
                 type="email"
+                maxLength={255}
                 placeholder="e.g. customer@example.com"
                 value={formData.email}
                 onChange={(e) => {
@@ -222,6 +234,7 @@ export default function EnquiryForm() {
               </div>
               <textarea
                 rows={4}
+                maxLength={1000}
                 placeholder="Specify requirements (e.g., Kundan bridal necklace pricing, 2ct diamond ring availability, store visit timing...)"
                 value={formData.message}
                 onChange={(e) => {

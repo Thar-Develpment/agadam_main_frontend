@@ -15,6 +15,7 @@ export default function GallerySection({
   images = [],
   onSelectCategory,
   selectedCategory = "All",
+  shopInfo,
 }) {
   const [lightboxIndex, setLightboxIndex] = useState(null);
 
@@ -233,7 +234,7 @@ export default function GallerySection({
               {/* Action Buttons */}
               <div className="space-y-3 pt-4 border-t border-stone-200">
                 <a
-                  href={`https://wa.me/919876543210?text=Hello%20Aadagam%20Jewellery%2C%20I%20am%20interested%20in%20item%20${encodeURIComponent(currentImage.title)}%20(Code%3A%20${currentImage.code}).`}
+                  href={`https://wa.me/${(shopInfo?.whatsapp || "919876543210").replace(/\D/g, "")}?text=Hello%20${encodeURIComponent(shopInfo?.name || "Jewellery Boutique")}%2C%20I%20am%20interested%20in%20item%20${encodeURIComponent(currentImage.title)}%20(Code%3A%20${currentImage.code}).`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba59] text-white font-semibold py-3 px-4 rounded-xl text-sm transition-colors shadow-md"

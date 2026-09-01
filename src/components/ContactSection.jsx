@@ -15,10 +15,10 @@ import { FacebookIcon, InstagramIcon, YoutubeIcon } from "./SocialIcons";
 export default function ContactSection({ shopInfo }) {
   const address =
     shopInfo?.address ||
-    "104 Royal Heritage Plaza, MG Road, Jewellery Quarter, Mumbai 400001";
+    (shopInfo?.city ? `Main Commercial Avenue, ${shopInfo.city}` : "Flagship Boutique, Jewellery Quarter");
   const phonePrimary = shopInfo?.phonePrimary || "+91 98765 43210";
   const phoneSecondary = shopInfo?.phoneSecondary || "+91 98765 43211";
-  const email = shopInfo?.email || "contact@aadagamjewellery.com";
+  const email = shopInfo?.email || "contact@jewellerystore.com";
   const whatsapp = shopInfo?.whatsapp || "919876543210";
   const socials = shopInfo?.socials || {};
 

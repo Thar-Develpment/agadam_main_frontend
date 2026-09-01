@@ -182,17 +182,23 @@ export async function getContactInfo() {
 
 /**
  * Submit an enquiry form to backend `/user/ask_question`
- * @param {Object} formData { name: string, email: string, message: string }
+ * @param {Object} formData { name: string, phone: string, email: string, message: string }
  * @returns {Promise<Object>} Response object { success: boolean, message: string }
  */
 export async function submitEnquiry(formData) {
   try {
     const subdomain = getTenantSubdomain();
+    // Prepend customer phone number into query text since am_asked_questions table stores (subdomain, customer_name, email, query)
+    const cleanPhone = formData.phone ? formData.phone.trim() : "";
+    const queryText = cleanPhone
+      ? `[Phone: ${cleanPhone}]\n${formData.message.trim()}`
+      : formData.message.trim();
+
     const payload = {
       subdomain,
-      customer_name: formData.name,
-      email: formData.email,
-      query: formData.message,
+      customer_name: formData.name.trim().slice(0, 20), // Enforce 20 chars
+      email: formData.email.trim().slice(0, 255),
+      query: queryText.slice(0, 1000), // Enforce 1000 chars
     };
 
     const res = await apiClient.post("/user/ask_question", payload);
@@ -205,7 +211,7 @@ export async function submitEnquiry(formData) {
     } else {
       return {
         success: false,
-        message: res.data.message || "Failed to submit enquiry. Please try again.",
+        message: res.data?.message || "Failed to submit enquiry. Please try again.",
       };
     }
   } catch (err) {
@@ -213,7 +219,6 @@ export async function submitEnquiry(formData) {
     let errorMsg = "An unexpected error occurred.";
     if (err.response?.data?.errors) {
       const errs = err.response.data.errors;
-      // Handle express-validator style validation objects or database strings
       if (typeof errs === "object") {
         errorMsg = Object.values(errs)
           .map((e) => e.message || e)
@@ -239,11 +244,11 @@ export async function submitEnquiry(formData) {
 export async function registerShop(regData) {
   try {
     const payload = {
-      shop_name: regData.shopName,
-      owner_name: regData.ownerName,
-      email: regData.email,
+      shop_name: regData.shopName.trim().slice(0, 10), // Max 10 chars
+      owner_name: regData.ownerName.trim().slice(0, 150),
+      email: regData.email.trim().slice(0, 255),
       password: regData.password,
-      city: regData.city,
+      city: regData.city.trim().slice(0, 12), // Max 12 chars
     };
 
     const res = await apiClient.post("/auth/register", payload);
@@ -267,7 +272,9 @@ export async function registerShop(regData) {
     console.error("Error in registerShop:", err);
     let errorMsg = "Registration failed.";
     
-    if (err.response?.data) {
+    if (err.response?.status === 409) {
+      errorMsg = "This shop name is already taken. Please choose a different shop name.";
+    } else if (err.response?.data) {
       const body = err.response.data;
       if (body.errors) {
         if (Array.isArray(body.errors)) {
@@ -285,5 +292,94 @@ export async function registerShop(regData) {
       success: false,
       message: errorMsg,
     };
+  }
+}
+
+/**
+ * ============================================================================
+ * ADMIN APIs (`/opxXxolN7m6CU`) with JWT Authentication
+ * ============================================================================
+ */
+
+/**
+ * Add a new gallery category for the authenticated tenant
+ * @param {string} categoryName Category name (Max 30 chars)
+ * @param {string} token Optional JWT token
+ */
+export async function adminAddCategory(categoryName, token = null) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/add_category",
+      { category_name: categoryName.slice(0, 30) },
+      { headers }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminAddCategory:", err);
+    return { status: 0, message: err.response?.data?.message || "Failed to add category." };
+  }
+}
+
+/**
+ * Fetch paginated categories for the authenticated tenant
+ * @param {number} pageNo Page index (starts at 0)
+ * @param {number} pageSize Items per page
+ * @param {string} token Optional JWT token
+ */
+export async function adminGetAllCategories(pageNo = 0, pageSize = 10, token = null) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/get_all_category",
+      { pageNo, pageSize },
+      { headers }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminGetAllCategories:", err);
+    return { status: 0, totalRecords: 0, data: [] };
+  }
+}
+
+/**
+ * Fetch a single category by ID
+ * @param {number} id Category ID
+ * @param {string} token Optional JWT token
+ */
+export async function adminGetSingleCategory(id, token = null) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/get_single_category",
+      { id },
+      { headers }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminGetSingleCategory:", err);
+    return { status: 0, message: "Category not found" };
+  }
+}
+
+/**
+ * Update an existing category
+ * @param {number} id Category ID
+ * @param {string} categoryName New Category Name
+ * @param {number} status 1 for Active, 0 for Inactive
+ * @param {string} token Optional JWT token
+ */
+export async function adminUpdateCategory(id, categoryName, status = 1, token = null) {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/update_category",
+      { id, category_name: categoryName.slice(0, 30), status },
+      { headers }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminUpdateCategory:", err);
+    return { status: 0, message: err.response?.data?.message || "Failed to update category." };
   }
 }

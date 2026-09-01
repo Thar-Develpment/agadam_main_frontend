@@ -18,11 +18,8 @@ import Slideshow from "./components/Slideshow";
 import GallerySection from "./components/GallerySection";
 import VideoGallery from "./components/VideoGallery";
 import AboutSection from "./components/AboutSection";
-import ReviewsSection from "./components/ReviewsSection";
 import ContactSection from "./components/ContactSection";
 import Footer from "./components/Footer";
-import QRCodeModal from "./components/QRCodeModal";
-import WhatsAppButton from "./components/WhatsAppButton";
 import { Gem, Loader2, Store, Home } from "lucide-react";
 import { getTenantSubdomain } from "./services/apiClient";
 
@@ -86,7 +83,6 @@ function ClientStorefrontPage() {
   const [categories, setCategories] = useState(["All"]);
 
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   // Initial Data Fetching from API service stub
@@ -218,10 +214,7 @@ function ClientStorefrontPage() {
   return (
     <div className="min-h-screen bg-[#FAF9F5] text-stone-800 font-sans selection:bg-[#D4AF37] selection:text-stone-950">
       {/* Client Storefront Header */}
-      <Header
-        shopInfo={shopInfo}
-        onOpenQR={() => setIsQRModalOpen(true)}
-      />
+      <Header shopInfo={shopInfo} />
 
       {/* Main Section Flow */}
       <main>
@@ -234,6 +227,7 @@ function ClientStorefrontPage() {
           images={galleryImages}
           selectedCategory={selectedCategory}
           onSelectCategory={(cat) => setSelectedCategory(cat)}
+          shopInfo={shopInfo}
         />
         <VideoGallery videos={videos} />
 
@@ -246,16 +240,6 @@ function ClientStorefrontPage() {
 
       {/* Footer */}
       <Footer shopInfo={shopInfo} />
-
-      {/* Floating QR Code Modal */}
-      <QRCodeModal
-        isOpen={isQRModalOpen}
-        onClose={() => setIsQRModalOpen(false)}
-        shopInfo={shopInfo}
-      />
-
-      {/* Floating WhatsApp Button */}
-      <WhatsAppButton whatsappNumber={shopInfo?.whatsapp || "919876543210"} />
     </div>
   );
 }

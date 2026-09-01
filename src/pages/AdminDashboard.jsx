@@ -275,15 +275,6 @@ export default function AdminDashboard() {
               <span>Launch Website</span>
               <ExternalLink className="w-3 h-3 text-stone-950" />
             </a>
-
-            {/* Logout */}
-            <button
-              onClick={handleLogout}
-              className="p-2 text-stone-400 hover:text-white bg-stone-900 border border-stone-850 hover:border-rose-500 rounded-xl transition-all"
-              title="Logout from Admin Panel"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
           </div>
         </div>
       </header>
@@ -291,32 +282,45 @@ export default function AdminDashboard() {
       {/* Main Panel Content Area */}
       <div className="flex-1 max-w-7xl mx-auto w-full px-4 py-8 sm:px-6 lg:px-8 flex flex-col md:flex-row gap-8">
         {/* Sidebar Nav (Tabs switcher) */}
-        <aside className="md:w-64 shrink-0 space-y-2 text-left">
-          <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest px-3 mb-2">Showroom Sections</p>
-          {[
-            { id: "carousel", label: "Hero Carousel", icon: Layers },
-            { id: "categories", label: "Gallery Categories", icon: Settings },
-            { id: "gallery", label: "Gallery Images", icon: ImageIcon },
-            { id: "about", label: "Story & Video", icon: BookOpen },
-            { id: "contact", label: "Contact Profile", icon: Store }
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold tracking-wide transition-all ${
-                  isActive
-                    ? "bg-[#1C1917] text-[#D4AF37] border border-[#D4AF37]/35 shadow-md shadow-stone-900/10"
-                    : "bg-white hover:bg-stone-50 text-stone-600 border border-stone-200"
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${isActive ? "text-[#D4AF37]" : "text-stone-400"}`} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+        <aside className="md:w-64 shrink-0 flex flex-col justify-between text-left">
+          <div className="space-y-2">
+            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest px-3 mb-2">Showroom Sections</p>
+            {[
+              { id: "carousel", label: "Hero Carousel", icon: Layers },
+              { id: "categories", label: "Gallery Categories", icon: Settings },
+              { id: "gallery", label: "Gallery Images", icon: ImageIcon },
+              { id: "about", label: "Story & Video", icon: BookOpen },
+              { id: "contact", label: "Contact Profile", icon: Store }
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold tracking-wide transition-all ${
+                    isActive
+                      ? "bg-[#1C1917] text-[#D4AF37] border border-[#D4AF37]/35 shadow-md shadow-stone-900/10"
+                      : "bg-white hover:bg-stone-50 text-stone-600 border border-stone-200"
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? "text-[#D4AF37]" : "text-stone-400"}`} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Bottom Logout Button */}
+          <div className="pt-6 border-t border-stone-200 mt-6">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold text-rose-600 hover:text-rose-700 bg-rose-50/70 hover:bg-rose-100/70 border border-rose-200/60 transition-all"
+            >
+              <LogOut className="w-4 h-4 text-rose-500" />
+              <span>Sign Out</span>
+            </button>
+          </div>
         </aside>
 
         {/* Panel View Area */}
