@@ -188,10 +188,10 @@ export default function ContactSection({ shopInfo }) {
                   Interactive Map Location
                 </span>
                 <h4 className="font-serif text-xl font-bold text-white mt-2">
-                  Jewellery Quarter Flagship Boutique
+                  {shopInfo?.name ? `${shopInfo.name} Boutique` : "Flagship Boutique"}
                 </h4>
                 <p className="text-xs text-stone-400 mt-1 max-w-sm">
-                  Located in the heart of Mumbai's premier Jewellery Quarter with valet parking available for clients.
+                  {`Visit our showroom in ${shopInfo?.city || "the Jewellery Quarter"} with convenient parking and private viewing lounges.`}
                 </p>
               </div>
 

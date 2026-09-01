@@ -82,8 +82,18 @@ export default function Footer({ shopInfo }) {
                 </a>
               </li>
               <li>
+                <a href="#rates" className="hover:text-[#D4AF37] transition-colors">
+                  Live Gold & Silver Rates
+                </a>
+              </li>
+              <li>
                 <a href="#about" className="hover:text-[#D4AF37] transition-colors">
-                  Our Heritage & Craftsmen
+                  Our Heritage & Story
+                </a>
+              </li>
+              <li>
+                <a href="#status" className="hover:text-[#D4AF37] transition-colors">
+                  WhatsApp Daily Status
                 </a>
               </li>
               <li>
@@ -100,11 +110,11 @@ export default function Footer({ shopInfo }) {
               Flagship Boutique
             </h4>
             <p className="text-xs sm:text-sm text-stone-400 font-light leading-relaxed">
-              {shopInfo?.address}
+              {shopInfo?.address || (shopInfo?.city ? `Main Commercial Avenue, ${shopInfo.city}` : "Flagship Boutique, Jewellery Quarter")}
             </p>
             <div className="pt-2 text-xs text-stone-500 font-mono space-y-1">
-              <p>Primary: {shopInfo?.phonePrimary}</p>
-              <p>Email: {shopInfo?.email}</p>
+              <p>Primary: {shopInfo?.phonePrimary || "+91 98765 43210"}</p>
+              <p>Email: {shopInfo?.email || "contact@jewellerystore.com"}</p>
               <p className="text-[#D4AF37]">Hours: Mon-Sun 10:30 AM – 8:30 PM</p>
             </div>
           </div>

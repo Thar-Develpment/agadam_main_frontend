@@ -1,28 +1,32 @@
-import { apiClient, getTenantSubdomain } from "./apiClient";
+import { apiClient, getTenantSubdomain, getShopPrefix } from "./apiClient";
 import {
   mockShopInfo,
   mockSlides,
-  mockReviews,
   mockAboutContent,
 } from "./mockData";
 
 /**
- * Utility helper to extract YouTube ID from standard video URLs
+ * Robust helper to extract YouTube ID from standard or shortened video URLs
  * Supports: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID, etc.
+ * @param {string} url 
+ * @returns {string} Clean 11-char YouTube ID or sanitized string
  */
-function extractYoutubeId(url) {
-  if (!url) return "";
-  // Check if it's already just an ID (no slashes)
-  if (!url.includes("/") && !url.includes("?")) {
-    return url;
+export function extractYoutubeId(url = "") {
+  if (!url || typeof url !== "string") return "";
+  const trimmed = url.trim();
+  
+  // If already an 11-char alphanumeric ID
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+    return trimmed;
   }
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : url;
+
+  const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+  const match = trimmed.match(regExp);
+  return match ? match[1] : trimmed;
 }
 
 /**
- * Fetch hero carousel slides (No backend API, fallback to mock slides)
+ * Fetch hero carousel slides (Fallback to showroom slides)
  * @returns {Promise<Array>} Array of slide objects
  */
 export async function getSlides() {
@@ -38,7 +42,9 @@ export async function getGalleryCategories() {
     const subdomain = getTenantSubdomain();
     const res = await apiClient.post("/user/gallery_categories", { subdomain });
     if (res.data && res.data.status === 1 && Array.isArray(res.data.data)) {
-      const names = res.data.data.map(cat => cat.category_name);
+      const names = res.data.data
+        .map((cat) => cat.category_name?.trim())
+        .filter(Boolean);
       return ["All", ...names];
     }
     return ["All"];
@@ -50,7 +56,7 @@ export async function getGalleryCategories() {
 
 /**
  * Fetch gallery images filtered optionally by category name
- * Hits the backend `/user/gallery_categories` and `/user/galler_details` (preserving backend typo)
+ * Hits the backend `/user/gallery_categories` and `/user/galler_details`
  * @param {string} categoryName Optional category name filter ('All' or specific category)
  * @returns {Promise<Array>} Array of gallery image items
  */
@@ -59,16 +65,18 @@ export async function getGalleryImages(categoryName = "All") {
     const subdomain = getTenantSubdomain();
     
     // 1. Fetch categories to build an ID-to-Name map
-    let categoriesMap = new Map();
+    const categoriesMap = new Map();
     try {
       const catRes = await apiClient.post("/user/gallery_categories", { subdomain });
       if (catRes.data && catRes.data.status === 1 && Array.isArray(catRes.data.data)) {
         catRes.data.data.forEach((cat) => {
-          categoriesMap.set(cat.id, cat.category_name);
+          if (cat?.id && cat?.category_name) {
+            categoriesMap.set(cat.id, cat.category_name.trim());
+          }
         });
       }
     } catch (catErr) {
-      console.warn("Failed to fetch gallery categories from backend:", catErr);
+      console.warn("Failed to fetch gallery categories map:", catErr);
     }
 
     // 2. Fetch the gallery details
@@ -76,15 +84,15 @@ export async function getGalleryImages(categoryName = "All") {
     if (res.data && res.data.status === 1 && Array.isArray(res.data.data)) {
       // Map backend database format to frontend card format
       const mappedImages = res.data.data.map((item) => {
-        const mappedCategory = categoriesMap.get(item.category_id) || "General";
+        const mappedCategory = categoriesMap.get(item.category_id) || "Exclusive";
         return {
-          id: item.id.toString(),
-          title: `${mappedCategory} Collection`, // Fallback title based on category
+          id: item.id?.toString() || Math.random().toString(),
+          title: `${mappedCategory} Collection`,
           category: mappedCategory,
-          purity: "22K BIS Hallmarked", // Standard default
+          purity: "22K BIS Hallmarked",
           imageUrl: item.image_url,
-          description: "Exquisite handcrafted design.", // Placeholder description
-          code: `AG-ITM-${item.id}`, // Generated fallback code
+          description: "Exquisite handcrafted design.",
+          code: `AG-ITM-${item.id}`,
         };
       });
 
@@ -115,8 +123,8 @@ export async function getVideos() {
       return res.data.data.map((item) => {
         const youtubeId = extractYoutubeId(item.video_url);
         return {
-          id: item.id.toString(),
-          title: "Featured Video Showcase", // Placeholder title
+          id: item.id?.toString() || Math.random().toString(),
+          title: "Featured Showroom Showcase",
           youtubeId: youtubeId,
           thumbnail: youtubeId 
             ? `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg`
@@ -135,14 +143,6 @@ export async function getVideos() {
 }
 
 /**
- * Fetch customer reviews (No backend API, fallback to mock reviews)
- * @returns {Promise<Array>} Array of review objects
- */
-export async function getReviews() {
-  return mockReviews;
-}
-
-/**
  * Fetch About Us story & content from backend `/user/our_stories`
  * @returns {Promise<Object>} About content object
  */
@@ -153,7 +153,7 @@ export async function getAboutContent() {
     
     if (res.data && res.data.status === 1 && Array.isArray(res.data.data) && res.data.data.length > 0) {
       // Find the first active story or the latest one
-      const activeStory = res.data.data.find(story => story.status === 1) || res.data.data[0];
+      const activeStory = res.data.data.find((story) => story.status === 1) || res.data.data[0];
       return {
         ...mockAboutContent,
         historyParagraphs: [activeStory.content],
@@ -167,13 +167,12 @@ export async function getAboutContent() {
 }
 
 /**
- * Fetch shop contact info (No backend API, fallback to mock with dynamic shop name if URL available)
+ * Fetch shop contact info with tenant branding fallback
  * @returns {Promise<Object>} Shop info object
  */
 export async function getContactInfo() {
   const subdomain = getTenantSubdomain();
-  // Extract clean name prefix for branding purposes
-  const shopNamePrefix = subdomain.split(".")[0].toUpperCase();
+  const shopNamePrefix = getShopPrefix(subdomain).toUpperCase();
   return {
     ...mockShopInfo,
     name: shopNamePrefix !== "MYCOMPANY" ? shopNamePrefix : mockShopInfo.name,
@@ -188,17 +187,16 @@ export async function getContactInfo() {
 export async function submitEnquiry(formData) {
   try {
     const subdomain = getTenantSubdomain();
-    // Prepend customer phone number into query text since am_asked_questions table stores (subdomain, customer_name, email, query)
-    const cleanPhone = formData.phone ? formData.phone.trim() : "";
+    const cleanPhone = (formData.phone || "").trim();
     const queryText = cleanPhone
-      ? `[Phone: ${cleanPhone}]\n${formData.message.trim()}`
-      : formData.message.trim();
+      ? `[Phone: ${cleanPhone}]\n${(formData.message || "").trim()}`
+      : (formData.message || "").trim();
 
     const payload = {
       subdomain,
-      customer_name: formData.name.trim().slice(0, 20), // Enforce 20 chars
-      email: formData.email.trim().slice(0, 255),
-      query: queryText.slice(0, 1000), // Enforce 1000 chars
+      customer_name: (formData.name || "").trim().slice(0, 20),
+      email: (formData.email || "").trim().slice(0, 255),
+      query: queryText.slice(0, 1000),
     };
 
     const res = await apiClient.post("/user/ask_question", payload);
@@ -206,7 +204,7 @@ export async function submitEnquiry(formData) {
     if (res.data && res.data.status === 1) {
       return {
         success: true,
-        message: res.data.message || "Submitted successfully!",
+        message: res.data.message || "Enquiry submitted successfully!",
       };
     } else {
       return {
@@ -244,28 +242,29 @@ export async function submitEnquiry(formData) {
 export async function registerShop(regData) {
   try {
     const payload = {
-      shop_name: regData.shopName.trim().slice(0, 10), // Max 10 chars
-      owner_name: regData.ownerName.trim().slice(0, 150),
-      email: regData.email.trim().slice(0, 255),
+      shop_name: (regData.shopName || "").trim().slice(0, 10),
+      owner_name: (regData.ownerName || "").trim().slice(0, 150),
+      email: (regData.email || "").trim().slice(0, 255),
       password: regData.password,
-      city: regData.city.trim().slice(0, 12), // Max 12 chars
+      city: (regData.city || "").trim().slice(0, 12),
     };
 
     const res = await apiClient.post("/auth/register", payload);
     
     if (res.data && res.data.success === 1) {
+      const returnedDomain = res.data.data?.domain || `${payload.shop_name.toLowerCase()}.aadagam.com`;
       return {
         success: true,
         message: res.data.message || "Registered successfully!",
-        domain: res.data.data?.domain || `${regData.shopName.toLowerCase()}.aadagam.com`,
-        shopName: res.data.data?.shop_name || regData.shopName,
+        domain: returnedDomain,
+        shopName: res.data.data?.shop_name || payload.shop_name,
         shopId: res.data.data?.id || `SHOP-${Math.floor(1000 + Math.random() * 9000)}`,
         registeredAt: new Date().toISOString(),
       };
     } else {
       return {
         success: false,
-        message: res.data.message || "Registration failed.",
+        message: res.data?.message || "Registration failed.",
       };
     }
   } catch (err) {
@@ -311,7 +310,7 @@ export async function adminAddCategory(categoryName, token = null) {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const res = await apiClient.post(
       "/opxXxolN7m6CU/add_category",
-      { category_name: categoryName.slice(0, 30) },
+      { category_name: (categoryName || "").trim().slice(0, 30) },
       { headers }
     );
     return res.data;
@@ -332,7 +331,7 @@ export async function adminGetAllCategories(pageNo = 0, pageSize = 10, token = n
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const res = await apiClient.post(
       "/opxXxolN7m6CU/get_all_category",
-      { pageNo, pageSize },
+      { pageNo: Math.max(0, pageNo), pageSize: Math.max(1, pageSize) },
       { headers }
     );
     return res.data;
@@ -352,7 +351,7 @@ export async function adminGetSingleCategory(id, token = null) {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const res = await apiClient.post(
       "/opxXxolN7m6CU/get_single_category",
-      { id },
+      { id: Number(id) },
       { headers }
     );
     return res.data;
@@ -374,7 +373,7 @@ export async function adminUpdateCategory(id, categoryName, status = 1, token = 
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const res = await apiClient.post(
       "/opxXxolN7m6CU/update_category",
-      { id, category_name: categoryName.slice(0, 30), status },
+      { id: Number(id), category_name: (categoryName || "").trim().slice(0, 30), status },
       { headers }
     );
     return res.data;

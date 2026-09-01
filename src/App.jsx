@@ -8,7 +8,6 @@ import {
   getSlides,
   getGalleryImages,
   getVideos,
-  getReviews,
   getAboutContent,
   getGalleryCategories,
 } from "./services/api";
@@ -16,12 +15,14 @@ import {
 import Header from "./components/Header";
 import Slideshow from "./components/Slideshow";
 import GallerySection from "./components/GallerySection";
-import VideoGallery from "./components/VideoGallery";
+import GoldRateSection from "./components/GoldRateSection";
 import AboutSection from "./components/AboutSection";
+import WhatsAppStatusSection from "./components/WhatsAppStatusSection";
+import VideoGallery from "./components/VideoGallery";
 import ContactSection from "./components/ContactSection";
 import Footer from "./components/Footer";
 import { Gem, Loader2, Store, Home } from "lucide-react";
-import { getTenantSubdomain } from "./services/apiClient";
+import { getTenantSubdomain, getShopPrefix } from "./services/apiClient";
 
 
 /**
@@ -78,7 +79,6 @@ function ClientStorefrontPage() {
   const [slides, setSlides] = useState([]);
   const [galleryImages, setGalleryImages] = useState([]);
   const [videos, setVideos] = useState([]);
-  const [reviews, setReviews] = useState([]);
   const [aboutContent, setAboutContent] = useState(null);
   const [categories, setCategories] = useState(["All"]);
 
@@ -90,17 +90,16 @@ function ClientStorefrontPage() {
     async function loadInitialData() {
       try {
         setIsLoading(true);
-        const [info, slideData, videoData, reviewData, aboutData, categoryData] = await Promise.all([
+        const [info, slideData, videoData, aboutData, categoryData] = await Promise.all([
           getContactInfo(),
           getSlides(),
           getVideos(),
-          getReviews(),
           getAboutContent(),
           getGalleryCategories(),
         ]);
 
         const subdomain = getTenantSubdomain();
-        const shopPrefix = subdomain.split(".")[0];
+        const shopPrefix = getShopPrefix(subdomain);
 
         // 1. Contact Settings
         const localContact = localStorage.getItem(`aadagam_contact_info_${shopPrefix}`);
@@ -157,8 +156,6 @@ function ClientStorefrontPage() {
         } else {
           setCategories(categoryData);
         }
-
-        setReviews(reviewData);
       } catch (err) {
         console.error("Error loading website content:", err);
       } finally {
@@ -174,7 +171,7 @@ function ClientStorefrontPage() {
     async function fetchGallery() {
       try {
         const subdomain = getTenantSubdomain();
-        const shopPrefix = subdomain.split(".")[0];
+        const shopPrefix = getShopPrefix(subdomain);
         const localImages = localStorage.getItem(`aadagam_gallery_images_${shopPrefix}`);
         
         if (localImages) {
@@ -221,7 +218,7 @@ function ClientStorefrontPage() {
         {/* 1. Hero Slideshow Carousel */}
         <Slideshow slides={slides} />
 
-        {/* 2. Jewellery Gallery & Video Gallery */}
+        {/* 2. Jewellery Gallery */}
         <GallerySection
           categories={categories}
           images={galleryImages}
@@ -229,12 +226,20 @@ function ClientStorefrontPage() {
           onSelectCategory={(cat) => setSelectedCategory(cat)}
           shopInfo={shopInfo}
         />
-        <VideoGallery videos={videos} />
 
-        {/* 3. About Us Article Section */}
+        {/* 3. Live Gold & Silver Market Rates */}
+        <GoldRateSection shopInfo={shopInfo} />
+
+        {/* 4. About Us / Our Story Section */}
         <AboutSection aboutContent={aboutContent} />
 
-        {/* 5. Contact Us & Enquiry Form Section */}
+        {/* 5. WhatsApp Status & Video Downloads */}
+        <WhatsAppStatusSection shopInfo={shopInfo} />
+
+        {/* 6. Showcase Videos Section */}
+        <VideoGallery videos={videos} />
+
+        {/* 7. Contact Us & Enquiry Form Section */}
         <ContactSection shopInfo={shopInfo} />
       </main>
 

@@ -9,16 +9,11 @@ export const mockShopInfo = {
   phoneSecondary: "+91 98765 43211",
   email: "contact@aadagamjewellery.com",
   whatsapp: "919876543210",
+  announcement: "100% BIS Hallmarked 22K Gold & Certified Solitaire Diamonds",
   socials: {
     facebook: "https://facebook.com/aadagamjewellery",
     instagram: "https://instagram.com/aadagamjewellery",
     youtube: "https://youtube.com/@aadagamjewellery",
-  },
-  qrCode: {
-    imageUrl: "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://aadagamjewellery.com&color=1c1917&bgcolor=faf9f6",
-    title: "Scan to Visit Our Digital Store",
-    subtitle: "Share our website easily with friends & family",
-    websiteUrl: "https://aadagamjewellery.com",
   },
 };
 
@@ -192,7 +187,7 @@ export const mockVideos = [
   {
     id: "v1",
     title: "Inside Our Atelier: The Art of Kundan & Polki Jewellery",
-    youtubeId: "dQw4w9WgXcQ", // Replace with realistic embed or standard video ID
+    youtubeId: "dQw4w9WgXcQ",
     thumbnail: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=800&q=80",
     category: "Craftsmanship",
     duration: "3:45",
@@ -248,91 +243,6 @@ export const mockAboutContent = {
     "Temple Nakshi & Antique Heritage Collections",
     "Custom Bespoke Jewellery Design Service",
   ],
-  values: [
-    {
-      title: "100% BIS Hallmarked Purity",
-      description: "Every gram of gold is rigorously tested and stamped with official government hallmark seals.",
-      icon: "ShieldCheck",
-    },
-    {
-      title: "Certified Diamonds",
-      description: "All our diamonds carry independent certification from global authorities like GIA and IGI.",
-      icon: "Award",
-    },
-    {
-      title: "Transparent Pricing",
-      description: "Complete clarity on gold weight, stone weight, making charges, and purity guarantees.",
-      icon: "Eye",
-    },
-    {
-      title: "Bespoke Customization",
-      description: "Turn your dream designs into reality with direct consultation with our lead artisans.",
-      icon: "Sparkles",
-    },
-  ],
   featuredVideoId: "dQw4w9WgXcQ",
-  featuredVideoTitle: "Behind the Scenes at Aadagam Jewellery Studio",
+  featuredVideoTitle: "Behind the Scenes at Jewellery Atelier",
 };
-
-export const mockReviews = [
-  {
-    id: 1,
-    name: "Ananya Deshmukh",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80",
-    rating: 5,
-    date: "2 weeks ago",
-    review: "Purchased my entire wedding bridal jewellery set from Aadagam Jewellery. The Polki necklace and matching jhumkas were breathtaking! The staff was incredibly patient and guided us through purity testing.",
-    purchasedItem: "Maharani Polki Bridal Set",
-    verified: true,
-  },
-  {
-    id: 2,
-    name: "Vikram Singhania",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80",
-    rating: 5,
-    date: "1 month ago",
-    review: "Bought a solitaire engagement ring here. The clarity of the diamond and the delicate platinum craftsmanship exceeded my expectations. Transparent billing with detailed GIA certificate provided.",
-    purchasedItem: "1.5ct Solitaire Ring",
-    verified: true,
-  },
-  {
-    id: 3,
-    name: "Priya & Rajesh Patel",
-    avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80",
-    rating: 5,
-    date: "2 months ago",
-    review: "We have been buying all our anniversary and festival gold from Aadagam for over 15 years. Their antique Nakshi temple work is unmatched in the city. Highly recommended!",
-    purchasedItem: "Temple Gold Choker & Kadas",
-    verified: true,
-  },
-  {
-    id: 4,
-    name: "Meera Kapoor",
-    avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=150&q=80",
-    rating: 5,
-    date: "3 months ago",
-    review: "Excellent service! I customized a pair of daily-wear diamond hoop earrings. The turn-around time was fast and the craftsmanship is flawless.",
-    purchasedItem: "Custom Diamond Hoops",
-    verified: true,
-  },
-  {
-    id: 5,
-    name: "Siddharth Verma",
-    avatar: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=150&q=80",
-    rating: 5,
-    date: "4 months ago",
-    review: "Top tier jewellery store. They offer 100% hallmarked gold with genuine buy-back policies. Warm atmosphere and very respectful staff.",
-    purchasedItem: "24K Gold Coin & Chain",
-    verified: true,
-  },
-  {
-    id: 6,
-    name: "Kavita Reddy",
-    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80",
-    rating: 5,
-    date: "5 months ago",
-    review: "The design variety in lightweight gold bangles is fantastic. Great prices and hassle-free customization options.",
-    purchasedItem: "Filigree Gold Bangles",
-    verified: true,
-  },
-];

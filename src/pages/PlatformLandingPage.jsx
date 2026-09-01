@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { registerShop } from "../services/api";
+import { getShopPrefix } from "../services/apiClient";
 import {
   Gem,
   Sparkles,
@@ -16,9 +17,9 @@ import {
   Loader2,
   AlertCircle,
   ExternalLink,
-  QrCode,
+  TrendingUp,
   Video,
-  Star,
+  Download,
   Layers,
   MessageCircle,
 } from "lucide-react";
@@ -175,6 +176,8 @@ export default function PlatformLandingPage() {
 
             <Link
               to="/shop"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 bg-[#D4AF37]/15 hover:bg-[#D4AF37]/25 text-stone-900 border border-[#D4AF37]/50 font-bold px-3.5 py-2 rounded-xl text-xs tracking-wider transition-all shadow-sm hover:shadow"
             >
               <span>View Demo Website</span>
@@ -208,7 +211,7 @@ export default function PlatformLandingPage() {
             </h1>
 
             <p className="text-stone-300 text-base sm:text-lg font-light leading-relaxed max-w-2xl mx-auto">
-              Empower your physical jewellery showroom with an elegant, mobile-responsive online website featuring high-definition product galleries, YouTube video showcases, direct WhatsApp enquiries, and QR code counter sharing.
+              Empower your physical jewellery showroom with an elegant, mobile-responsive online website featuring high-definition product galleries, live gold rates, YouTube video showcases, daily WhatsApp status cards, and direct customer enquiries.
             </p>
 
             {/* Action Buttons */}
@@ -223,6 +226,8 @@ export default function PlatformLandingPage() {
 
               <Link
                 to="/shop"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2.5 bg-stone-900 hover:bg-stone-800 text-stone-200 border border-stone-700 hover:border-[#D4AF37] py-4 px-7 rounded-xl text-sm font-semibold tracking-wider transition-all"
               >
                 <span>Preview Live Client Storefront</span>
@@ -297,33 +302,33 @@ export default function PlatformLandingPage() {
                 Direct WhatsApp Enquiries
               </h3>
               <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed">
-                Fixed floating WhatsApp button and per-product WhatsApp links allowing buyers to enquire about specific items instantly.
+                Integrated enquiry forms and per-product WhatsApp links allowing buyers to inquire about specific jewellery pieces instantly.
               </p>
             </div>
 
             {/* Feature 5 */}
             <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all space-y-4">
               <div className="w-12 h-12 rounded-2xl bg-[#D4AF37]/10 text-[#B8860B] flex items-center justify-center">
-                <QrCode className="w-6 h-6" />
+                <TrendingUp className="w-6 h-6" />
               </div>
               <h3 className="font-serif text-xl font-bold text-stone-900">
-                Storefront QR Code Display
+                Live Gold & Silver Rates
               </h3>
               <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed">
-                Counter-top QR code modal and download feature enabling walk-in customers to save your digital website to their mobile devices.
+                Real-time bullion rates ticker displaying daily 24K pure gold, 22K standard hallmarked gold, 18K diamond gold, and 999 fine silver.
               </p>
             </div>
 
             {/* Feature 6 */}
             <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all space-y-4">
               <div className="w-12 h-12 rounded-2xl bg-[#D4AF37]/10 text-[#B8860B] flex items-center justify-center">
-                <Star className="w-6 h-6" />
+                <Download className="w-6 h-6" />
               </div>
               <h3 className="font-serif text-xl font-bold text-stone-900">
-                Google Reviews & Social Trust
+                WhatsApp Status Downloads
               </h3>
               <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed">
-                Highlight your 5-star Google ratings, verified customer feedback, showroom address map embed, and social media handles.
+                Allow customers to download daily high-resolution jewellery cards and short video stories directly to share on their WhatsApp status.
               </p>
             </div>
           </div>
@@ -381,16 +386,16 @@ export default function PlatformLandingPage() {
               </div>
 
               <div className="pt-4 flex flex-col sm:flex-row justify-center gap-4">
-                <button
-                  onClick={() => {
-                    const shopPrefix = registrationResult.domain.split(".")[0];
-                    navigate(`/shop?shop=${shopPrefix}`);
-                  }}
+                <a
+                  href={`/shop?shop=${getShopPrefix(registrationResult.domain)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-stone-900 to-stone-800 hover:from-stone-800 hover:to-stone-700 text-[#FAF9F5] font-bold py-3.5 px-8 rounded-xl text-sm tracking-wider uppercase transition-all shadow-lg"
                 >
                   <Store className="w-4 h-4 text-[#D4AF37]" />
                   <span>Launch Live Client Storefront</span>
-                </button>
+                  <ExternalLink className="w-3.5 h-3.5 text-[#D4AF37]" />
+                </a>
 
                 <button
                   onClick={() => navigate("/admin")}
@@ -672,9 +677,9 @@ export default function PlatformLandingPage() {
               <ul className="space-y-2 text-xs sm:text-sm font-light text-stone-400">
                 <li className="hover:text-[#D4AF37] transition-colors">Instant Tenant Onboarding</li>
                 <li className="hover:text-[#D4AF37] transition-colors">Dynamic Image Catalogue</li>
+                <li className="hover:text-[#D4AF37] transition-colors">Live Bullion Rates Tracker</li>
                 <li className="hover:text-[#D4AF37] transition-colors">YouTube Atelier Showcase</li>
-                <li className="hover:text-[#D4AF37] transition-colors">Direct WhatsApp Messaging</li>
-                <li className="hover:text-[#D4AF37] transition-colors">Bespoke QR Code Countertop</li>
+                <li className="hover:text-[#D4AF37] transition-colors">WhatsApp Status Downloads</li>
               </ul>
             </div>
 

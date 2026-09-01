@@ -7,7 +7,7 @@ export default function VideoGallery({ videos = [] }) {
   if (videos.length === 0) return null;
 
   return (
-    <section className="py-16 bg-stone-900 text-white relative overflow-hidden border-t border-stone-800">
+    <section id="videos" className="py-16 bg-stone-900 text-white relative overflow-hidden border-t border-stone-800">
       {/* Background Subtle Accent */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-[#D4AF37]/5 rounded-full blur-3xl pointer-events-none" />
 

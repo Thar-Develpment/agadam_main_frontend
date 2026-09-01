@@ -14,10 +14,10 @@ import {
   Save,
   CheckCircle2,
   ExternalLink,
-  Edit,
   Globe
 } from "lucide-react";
 import { mockSlides, mockAboutContent, mockShopInfo } from "../services/mockData";
+import { getShopPrefix } from "../services/apiClient";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -62,7 +62,7 @@ export default function AdminDashboard() {
     const user = JSON.parse(currentAdmin);
     setAdminUser(user);
 
-    const shopPrefix = user.domain.split(".")[0];
+    const shopPrefix = getShopPrefix(user.domain);
 
     // Load Carousel Slides from localStorage or fallback to mockData
     const localSlides = localStorage.getItem(`aadagam_carousel_slides_${shopPrefix}`);
@@ -142,7 +142,8 @@ export default function AdminDashboard() {
   };
 
   const saveToStorage = (key, data, successMsg) => {
-    const shopPrefix = adminUser.domain.split(".")[0];
+    if (!adminUser) return;
+    const shopPrefix = getShopPrefix(adminUser.domain);
     localStorage.setItem(`aadagam_${key}_${shopPrefix}`, JSON.stringify(data));
     triggerToast(successMsg);
   };
@@ -241,7 +242,7 @@ export default function AdminDashboard() {
 
   if (!adminUser) return null;
 
-  const shopPrefix = adminUser.domain.split(".")[0];
+  const shopPrefix = getShopPrefix(adminUser.domain);
   const publicStorefrontUrl = `/shop?shop=${shopPrefix}`;
 
   return (
