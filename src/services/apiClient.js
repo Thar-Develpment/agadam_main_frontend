@@ -14,16 +14,20 @@ export const apiClient = axios.create({
 // Request Interceptor: Automatically attach JWT token if available in storage
 apiClient.interceptors.request.use(
   (config) => {
-    const adminSession = localStorage.getItem("aadagam_current_admin");
-    if (adminSession) {
-      try {
-        const user = JSON.parse(adminSession);
-        if (user?.token && !config.headers.Authorization) {
-          config.headers.Authorization = `Bearer ${user.token}`;
+    let token = localStorage.getItem("aadagam_auth_token");
+    if (!token) {
+      const adminSession = localStorage.getItem("aadagam_current_admin");
+      if (adminSession) {
+        try {
+          const user = JSON.parse(adminSession);
+          token = user?.token || user?.authTkn;
+        } catch (e) {
+          // Silent catch
         }
-      } catch (e) {
-        // Silent catch for parsing error
       }
+    }
+    if (token && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -35,12 +39,36 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Unauthorized: optional session cleanup
       console.warn("API Session unauthorized (401)");
     }
     return Promise.reject(error);
   }
 );
+
+/**
+ * Safely decodes a JSON Web Token (JWT) payload on the client side
+ * @param {string} token 
+ * @returns {object|null} Decoded JWT payload
+ */
+export function parseJwt(token) {
+  if (!token || typeof token !== "string") return null;
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.warn("Failed to decode JWT payload:", e);
+    return null;
+  }
+}
 
 /**
  * Extract clean shop prefix identifier from a subdomain string

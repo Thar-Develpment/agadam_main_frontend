@@ -145,7 +145,7 @@ export default function EnquiryForm() {
                   setFormData({ ...formData, name: e.target.value });
                   if (errors.name) setErrors({ ...errors, name: null });
                 }}
-                className={`w-full pl-10 pr-4 py-3 bg-[#FAF9F5] border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all ${
+                className={`w-full pl-10 pr-4 py-3 bg-[#FAF9F5] border rounded-xl text-base sm:text-sm focus:outline-none focus:ring-2 transition-all ${
                   errors.name
                     ? "border-rose-400 focus:ring-rose-200"
                     : "border-stone-300 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20"
@@ -177,7 +177,7 @@ export default function EnquiryForm() {
                   setFormData({ ...formData, phone: e.target.value });
                   if (errors.phone) setErrors({ ...errors, phone: null });
                 }}
-                className={`w-full pl-10 pr-4 py-3 bg-[#FAF9F5] border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all ${
+                className={`w-full pl-10 pr-4 py-3 bg-[#FAF9F5] border rounded-xl text-base sm:text-sm focus:outline-none focus:ring-2 transition-all ${
                   errors.phone
                     ? "border-rose-400 focus:ring-rose-200"
                     : "border-stone-300 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20"
@@ -209,7 +209,7 @@ export default function EnquiryForm() {
                   setFormData({ ...formData, email: e.target.value });
                   if (errors.email) setErrors({ ...errors, email: null });
                 }}
-                className={`w-full pl-10 pr-4 py-3 bg-[#FAF9F5] border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all ${
+                className={`w-full pl-10 pr-4 py-3 bg-[#FAF9F5] border rounded-xl text-base sm:text-sm focus:outline-none focus:ring-2 transition-all ${
                   errors.email
                     ? "border-rose-400 focus:ring-rose-200"
                     : "border-stone-300 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20"
@@ -241,7 +241,7 @@ export default function EnquiryForm() {
                   setFormData({ ...formData, message: e.target.value });
                   if (errors.message) setErrors({ ...errors, message: null });
                 }}
-                className={`w-full pl-10 pr-4 py-3 bg-[#FAF9F5] border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all ${
+                className={`w-full pl-10 pr-4 py-3 bg-[#FAF9F5] border rounded-xl text-base sm:text-sm focus:outline-none focus:ring-2 transition-all ${
                   errors.message
                     ? "border-rose-400 focus:ring-rose-200"
                     : "border-stone-300 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20"

@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { TrendingUp, Sparkles, ShieldCheck, Scale } from "lucide-react";
+import { getSiteInfo } from "../services/api";
 
 export default function GoldRateSection({ shopInfo }) {
   const [activeUnit, setActiveUnit] = useState("1g"); // "1g" | "8g" | "10g"
 
-  // Base rates per 1 gram (mocked until backend API is ready)
-  const baseRates = {
+  // Base rates per 1 gram (initialized with benchmarks, updated dynamically via backend /user/site_info)
+  const [rates, setRates] = useState({
     gold24k: {
       purity: "24K (999 Pure)",
       name: "24 Karat Pure Gold",
@@ -43,7 +44,43 @@ export default function GoldRateSection({ shopInfo }) {
       isUp: true,
       hallmark: "99.9% Fine Silver",
     },
-  };
+  });
+
+  useEffect(() => {
+    async function fetchLivePrices() {
+      try {
+        const res = await getSiteInfo();
+        if (res && res.success === 1 && Array.isArray(res.priceData) && res.priceData.length > 0) {
+          setRates((prevRates) => {
+            const updated = { ...prevRates };
+            res.priceData.forEach((item) => {
+              const mat = (item.material || "").toLowerCase();
+              const purity = (item.purity || "").toLowerCase();
+              const priceNum = Number(item.price);
+
+              if (!isNaN(priceNum) && priceNum > 0) {
+                if (mat === "gold") {
+                  if (purity.includes("24")) {
+                    updated.gold24k = { ...updated.gold24k, pricePerGram: priceNum };
+                  } else if (purity.includes("22")) {
+                    updated.gold22k = { ...updated.gold22k, pricePerGram: priceNum };
+                  } else if (purity.includes("18")) {
+                    updated.gold18k = { ...updated.gold18k, pricePerGram: priceNum };
+                  }
+                } else if (mat === "silver") {
+                  updated.silver = { ...updated.silver, pricePerGram: priceNum };
+                }
+              }
+            });
+            return updated;
+          });
+        }
+      } catch (err) {
+        console.warn("Using default benchmark gold/silver rates:", err);
+      }
+    }
+    fetchLivePrices();
+  }, []);
 
   const getMultiplier = (unit) => {
     if (unit === "8g") return 8;
@@ -75,7 +112,7 @@ export default function GoldRateSection({ shopInfo }) {
   });
 
   return (
-    <section id="rates" className="py-16 sm:py-20 bg-[#FAF9F5] text-stone-800 border-t border-stone-200 relative overflow-hidden">
+    <section id="rates" className="py-16 sm:py-20 bg-[#FAF9F5] text-stone-800 border-t border-stone-200 relative overflow-hidden text-left">
       {/* Background Subtle Accent */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-[#D4AF37]/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -130,20 +167,20 @@ export default function GoldRateSection({ shopInfo }) {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-[#D4AF37] uppercase tracking-wider">
-                  {baseRates.gold22k.purity}
+                  {rates.gold22k.purity}
                 </span>
                 <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-400 font-semibold bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-md">
                   <TrendingUp className="w-3 h-3" />
-                  {baseRates.gold22k.change}
+                  {rates.gold22k.change}
                 </span>
               </div>
 
               <div>
                 <h3 className="font-serif text-xl font-bold text-white">
-                  {baseRates.gold22k.name}
+                  {rates.gold22k.name}
                 </h3>
                 <p className="text-xs text-stone-400 font-light mt-0.5">
-                  {baseRates.gold22k.desc}
+                  {rates.gold22k.desc}
                 </p>
               </div>
 
@@ -152,7 +189,7 @@ export default function GoldRateSection({ shopInfo }) {
                   {getUnitLabel(activeUnit)}
                 </span>
                 <span className="font-serif text-3xl font-bold text-[#F3E5AB] tracking-tight block mt-1">
-                  {formatPrice(baseRates.gold22k.pricePerGram)}
+                  {formatPrice(rates.gold22k.pricePerGram)}
                 </span>
               </div>
             </div>
@@ -160,7 +197,7 @@ export default function GoldRateSection({ shopInfo }) {
             <div className="pt-4 mt-4 border-t border-stone-800/80 flex items-center justify-between text-[11px] text-stone-400 font-mono">
               <span className="flex items-center gap-1 text-[#D4AF37]">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                {baseRates.gold22k.hallmark}
+                {rates.gold22k.hallmark}
               </span>
             </div>
           </div>
@@ -170,20 +207,20 @@ export default function GoldRateSection({ shopInfo }) {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-[#B8860B] uppercase tracking-wider">
-                  {baseRates.gold24k.purity}
+                  {rates.gold24k.purity}
                 </span>
                 <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
                   <TrendingUp className="w-3 h-3" />
-                  {baseRates.gold24k.change}
+                  {rates.gold24k.change}
                 </span>
               </div>
 
               <div>
                 <h3 className="font-serif text-xl font-bold text-stone-900">
-                  {baseRates.gold24k.name}
+                  {rates.gold24k.name}
                 </h3>
                 <p className="text-xs text-stone-500 font-light mt-0.5">
-                  {baseRates.gold24k.desc}
+                  {rates.gold24k.desc}
                 </p>
               </div>
 
@@ -192,7 +229,7 @@ export default function GoldRateSection({ shopInfo }) {
                   {getUnitLabel(activeUnit)}
                 </span>
                 <span className="font-serif text-3xl font-bold text-stone-900 tracking-tight block mt-1">
-                  {formatPrice(baseRates.gold24k.pricePerGram)}
+                  {formatPrice(rates.gold24k.pricePerGram)}
                 </span>
               </div>
             </div>
@@ -200,7 +237,7 @@ export default function GoldRateSection({ shopInfo }) {
             <div className="pt-4 mt-4 border-t border-stone-100 flex items-center justify-between text-[11px] text-stone-500 font-mono">
               <span className="flex items-center gap-1 text-[#B8860B]">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                {baseRates.gold24k.hallmark}
+                {rates.gold24k.hallmark}
               </span>
             </div>
           </div>
@@ -210,20 +247,20 @@ export default function GoldRateSection({ shopInfo }) {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-[#B8860B] uppercase tracking-wider">
-                  {baseRates.gold18k.purity}
+                  {rates.gold18k.purity}
                 </span>
                 <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
                   <TrendingUp className="w-3 h-3" />
-                  {baseRates.gold18k.change}
+                  {rates.gold18k.change}
                 </span>
               </div>
 
               <div>
                 <h3 className="font-serif text-xl font-bold text-stone-900">
-                  {baseRates.gold18k.name}
+                  {rates.gold18k.name}
                 </h3>
                 <p className="text-xs text-stone-500 font-light mt-0.5">
-                  {baseRates.gold18k.desc}
+                  {rates.gold18k.desc}
                 </p>
               </div>
 
@@ -232,7 +269,7 @@ export default function GoldRateSection({ shopInfo }) {
                   {getUnitLabel(activeUnit)}
                 </span>
                 <span className="font-serif text-3xl font-bold text-stone-900 tracking-tight block mt-1">
-                  {formatPrice(baseRates.gold18k.pricePerGram)}
+                  {formatPrice(rates.gold18k.pricePerGram)}
                 </span>
               </div>
             </div>
@@ -240,7 +277,7 @@ export default function GoldRateSection({ shopInfo }) {
             <div className="pt-4 mt-4 border-t border-stone-100 flex items-center justify-between text-[11px] text-stone-500 font-mono">
               <span className="flex items-center gap-1 text-[#B8860B]">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                {baseRates.gold18k.hallmark}
+                {rates.gold18k.hallmark}
               </span>
             </div>
           </div>
@@ -250,20 +287,20 @@ export default function GoldRateSection({ shopInfo }) {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-stone-600 uppercase tracking-wider">
-                  {baseRates.silver.purity}
+                  {rates.silver.purity}
                 </span>
                 <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
                   <TrendingUp className="w-3 h-3" />
-                  {baseRates.silver.change}
+                  {rates.silver.change}
                 </span>
               </div>
 
               <div>
                 <h3 className="font-serif text-xl font-bold text-stone-900">
-                  {baseRates.silver.name}
+                  {rates.silver.name}
                 </h3>
                 <p className="text-xs text-stone-500 font-light mt-0.5">
-                  {baseRates.silver.desc}
+                  {rates.silver.desc}
                 </p>
               </div>
 
@@ -272,7 +309,7 @@ export default function GoldRateSection({ shopInfo }) {
                   {getUnitLabel(activeUnit)}
                 </span>
                 <span className="font-serif text-3xl font-bold text-stone-900 tracking-tight block mt-1">
-                  {formatPrice(baseRates.silver.pricePerGram)}
+                  {formatPrice(rates.silver.pricePerGram)}
                 </span>
               </div>
             </div>
@@ -280,7 +317,7 @@ export default function GoldRateSection({ shopInfo }) {
             <div className="pt-4 mt-4 border-t border-stone-100 flex items-center justify-between text-[11px] text-stone-500 font-mono">
               <span className="flex items-center gap-1 text-stone-700">
                 <Scale className="w-3.5 h-3.5" />
-                {baseRates.silver.hallmark}
+                {rates.silver.hallmark}
               </span>
             </div>
           </div>

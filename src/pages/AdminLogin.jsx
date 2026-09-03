@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Mail, Lock, ArrowLeft, Gem, Loader2, AlertCircle } from "lucide-react";
+import { adminLogin } from "../services/api";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -11,7 +12,7 @@ export default function AdminLogin() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setErrors({});
     
@@ -22,28 +23,23 @@ export default function AdminLogin() {
 
     setIsSubmitting(true);
 
-    // Simulate network delay
-    setTimeout(() => {
+    try {
+      const res = await adminLogin(formData.email.trim(), formData.password);
       setIsSubmitting(false);
 
-      // Retrieve registered shops from localStorage
-      const tenants = JSON.parse(localStorage.getItem("aadagam_registered_tenants") || "[]");
-      
-      // Look for a matching tenant
-      const matchingTenant = tenants.find(
-        (t) => t.email.toLowerCase() === formData.email.toLowerCase() && t.password === formData.password
-      );
-
-      if (matchingTenant) {
-        // Store current logged-in session details
-        localStorage.setItem("aadagam_current_admin", JSON.stringify(matchingTenant));
+      if (res.status === 1) {
         navigate("/admin/dashboard");
       } else {
         setErrors({
-          submit: "Invalid email or password. If you haven't registered your showroom yet, please register on the homepage.",
+          submit: res.message || "Invalid email or password. Please check your showroom credentials.",
         });
       }
-    }, 600);
+    } catch (err) {
+      setIsSubmitting(false);
+      setErrors({
+        submit: "Failed to connect to authentication server. Please try again.",
+      });
+    }
   };
 
   return (
@@ -67,21 +63,21 @@ export default function AdminLogin() {
             Admin Sign In
           </h2>
           <p className="text-xs text-stone-500 mt-1.5 max-w-xs mx-auto">
-            Log in to manage your showroom's dynamic catalogues, slideshows, and contact settings.
+            Log in to manage your showroom's dynamic catalogues, gold rates, and customer enquiries.
           </p>
         </div>
 
         {/* Login Form */}
         <form onSubmit={handleLogin} className="space-y-5 pt-2">
           {errors.submit && (
-            <div className="bg-rose-50 border border-rose-100 text-rose-800 text-xs p-4 rounded-2xl flex items-start gap-2.5">
+            <div className="bg-rose-50 border border-rose-100 text-rose-800 text-xs p-4 rounded-2xl flex items-start gap-2.5 animate-fade-in">
               <AlertCircle className="w-4.5 h-4.5 shrink-0 text-rose-500 mt-0.5" />
               <span>{errors.submit}</span>
             </div>
           )}
 
           {/* Email Input */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 text-left">
             <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider">
               Email Address
             </label>
@@ -101,7 +97,7 @@ export default function AdminLogin() {
           </div>
 
           {/* Password Input */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 text-left">
             <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider">
               Password
             </label>
@@ -124,12 +120,12 @@ export default function AdminLogin() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-[#FAF9F5] border border-[#D4AF37]/30 hover:border-[#D4AF37] font-bold py-4 px-6 rounded-2xl text-sm tracking-wider uppercase transition-all shadow-md shadow-stone-950/10 hover:shadow-xl hover:shadow-[#D4AF37]/5 hover:-translate-y-0.5 disabled:opacity-75 disabled:hover:translate-y-0 disabled:hover:shadow-md mt-4"
+            className="w-full flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-[#FAF9F5] border border-[#D4AF37]/30 hover:border-[#D4AF37] font-bold py-4 px-6 rounded-2xl text-sm tracking-wider uppercase transition-all shadow-md shadow-stone-950/10 hover:shadow-xl hover:shadow-[#D4AF37]/5 hover:-translate-y-0.5 disabled:opacity-75 disabled:hover:translate-y-0 disabled:hover:shadow-md mt-4 cursor-pointer"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin text-[#D4AF37]" />
-                <span>Signing In...</span>
+                <span>Authenticating...</span>
               </>
             ) : (
               <span>Sign In</span>

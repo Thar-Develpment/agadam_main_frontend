@@ -1,17 +1,13 @@
 import React from "react";
 import { Gem, ArrowUp } from "lucide-react";
-import { FacebookIcon, InstagramIcon, YoutubeIcon } from "./SocialIcons";
-
 
 export default function Footer({ shopInfo }) {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const socials = shopInfo?.socials || {};
-
   return (
-    <footer className="bg-stone-950 text-stone-300 border-t border-stone-800 pt-16 pb-8 text-left">
+    <footer className="bg-stone-950 text-stone-300 border-t border-stone-800 pt-16 pb-8 text-left w-full overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-12 border-b border-stone-800">
           {/* Brand Info */}
@@ -27,42 +23,6 @@ export default function Footer({ shopInfo }) {
             <p className="text-stone-400 text-xs sm:text-sm font-light leading-relaxed max-w-sm">
               {shopInfo?.subTagline || "Crafting exquisite gold, diamond, & antique polki treasures since 1988."} 100% BIS Hallmarked Purity & GIA Certified Solitaires.
             </p>
-            <div className="pt-2 flex items-center gap-3">
-              {socials.facebook && (
-                <a
-                  href={socials.facebook}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-8 h-8 rounded-full bg-stone-900 border border-stone-800 hover:border-[#D4AF37] text-stone-400 hover:text-[#D4AF37] flex items-center justify-center transition-colors"
-                  aria-label="Facebook"
-                >
-                  <FacebookIcon className="w-4 h-4" />
-                </a>
-              )}
-              {socials.instagram && (
-                <a
-                  href={socials.instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-8 h-8 rounded-full bg-stone-900 border border-stone-800 hover:border-[#D4AF37] text-stone-400 hover:text-[#D4AF37] flex items-center justify-center transition-colors"
-                  aria-label="Instagram"
-                >
-                  <InstagramIcon className="w-4 h-4" />
-                </a>
-              )}
-              {socials.youtube && (
-                <a
-                  href={socials.youtube}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-8 h-8 rounded-full bg-stone-900 border border-stone-800 hover:border-[#D4AF37] text-stone-400 hover:text-[#D4AF37] flex items-center justify-center transition-colors"
-                  aria-label="YouTube"
-                >
-                  <YoutubeIcon className="w-4 h-4" />
-                </a>
-              )}
-            </div>
-
           </div>
 
           {/* Quick Navigation Links */}
@@ -104,7 +64,7 @@ export default function Footer({ shopInfo }) {
             </ul>
           </div>
 
-          {/* Address Summary & Timings */}
+          {/* Address & Contact Summary */}
           <div className="lg:col-span-4 space-y-3">
             <h4 className="font-serif font-bold text-white text-base tracking-wider uppercase">
               Flagship Boutique
@@ -115,7 +75,6 @@ export default function Footer({ shopInfo }) {
             <div className="pt-2 text-xs text-stone-500 font-mono space-y-1">
               <p>Primary: {shopInfo?.phonePrimary || "+91 98765 43210"}</p>
               <p>Email: {shopInfo?.email || "contact@jewellerystore.com"}</p>
-              <p className="text-[#D4AF37]">Hours: Mon-Sun 10:30 AM – 8:30 PM</p>
             </div>
           </div>
         </div>
@@ -131,7 +90,7 @@ export default function Footer({ shopInfo }) {
           </div>
           <button
             onClick={scrollToTop}
-            className="inline-flex items-center gap-1 text-[#D4AF37] hover:underline"
+            className="inline-flex items-center gap-1 text-[#D4AF37] hover:underline cursor-pointer"
           >
             <span>Back to top</span>
             <ArrowUp className="w-3.5 h-3.5" />

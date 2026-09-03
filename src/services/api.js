@@ -1,4 +1,4 @@
-import { apiClient, getTenantSubdomain, getShopPrefix } from "./apiClient";
+import { apiClient, getTenantSubdomain, getShopPrefix, parseJwt } from "./apiClient";
 import {
   mockShopInfo,
   mockSlides,
@@ -24,6 +24,10 @@ export function extractYoutubeId(url = "") {
   const match = trimmed.match(regExp);
   return match ? match[1] : trimmed;
 }
+
+/* ==========================================================================
+ * 1. PUBLIC STOREFRONT & SYSTEM MODULE (`/user` & `/auth`)
+ * ========================================================================== */
 
 /**
  * Fetch hero carousel slides (Fallback to showroom slides)
@@ -79,10 +83,9 @@ export async function getGalleryImages(categoryName = "All") {
       console.warn("Failed to fetch gallery categories map:", catErr);
     }
 
-    // 2. Fetch the gallery details
+    // 2. Fetch the gallery details (using backend typo route /user/galler_details)
     const res = await apiClient.post("/user/galler_details", { subdomain });
     if (res.data && res.data.status === 1 && Array.isArray(res.data.data)) {
-      // Map backend database format to frontend card format
       const mappedImages = res.data.data.map((item) => {
         const mappedCategory = categoriesMap.get(item.category_id) || "Exclusive";
         return {
@@ -152,7 +155,6 @@ export async function getAboutContent() {
     const res = await apiClient.post("/user/our_stories", { subdomain });
     
     if (res.data && res.data.status === 1 && Array.isArray(res.data.data) && res.data.data.length > 0) {
-      // Find the first active story or the latest one
       const activeStory = res.data.data.find((story) => story.status === 1) || res.data.data[0];
       return {
         ...mockAboutContent,
@@ -163,6 +165,27 @@ export async function getAboutContent() {
   } catch (err) {
     console.error("Error in getAboutContent:", err);
     return mockAboutContent;
+  }
+}
+
+/**
+ * Fetch live metal/bullion prices and site info from backend `GET /user/site_info`
+ * @returns {Promise<Object>} { success: number, priceData: Array<{ material, purity, price }> }
+ */
+export async function getSiteInfo() {
+  try {
+    const res = await apiClient.get("/user/site_info");
+    if (res.data && (res.data.success === 1 || res.data.status === 1)) {
+      return {
+        success: 1,
+        priceData: res.data.priceData || res.data.data || [],
+        message: res.data.message || "Prices fetched successfully",
+      };
+    }
+    return { success: 0, priceData: [], message: "No price data found" };
+  } catch (err) {
+    console.error("Error in getSiteInfo:", err);
+    return { success: 0, priceData: [], message: err.message };
   }
 }
 
@@ -294,24 +317,128 @@ export async function registerShop(regData) {
   }
 }
 
-/**
- * ============================================================================
- * ADMIN APIs (`/opxXxolN7m6CU`) with JWT Authentication
- * ============================================================================
- */
+/* ==========================================================================
+ * 2. ADMIN AUTHENTICATION & OVERVIEW MODULE (`/opxXxolN7m6CU`)
+ * ========================================================================== */
+
+// Helper to construct Authorization header if token provided explicitly
+function getAuthHeader(token = null) {
+  if (token) return { Authorization: `Bearer ${token}` };
+  return {};
+}
 
 /**
- * Add a new gallery category for the authenticated tenant
- * @param {string} categoryName Category name (Max 30 chars)
- * @param {string} token Optional JWT token
+ * Authenticate Showroom Admin via `POST /opxXxolN7m6CU/login`
+ * @param {string} email 
+ * @param {string} password 
+ * @returns {Promise<Object>} { status: number, authTkn: string, message: string, user: object }
  */
+export async function adminLogin(email, password) {
+  try {
+    const res = await apiClient.post("/opxXxolN7m6CU/login", {
+      email: (email || "").trim(),
+      password: password || "",
+    });
+
+    if (res.data && res.data.status === 1 && res.data.authTkn) {
+      const token = res.data.authTkn;
+      const decoded = parseJwt(token) || {};
+      
+      const userSession = {
+        token,
+        authTkn: token,
+        id: decoded.id || null,
+        email: decoded.email || email,
+        domain: decoded.subdomain || `${getShopPrefix(email)}.aadagam.com`,
+        shopName: (decoded.subdomain ? getShopPrefix(decoded.subdomain) : "Showroom").toUpperCase(),
+      };
+
+      // Store in LocalStorage for persistence across requests
+      localStorage.setItem("aadagam_current_admin", JSON.stringify(userSession));
+      localStorage.setItem("aadagam_auth_token", token);
+
+      return {
+        status: 1,
+        authTkn: token,
+        message: res.data.message || "Login success",
+        user: userSession,
+      };
+    }
+
+    return {
+      status: 0,
+      message: res.data?.message || "Invalid credentials",
+    };
+  } catch (err) {
+    console.error("Error in adminLogin:", err);
+    return {
+      status: 0,
+      message: err.response?.data?.message || err.message || "Login failed",
+    };
+  }
+}
+
+/**
+ * Fetch Admin Dashboard overview statistics from `GET /opxXxolN7m6CU/dash_board`
+ * @param {string} token Optional JWT token
+ * @returns {Promise<Object>} { success: number, register_count: number, priceData: Array }
+ */
+export async function adminGetDashboardStats(token = null) {
+  try {
+    const res = await apiClient.get("/opxXxolN7m6CU/dash_board", {
+      headers: getAuthHeader(token),
+    });
+    if (res.data && (res.data.success === 1 || res.data.status === 1)) {
+      return {
+        success: 1,
+        register_count: res.data.register_count || 0,
+        priceData: res.data.priceData || [],
+        message: res.data.message || "success",
+      };
+    }
+    return { success: 0, register_count: 0, priceData: [] };
+  } catch (err) {
+    console.error("Error in adminGetDashboardStats:", err);
+    return { success: 0, register_count: 0, priceData: [] };
+  }
+}
+
+/**
+ * Update daily gold/silver metal price from `POST /opxXxolN7m6CU/price_update`
+ * @param {Object} param0 { material: 'gold'|'silver', purity: '22k'|'24k'|'18k', price: string|number }
+ * @param {string} token Optional JWT token
+ * @returns {Promise<Object>} { status: number, message: string }
+ */
+export async function adminUpdatePrice({ material, purity, price }, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/price_update",
+      {
+        material: (material || "gold").toLowerCase(),
+        purity: (purity || "22k").toLowerCase(),
+        price: String(price).trim(),
+      },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data || { status: 1, message: "Price updated successfully" };
+  } catch (err) {
+    console.error("Error in adminUpdatePrice:", err);
+    return { status: 0, message: err.response?.data?.message || "Failed to update price." };
+  }
+}
+
+/* ==========================================================================
+ * 3. ADMIN CRUD MODULES (`/opxXxolN7m6CU`)
+ * ========================================================================== */
+
+/* ------------------ A. CATEGORIES ------------------ */
+
 export async function adminAddCategory(categoryName, token = null) {
   try {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const res = await apiClient.post(
       "/opxXxolN7m6CU/add_category",
       { category_name: (categoryName || "").trim().slice(0, 30) },
-      { headers }
+      { headers: getAuthHeader(token) }
     );
     return res.data;
   } catch (err) {
@@ -320,19 +447,12 @@ export async function adminAddCategory(categoryName, token = null) {
   }
 }
 
-/**
- * Fetch paginated categories for the authenticated tenant
- * @param {number} pageNo Page index (starts at 0)
- * @param {number} pageSize Items per page
- * @param {string} token Optional JWT token
- */
 export async function adminGetAllCategories(pageNo = 0, pageSize = 10, token = null) {
   try {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const res = await apiClient.post(
       "/opxXxolN7m6CU/get_all_category",
       { pageNo: Math.max(0, pageNo), pageSize: Math.max(1, pageSize) },
-      { headers }
+      { headers: getAuthHeader(token) }
     );
     return res.data;
   } catch (err) {
@@ -341,18 +461,12 @@ export async function adminGetAllCategories(pageNo = 0, pageSize = 10, token = n
   }
 }
 
-/**
- * Fetch a single category by ID
- * @param {number} id Category ID
- * @param {string} token Optional JWT token
- */
 export async function adminGetSingleCategory(id, token = null) {
   try {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const res = await apiClient.post(
       "/opxXxolN7m6CU/get_single_category",
       { id: Number(id) },
-      { headers }
+      { headers: getAuthHeader(token) }
     );
     return res.data;
   } catch (err) {
@@ -361,24 +475,246 @@ export async function adminGetSingleCategory(id, token = null) {
   }
 }
 
-/**
- * Update an existing category
- * @param {number} id Category ID
- * @param {string} categoryName New Category Name
- * @param {number} status 1 for Active, 0 for Inactive
- * @param {string} token Optional JWT token
- */
 export async function adminUpdateCategory(id, categoryName, status = 1, token = null) {
   try {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const res = await apiClient.post(
       "/opxXxolN7m6CU/update_category",
       { id: Number(id), category_name: (categoryName || "").trim().slice(0, 30), status },
-      { headers }
+      { headers: getAuthHeader(token) }
     );
     return res.data;
   } catch (err) {
     console.error("Error in adminUpdateCategory:", err);
     return { status: 0, message: err.response?.data?.message || "Failed to update category." };
+  }
+}
+
+/* ------------------ B. GALLERY IMAGES ------------------ */
+
+export async function adminAddGallery(categoryId, imageUrl, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/add_gallery",
+      {
+        category_id: Number(categoryId),
+        image_url: (imageUrl || "").trim().slice(0, 100),
+      },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminAddGallery:", err);
+    return { status: 0, message: err.response?.data?.message || "Failed to add gallery image." };
+  }
+}
+
+export async function adminGetAllGallery(pageNo = 0, pageSize = 10, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/get_all_gallery",
+      { pageNo: Math.max(0, pageNo), pageSize: Math.max(1, pageSize) },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminGetAllGallery:", err);
+    return { status: 0, totalRecords: 0, data: [] };
+  }
+}
+
+export async function adminGetSingleGallery(id, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/get_single_gallery",
+      { id: Number(id) },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminGetSingleGallery:", err);
+    return { status: 0, message: "Gallery image not found" };
+  }
+}
+
+export async function adminUpdateGallery(id, categoryId, imageUrl, status = 1, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/update_gallery",
+      {
+        id: Number(id),
+        category_id: Number(categoryId),
+        image_url: (imageUrl || "").trim().slice(0, 100),
+        status,
+      },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminUpdateGallery:", err);
+    return { status: 0, message: err.response?.data?.message || "Failed to update gallery image." };
+  }
+}
+
+/* ------------------ C. SHOWCASE VIDEOS ------------------ */
+
+export async function adminAddVideo(videoUrl, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/add_video",
+      { video_url: (videoUrl || "").trim().slice(0, 100) },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminAddVideo:", err);
+    return { status: 0, message: err.response?.data?.message || "Failed to add video." };
+  }
+}
+
+export async function adminGetAllVideo(pageNo = 0, pageSize = 10, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/get_all_video",
+      { pageNo: Math.max(0, pageNo), pageSize: Math.max(1, pageSize) },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminGetAllVideo:", err);
+    return { status: 0, totalRecords: 0, data: [] };
+  }
+}
+
+export async function adminGetSingleVideo(id, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/get_single_video",
+      { id: Number(id) },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminGetSingleVideo:", err);
+    return { status: 0, message: "Video not found" };
+  }
+}
+
+export async function adminUpdateVideo(id, videoUrl, status = 1, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/update_video",
+      { id: Number(id), video_url: (videoUrl || "").trim().slice(0, 100), status },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminUpdateVideo:", err);
+    return { status: 0, message: err.response?.data?.message || "Failed to update video." };
+  }
+}
+
+/* ------------------ D. CUSTOMER ENQUIRIES (ASKED QUESTIONS) ------------------ */
+
+export async function adminGetAllAskedQuestions(pageNo = 0, pageSize = 10, status = null, token = null) {
+  try {
+    const payload = { pageNo: Math.max(0, pageNo), pageSize: Math.max(1, pageSize) };
+    if (status !== null && status !== undefined) {
+      payload.status = status;
+    }
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/get_all_asked_questions",
+      payload,
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminGetAllAskedQuestions:", err);
+    return { status: 0, totalRecords: 0, data: [] };
+  }
+}
+
+export async function adminGetSingleAskedQuestion(id, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/get_single_asked_questions",
+      { id: Number(id) },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminGetSingleAskedQuestion:", err);
+    return { status: 0, message: "Enquiry not found" };
+  }
+}
+
+export async function adminUpdateAskedQuestionStatus(id, status = 1, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/update_asked_questions",
+      { id: Number(id), status },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminUpdateAskedQuestionStatus:", err);
+    return { status: 0, message: err.response?.data?.message || "Failed to update enquiry status." };
+  }
+}
+
+/* ------------------ E. OUR STORY NARRATIVE ------------------ */
+
+export async function adminAddOurStory(content, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/add_our_story",
+      { content: (content || "").trim() },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminAddOurStory:", err);
+    return { status: 0, message: err.response?.data?.message || "Failed to add story." };
+  }
+}
+
+export async function adminGetAllOurStory(pageNo = 0, pageSize = 10, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/get_all_our_story",
+      { pageNo: Math.max(0, pageNo), pageSize: Math.max(1, pageSize) },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminGetAllOurStory:", err);
+    return { status: 0, totalRecords: 0, data: [] };
+  }
+}
+
+export async function adminGetSingleOurStory(id, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/get_single_our_story",
+      { id: Number(id) },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminGetSingleOurStory:", err);
+    return { status: 0, message: "Story not found" };
+  }
+}
+
+export async function adminUpdateOurStory(id, content, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/update_our_story",
+      { id: Number(id), content: (content || "").trim() },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminUpdateOurStory:", err);
+    return { status: 0, message: err.response?.data?.message || "Failed to update story." };
   }
 }

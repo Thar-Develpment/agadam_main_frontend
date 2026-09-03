@@ -88,8 +88,6 @@ export default function PlatformLandingPage() {
       newErrors.city = "City name must not exceed 12 characters (backend constraint).";
     }
 
-    // Password validation: exactly 8 chars, 1 uppercase, 1 lowercase, 1 digit
-    const pwd = regData.password || "";
     if (pwd.length !== 8) {
       newErrors.password = "Password must be exactly 8 characters long.";
     } else if (!/[A-Z]/.test(pwd)) {
@@ -117,54 +115,48 @@ export default function PlatformLandingPage() {
       setIsSubmitting(false);
 
       if (response.success) {
-        // Save credentials in simulated localStorage tenant list for local admin login
-        const tenants = JSON.parse(localStorage.getItem("aadagam_registered_tenants") || "[]");
-        const exists = tenants.some((t) => t.email.toLowerCase() === regData.email.toLowerCase());
-        if (!exists) {
-          tenants.push({
-            email: regData.email,
-            password: regData.password,
-            shopName: regData.shopName,
-            ownerName: regData.ownerName,
-            domain: response.domain || `${regData.shopName.replace(/\s+/g, "").toLowerCase()}.aadagam.com`,
-            registeredAt: response.registeredAt || new Date().toISOString()
-          });
-          localStorage.setItem("aadagam_registered_tenants", JSON.stringify(tenants));
-        }
+        const existingTenants = JSON.parse(
+          localStorage.getItem("aadagam_registered_tenants") || "[]"
+        );
+        existingTenants.push({
+          ...regData,
+          domain: response.domain,
+          registeredAt: response.registeredAt,
+        });
+        localStorage.setItem("aadagam_registered_tenants", JSON.stringify(existingTenants));
 
         setRegistrationResult(response);
-        setErrors({});
       } else {
         setErrors({ submit: response.message || "Registration failed." });
       }
     } catch (err) {
-      console.error("Shop registration error:", err);
+      console.error("Registration error:", err);
       setIsSubmitting(false);
       setErrors({ submit: "An unexpected error occurred. Please try again." });
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF9F5] text-stone-800 font-sans selection:bg-[#D4AF37] selection:text-stone-950">
-      {/* Platform Navigation Header */}
-      <header className="sticky top-0 z-40 bg-[#FAF9F5]/90 backdrop-blur-md border-b border-stone-200 py-4">
+    <div className="min-h-screen bg-[#FAF9F5] text-stone-800 font-sans selection:bg-[#D4AF37] selection:text-stone-950 w-full max-w-full overflow-x-hidden">
+      {/* Platform Header */}
+      <header className="sticky top-0 z-40 bg-[#FAF9F5]/90 backdrop-blur-md border-b border-stone-200 py-3 sm:py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-stone-900 border border-[#D4AF37] flex items-center justify-center shadow-md">
-              <Gem className="w-5 h-5 text-[#D4AF37]" />
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-stone-900 border border-[#D4AF37] flex items-center justify-center shadow-md shrink-0">
+              <Gem className="w-4 h-4 sm:w-5 sm:h-5 text-[#D4AF37]" />
             </div>
             <div>
-              <span className="font-serif text-xl sm:text-2xl font-bold text-stone-900 tracking-wider block">
+              <span className="font-serif text-base sm:text-2xl font-bold text-stone-900 tracking-wider block">
                 AADAGAM PLATFORM
               </span>
-              <span className="text-[10px] text-[#B8860B] font-semibold uppercase tracking-widest block -mt-1">
+              <span className="text-[9px] sm:text-[10px] text-[#B8860B] font-semibold uppercase tracking-widest block -mt-1">
                 Jewellery Business Platform
               </span>
             </div>
           </div>
 
           {/* Desktop Nav Actions */}
-          <div className="flex items-center gap-4 sm:gap-6">
+          <div className="hidden md:flex items-center gap-4 sm:gap-6">
             <Link
               to="/admin"
               className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-850 hover:text-[#B8860B] transition-colors"
@@ -172,7 +164,7 @@ export default function PlatformLandingPage() {
               <span>Admin Sign In</span>
             </Link>
 
-            <span className="text-stone-300 hidden sm:inline">|</span>
+            <span className="text-stone-300">|</span>
 
             <Link
               to="/shop"
@@ -192,33 +184,49 @@ export default function PlatformLandingPage() {
               <span>Register Shop</span>
             </a>
           </div>
+
+          {/* Mobile Nav Actions */}
+          <div className="flex md:hidden items-center gap-2">
+            <Link
+              to="/admin"
+              className="text-xs font-bold text-stone-800 hover:text-[#B8860B] px-3 py-1.5 rounded-lg border border-stone-300 bg-white"
+            >
+              Sign In
+            </Link>
+            <a
+              href="#register"
+              className="bg-stone-900 text-white font-bold text-xs px-3 py-1.5 rounded-lg border border-[#D4AF37]/40 flex items-center gap-1 shadow-xs"
+            >
+              <span>Register</span>
+            </a>
+          </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative py-16 sm:py-24 bg-stone-950 text-white overflow-hidden border-b border-stone-800">
+      <section className="relative py-14 sm:py-24 bg-stone-950 text-white overflow-hidden border-b border-stone-800">
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#D4AF37]/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <div className="max-w-3xl mx-auto space-y-6">
-            <div className="inline-flex items-center gap-2 bg-[#D4AF37]/20 border border-[#D4AF37]/50 text-[#F3E5AB] px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest">
+          <div className="max-w-3xl mx-auto space-y-5 sm:space-y-6">
+            <div className="inline-flex items-center gap-2 bg-[#D4AF37]/20 border border-[#D4AF37]/50 text-[#F3E5AB] px-3.5 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold uppercase tracking-widest">
               <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
               <span>SaaS Platform for Single-Tenant Jewellery Shops</span>
             </div>
 
-            <h1 className="font-serif text-4xl sm:text-6xl font-bold text-white leading-tight">
+            <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
               Launch Your Luxury Jewellery Digital Store in Minutes
             </h1>
 
-            <p className="text-stone-300 text-base sm:text-lg font-light leading-relaxed max-w-2xl mx-auto">
+            <p className="text-stone-300 text-sm sm:text-lg font-light leading-relaxed max-w-2xl mx-auto">
               Empower your physical jewellery showroom with an elegant, mobile-responsive online website featuring high-definition product galleries, live gold rates, YouTube video showcases, daily WhatsApp status cards, and direct customer enquiries.
             </p>
 
             {/* Action Buttons */}
-            <div className="flex flex-wrap justify-center gap-4 pt-4">
+            <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3 sm:gap-4 pt-4 max-w-md sm:max-w-none mx-auto">
               <a
                 href="#register"
-                className="inline-flex items-center gap-3 bg-gradient-to-r from-[#C5A059] via-[#D4AF37] to-[#B8860B] hover:from-[#D4AF37] hover:to-[#C5A059] text-stone-950 font-bold py-4 px-8 rounded-xl text-sm tracking-wider uppercase shadow-xl transition-all hover:scale-105"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-gradient-to-r from-[#C5A059] via-[#D4AF37] to-[#B8860B] hover:from-[#D4AF37] hover:to-[#C5A059] text-stone-950 font-bold py-3.5 sm:py-4 px-6 sm:px-8 rounded-xl text-xs sm:text-sm tracking-wider uppercase shadow-xl transition-all hover:scale-105"
               >
                 <span>Register Your Shop Now</span>
                 <ArrowRight className="w-4 h-4" />
@@ -228,7 +236,7 @@ export default function PlatformLandingPage() {
                 to="/shop"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2.5 bg-stone-900 hover:bg-stone-800 text-stone-200 border border-stone-700 hover:border-[#D4AF37] py-4 px-7 rounded-xl text-sm font-semibold tracking-wider transition-all"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-stone-900 hover:bg-stone-800 text-stone-200 border border-stone-700 hover:border-[#D4AF37] py-3.5 sm:py-4 px-6 sm:px-7 rounded-xl text-xs sm:text-sm font-semibold tracking-wider transition-all"
               >
                 <span>Preview Live Client Storefront</span>
                 <ExternalLink className="w-4 h-4 text-[#D4AF37]" />
@@ -239,21 +247,21 @@ export default function PlatformLandingPage() {
       </section>
 
       {/* Feature Showcase Grid */}
-      <section className="py-16 sm:py-24 bg-[#FAF9F5]">
+      <section className="py-14 sm:py-24 bg-[#FAF9F5]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
+          <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16 space-y-3">
             <span className="text-xs font-semibold uppercase tracking-widest text-[#B8860B] bg-[#D4AF37]/15 px-3 py-1 rounded-full inline-block border border-[#D4AF37]/30">
               Complete Storefront Modules
             </span>
             <h2 className="font-serif text-3xl sm:text-5xl font-bold text-stone-900">
               Everything Your Jewellery Shop Needs
             </h2>
-            <p className="text-stone-600 text-sm sm:text-base font-light">
+            <p className="text-stone-600 text-xs sm:text-base font-light">
               Designed specifically for gold, diamond, polki, and antique jewellery retailers.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-left">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 text-left">
             {/* Feature 1 */}
             <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all space-y-4">
               <div className="w-12 h-12 rounded-2xl bg-[#D4AF37]/10 text-[#B8860B] flex items-center justify-center">
@@ -299,10 +307,10 @@ export default function PlatformLandingPage() {
                 <MessageCircle className="w-6 h-6" />
               </div>
               <h3 className="font-serif text-xl font-bold text-stone-900">
-                Direct WhatsApp Enquiries
+                Direct Customer Enquiries
               </h3>
               <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed">
-                Integrated enquiry forms and per-product WhatsApp links allowing buyers to inquire about specific jewellery pieces instantly.
+                Integrated enquiry forms and per-product links allowing buyers to inquire about specific jewellery pieces directly from the website.
               </p>
             </div>
 
@@ -336,7 +344,7 @@ export default function PlatformLandingPage() {
       </section>
 
       {/* SHOP OWNER REGISTRATION SECTION */}
-      <section id="register" className="py-16 sm:py-24 bg-white border-t border-stone-200">
+      <section id="register" className="py-14 sm:py-24 bg-white border-t border-stone-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="mb-10 space-y-3">
             <span className="text-xs font-semibold uppercase tracking-widest text-[#B8860B] bg-[#D4AF37]/15 px-3.5 py-1 rounded-full inline-block border border-[#D4AF37]/30">
@@ -345,31 +353,31 @@ export default function PlatformLandingPage() {
             <h2 className="font-serif text-3xl sm:text-5xl font-bold text-stone-900">
               Register Your Jewellery Business
             </h2>
-            <p className="text-stone-600 text-sm sm:text-base font-light">
+            <p className="text-stone-600 text-xs sm:text-base font-light">
               Fill in your shop details below to register your business and launch your storefront.
             </p>
           </div>
 
           {/* Registration Result Screen or Form */}
           {registrationResult ? (
-            <div className="bg-[#FAF9F5] border-2 border-[#D4AF37]/40 rounded-3xl p-8 sm:p-12 shadow-2xl space-y-6 animate-fade-in text-center">
-              <div className="w-20 h-20 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
-                <CheckCircle2 className="w-12 h-12" />
+            <div className="bg-[#FAF9F5] border-2 border-[#D4AF37]/40 rounded-3xl p-6 sm:p-12 shadow-2xl space-y-6 animate-fade-in text-center">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
+                <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12" />
               </div>
 
               <div className="space-y-2">
                 <span className="inline-block bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full uppercase">
                   Account Created
                 </span>
-                <h3 className="font-serif text-3xl font-bold text-stone-900">
+                <h3 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
                   {registrationResult.shopName}
                 </h3>
-                <p className="text-stone-600 text-sm font-light">
+                <p className="text-stone-600 text-xs sm:text-sm font-light">
                   {registrationResult.message}
                 </p>
               </div>
 
-              <div className="bg-white border border-stone-200 rounded-2xl p-5 max-w-sm mx-auto font-mono text-xs text-stone-700 space-y-2">
+              <div className="bg-white border border-stone-200 rounded-2xl p-5 max-w-sm mx-auto font-mono text-xs text-stone-700 space-y-2 text-left">
                 <div>Shop ID: <strong className="text-stone-900">{registrationResult.shopId}</strong></div>
                 <div>Registered: {new Date(registrationResult.registeredAt).toLocaleDateString()}</div>
                 <div className="border-t border-stone-100 pt-2 mt-2">
@@ -385,28 +393,28 @@ export default function PlatformLandingPage() {
                 </div>
               </div>
 
-              <div className="pt-4 flex flex-col sm:flex-row justify-center gap-4">
+              <div className="pt-4 flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
                 <a
                   href={`/shop?shop=${getShopPrefix(registrationResult.domain)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-stone-900 to-stone-800 hover:from-stone-800 hover:to-stone-700 text-[#FAF9F5] font-bold py-3.5 px-8 rounded-xl text-sm tracking-wider uppercase transition-all shadow-lg"
+                  className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-stone-900 to-stone-800 hover:from-stone-800 hover:to-stone-700 text-[#FAF9F5] font-bold py-3.5 px-8 rounded-xl text-xs sm:text-sm tracking-wider uppercase transition-all shadow-lg"
                 >
                   <Store className="w-4 h-4 text-[#D4AF37]" />
-                  <span>Launch Live Client Storefront</span>
+                  <span>Launch Live Storefront</span>
                   <ExternalLink className="w-3.5 h-3.5 text-[#D4AF37]" />
                 </a>
 
                 <button
                   onClick={() => navigate("/admin")}
-                  className="bg-stone-900 hover:bg-stone-850 text-white border border-stone-800 font-semibold py-3.5 px-6 rounded-xl text-sm transition-colors"
+                  className="bg-stone-900 hover:bg-stone-850 text-white border border-stone-800 font-semibold py-3.5 px-6 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer"
                 >
                   Admin Sign In
                 </button>
               </div>
             </div>
           ) : (
-            <div className="bg-white border border-[#D4AF37]/20 rounded-[32px] p-8 sm:p-12 shadow-2xl shadow-stone-900/5 text-left transition-all">
+            <div className="bg-white border border-[#D4AF37]/20 rounded-3xl sm:rounded-[32px] p-6 sm:p-12 shadow-2xl shadow-stone-900/5 text-left transition-all">
               <form onSubmit={handleRegister} className="space-y-6">
                 {errors.submit && (
                   <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs p-4 rounded-2xl flex items-center gap-2">
@@ -415,10 +423,10 @@ export default function PlatformLandingPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
                   {/* Shop Name */}
                   <div>
-                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
                       Jewellery Shop Name <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
@@ -434,10 +442,11 @@ export default function PlatformLandingPage() {
                           setRegData({ ...regData, shopName: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "") });
                           if (errors.shopName) setErrors({ ...errors, shopName: null });
                         }}
-                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${errors.shopName
+                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-base sm:text-sm focus:outline-none focus:ring-2 transition-all ${
+                          errors.shopName
                             ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
                             : "border-stone-200 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20 focus:bg-white"
-                          }`}
+                        }`}
                       />
                     </div>
                     <span className="text-[10px] text-stone-400 mt-1 block">Subdomain: {regData.shopName || "yourshop"}.aadagam.com (max 10 chars)</span>
@@ -450,7 +459,7 @@ export default function PlatformLandingPage() {
 
                   {/* Owner / Manager Name */}
                   <div>
-                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
                       Owner / Manager Name <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
@@ -466,10 +475,11 @@ export default function PlatformLandingPage() {
                           setRegData({ ...regData, ownerName: e.target.value });
                           if (errors.ownerName) setErrors({ ...errors, ownerName: null });
                         }}
-                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${errors.ownerName
+                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-base sm:text-sm focus:outline-none focus:ring-2 transition-all ${
+                          errors.ownerName
                             ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
                             : "border-stone-200 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20 focus:bg-white"
-                          }`}
+                        }`}
                       />
                     </div>
                     {errors.ownerName && (
@@ -481,7 +491,7 @@ export default function PlatformLandingPage() {
 
                   {/* Mobile Phone */}
                   <div>
-                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
                       Mobile Phone Number <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
@@ -497,10 +507,11 @@ export default function PlatformLandingPage() {
                           setRegData({ ...regData, phone: e.target.value });
                           if (errors.phone) setErrors({ ...errors, phone: null });
                         }}
-                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${errors.phone
+                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-base sm:text-sm focus:outline-none focus:ring-2 transition-all ${
+                          errors.phone
                             ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
                             : "border-stone-200 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20 focus:bg-white"
-                          }`}
+                        }`}
                       />
                     </div>
                     {errors.phone && (
@@ -512,7 +523,7 @@ export default function PlatformLandingPage() {
 
                   {/* Email Address */}
                   <div>
-                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
                       Email Address <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
@@ -528,10 +539,11 @@ export default function PlatformLandingPage() {
                           setRegData({ ...regData, email: e.target.value });
                           if (errors.email) setErrors({ ...errors, email: null });
                         }}
-                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${errors.email
+                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-base sm:text-sm focus:outline-none focus:ring-2 transition-all ${
+                          errors.email
                             ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
                             : "border-stone-200 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20 focus:bg-white"
-                          }`}
+                        }`}
                       />
                     </div>
                     {errors.email && (
@@ -543,7 +555,7 @@ export default function PlatformLandingPage() {
 
                   {/* City / Location */}
                   <div className="sm:col-span-2">
-                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
                       Showroom City <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
@@ -559,10 +571,11 @@ export default function PlatformLandingPage() {
                           setRegData({ ...regData, city: e.target.value });
                           if (errors.city) setErrors({ ...errors, city: null });
                         }}
-                        className={`w-full pl-10 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 focus:bg-white transition-all ${errors.city
+                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-base sm:text-sm focus:outline-none focus:ring-2 focus:bg-white transition-all ${
+                          errors.city
                             ? "border-rose-400 focus:ring-rose-200"
                             : "border-stone-200 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20"
-                          }`}
+                        }`}
                       />
                     </div>
                     {errors.city && (
@@ -575,7 +588,7 @@ export default function PlatformLandingPage() {
 
                 {/* Password */}
                 <div>
-                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
                     Account Secret Pin / Password <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
@@ -591,10 +604,11 @@ export default function PlatformLandingPage() {
                         setRegData({ ...regData, password: e.target.value });
                         if (errors.password) setErrors({ ...errors, password: null });
                       }}
-                      className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all ${errors.password
+                      className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-base sm:text-sm focus:outline-none focus:ring-2 transition-all ${
+                        errors.password
                           ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
                           : "border-stone-200 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20 focus:bg-white"
-                        }`}
+                      }`}
                     />
                   </div>
                   {errors.password && (
@@ -630,7 +644,7 @@ export default function PlatformLandingPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-[#FAF9F5] border border-[#D4AF37]/30 hover:border-[#D4AF37] font-bold py-4 px-6 rounded-2xl text-sm tracking-wider uppercase transition-all shadow-md shadow-stone-950/10 hover:shadow-xl hover:shadow-[#D4AF37]/5 hover:-translate-y-0.5 disabled:opacity-75 disabled:hover:translate-y-0 disabled:hover:shadow-md"
+                  className="w-full flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-[#FAF9F5] border border-[#D4AF37]/30 hover:border-[#D4AF37] font-bold py-4 px-6 rounded-2xl text-sm tracking-wider uppercase transition-all shadow-md shadow-stone-950/10 hover:shadow-xl hover:shadow-[#D4AF37]/5 hover:-translate-y-0.5 disabled:opacity-75 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
                 >
                   {isSubmitting ? (
                     <>
@@ -651,9 +665,9 @@ export default function PlatformLandingPage() {
       </section>
 
       {/* Platform Footer */}
-      <footer className="bg-stone-950 text-stone-400 border-t border-stone-850 pt-16 pb-8 text-left">
+      <footer className="bg-stone-950 text-stone-400 border-t border-stone-850 pt-14 sm:pt-16 pb-8 text-left">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-12 border-b border-stone-900">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 sm:gap-10 pb-12 border-b border-stone-900">
             {/* Column 1: Brand Info */}
             <div className="lg:col-span-5 space-y-4">
               <div className="flex items-center gap-3">
@@ -664,8 +678,8 @@ export default function PlatformLandingPage() {
                   AADAGAM PLATFORM
                 </span>
               </div>
-              <p className="text-stone-450 text-xs sm:text-sm font-light leading-relaxed max-w-sm">
-                Empowering independent jewellery showrooms and boutique goldsmiths to build premium digital catalogues, display artisan craftsmanship, and receive client enquiries directly via WhatsApp.
+              <p className="text-stone-400 text-xs sm:text-sm font-light leading-relaxed max-w-sm">
+                Empowering independent jewellery showrooms and boutique goldsmiths to build premium digital catalogues, display artisan craftsmanship, and receive client enquiries directly.
               </p>
             </div>
 
@@ -689,7 +703,7 @@ export default function PlatformLandingPage() {
                 Contact & Support
               </h4>
               <p className="text-xs sm:text-sm text-stone-400 font-light leading-relaxed">
-                Have questions about our single-tenant plans, hosting custom subdomains, or technical integrations?
+                Have questions about single-tenant plans, hosting custom subdomains, or technical integrations?
               </p>
               <div className="pt-2 text-xs text-stone-500 font-mono space-y-1">
                 <p>Support: <a href="mailto:support@aadagam.com" className="hover:text-[#D4AF37]">support@aadagam.com</a></p>
