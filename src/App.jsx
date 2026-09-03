@@ -21,7 +21,7 @@ import WhatsAppStatusSection from "./components/WhatsAppStatusSection";
 import VideoGallery from "./components/VideoGallery";
 import ContactSection from "./components/ContactSection";
 import Footer from "./components/Footer";
-import { Gem, Loader2 } from "lucide-react";
+import { Gem, Loader2, Sparkles } from "lucide-react";
 import { getTenantSubdomain, getShopPrefix } from "./services/apiClient";
 
 /**
@@ -114,15 +114,38 @@ function ClientStorefrontPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#FAF9F5] flex flex-col items-center justify-center space-y-4">
-        <div className="w-16 h-16 rounded-full bg-stone-900 border-2 border-[#D4AF37] flex items-center justify-center shadow-xl">
-          <Gem className="w-8 h-8 text-[#D4AF37]" />
+      <div className="min-h-screen bg-[#FAF9F5] flex flex-col items-center justify-center p-6 text-center select-none animate-fade-in">
+        {/* Animated Luxury Gemstone Badge */}
+        <div className="relative mb-6">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-stone-950 via-stone-900 to-stone-950 border-2 border-[#D4AF37] flex items-center justify-center shadow-2xl shadow-stone-950/20">
+            <Gem className="w-9 h-9 text-[#D4AF37] animate-pulse" />
+          </div>
+          <div className="absolute -inset-2 rounded-full border border-[#D4AF37]/30 animate-ping pointer-events-none" />
         </div>
-        <div className="flex items-center gap-2 text-stone-700 font-serif font-bold text-xl">
-          <Loader2 className="w-5 h-5 animate-spin text-[#B8860B]" />
-          <span>Loading Aadagam Jewellery Storefront...</span>
+
+        {/* Meaningful & Attractive Luxury Loading Message */}
+        <div className="max-w-md space-y-3">
+          <div className="inline-flex items-center gap-2 bg-[#D4AF37]/15 text-[#B8860B] border border-[#D4AF37]/30 px-3.5 py-1 rounded-full text-xs font-semibold uppercase tracking-widest">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Curating Fine Masterpieces</span>
+          </div>
+
+          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 tracking-wide">
+            Crafting Bespoke Jewellery Creations
+          </h2>
+
+          <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed max-w-sm mx-auto">
+            Polishing 22K gold ornaments, certified solitaires, and antique bridal collections for your boutique experience.
+          </p>
+
+          {/* Shimmer progress indicator */}
+          <div className="pt-4 flex items-center justify-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin text-[#B8860B]" />
+            <span className="text-[11px] font-mono text-stone-500 uppercase tracking-wider">
+              Illuminating Showcase...
+            </span>
+          </div>
         </div>
-        <p className="text-xs text-stone-500 font-light">Crafting Timeless Elegance</p>
       </div>
     );
   }

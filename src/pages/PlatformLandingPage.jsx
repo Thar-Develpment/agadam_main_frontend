@@ -30,7 +30,6 @@ export default function PlatformLandingPage() {
   const [regData, setRegData] = useState({
     shopName: "",
     ownerName: "",
-    phone: "",
     email: "",
     city: "",
     password: "",
@@ -63,13 +62,6 @@ export default function PlatformLandingPage() {
       newErrors.ownerName = "Owner / Contact person name is required.";
     } else if (ownerName.length > 150) {
       newErrors.ownerName = "Owner name must not exceed 150 characters.";
-    }
-
-    const cleanPhone = regData.phone.replace(/\D/g, "");
-    if (!regData.phone.trim()) {
-      newErrors.phone = "Mobile phone number is required.";
-    } else if (cleanPhone.length < 10) {
-      newErrors.phone = "Please enter a valid 10-digit mobile number.";
     }
 
     const email = regData.email.trim();
@@ -489,38 +481,6 @@ export default function PlatformLandingPage() {
                     )}
                   </div>
 
-                  {/* Mobile Phone */}
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
-                      Mobile Phone Number <span className="text-rose-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400">
-                        <Phone className="w-4 h-4" />
-                      </div>
-                      <input
-                        type="tel"
-                        maxLength={15}
-                        placeholder="e.g. +91 98765 43210"
-                        value={regData.phone}
-                        onChange={(e) => {
-                          setRegData({ ...regData, phone: e.target.value });
-                          if (errors.phone) setErrors({ ...errors, phone: null });
-                        }}
-                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-base sm:text-sm focus:outline-none focus:ring-2 transition-all ${
-                          errors.phone
-                            ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
-                            : "border-stone-200 focus:border-[#D4AF37] focus:ring-[#D4AF37]/20 focus:bg-white"
-                        }`}
-                      />
-                    </div>
-                    {errors.phone && (
-                      <span className="text-[11px] text-rose-500 font-medium mt-1 block">
-                        {errors.phone}
-                      </span>
-                    )}
-                  </div>
-
                   {/* Email Address */}
                   <div>
                     <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
@@ -553,8 +513,8 @@ export default function PlatformLandingPage() {
                     )}
                   </div>
 
-                  {/* City / Location */}
-                  <div className="sm:col-span-2">
+                  {/* Showroom City */}
+                  <div>
                     <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
                       Showroom City <span className="text-rose-500">*</span>
                     </label>
