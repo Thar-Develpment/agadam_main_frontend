@@ -1,10 +1,31 @@
 import React from "react";
-import { Sparkles, CheckCircle, Quote } from "lucide-react";
+import { Sparkles, CheckCircle, Quote, Gem } from "lucide-react";
+import { getTenantSubdomain, getShopPrefix } from "../services/apiClient";
 
-export default function AboutSection({ aboutContent }) {
+export default function AboutSection({ aboutContent, galleryImages = [], shopInfo = null }) {
   if (!aboutContent) return null;
 
-  const hasFounder = Boolean(aboutContent.founder?.name || aboutContent.founder?.quote);
+  const activeSubdomain = getTenantSubdomain();
+  const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase() + " JEWELLERY";
+  const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
+  const brandNameOnly = shopName.replace(/\s+JEWELLERY/gi, "").trim();
+
+  // Use the first image from the showroom's gallery, or fallback to luxury jewellery image
+  const showcaseItem = galleryImages && galleryImages.length > 0 ? galleryImages[0] : null;
+  const showcaseImage =
+    showcaseItem?.imageUrl ||
+    "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=800&q=80";
+  const showcaseTitle = showcaseItem?.title || `${brandNameOnly} Signature Collection`;
+
+  // Dynamically replace default brand names in history paragraphs with the current shop's name
+  const formattedParagraphs = aboutContent.historyParagraphs?.map((paragraph) => {
+    if (typeof paragraph !== "string") return paragraph;
+    return paragraph
+      .replace(/Rajeshwar Aadagam, Aadagam Jewellery/gi, `${shopName}`)
+      .replace(/Aadagam Jewellery/gi, `${shopName}`)
+      .replace(/Rajeshwar Aadagam/gi, `${brandNameOnly} Artisans`)
+      .replace(/Aadagam/gi, brandNameOnly);
+  });
 
   return (
     <section id="about" className="py-16 sm:py-24 bg-[#FAF9F5] text-stone-800">
@@ -26,9 +47,9 @@ export default function AboutSection({ aboutContent }) {
         </div>
 
         {/* Main Article Grid */}
-        <div className={`grid grid-cols-1 ${hasFounder ? "lg:grid-cols-12" : "max-w-4xl mx-auto"} gap-12 items-center mb-16`}>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center mb-16">
           {/* Left Column: Rich History Text */}
-          <div className={`${hasFounder ? "lg:col-span-7" : ""} space-y-6 text-left`}>
+          <div className="lg:col-span-7 space-y-6 text-left">
             <div className="inline-block border-l-4 border-[#D4AF37] pl-4">
               <h3 className="font-serif text-2xl font-bold text-stone-900">
                 A Journey of Craftsmanship & Trust
@@ -36,7 +57,7 @@ export default function AboutSection({ aboutContent }) {
             </div>
 
             <div className="space-y-4 text-stone-700 text-sm sm:text-base font-light leading-relaxed">
-              {aboutContent.historyParagraphs?.map((paragraph, idx) => (
+              {formattedParagraphs?.map((paragraph, idx) => (
                 <p key={idx}>{paragraph}</p>
               ))}
             </div>
@@ -59,43 +80,44 @@ export default function AboutSection({ aboutContent }) {
             )}
           </div>
 
-          {/* Right Column: Founder Card (if provided) */}
-          {hasFounder && (
-            <div className="lg:col-span-5">
-              <div className="bg-stone-900 text-white rounded-3xl p-6 sm:p-8 shadow-2xl relative border border-[#D4AF37]/30">
-                <div className="absolute top-6 right-6 text-[#D4AF37]/20">
-                  <Quote className="w-16 h-16" />
+          {/* Right Column: Universal Showroom Masterpiece Card with Gallery Image */}
+          <div className="lg:col-span-5">
+            <div className="bg-stone-900 text-white rounded-3xl p-6 sm:p-8 shadow-2xl relative border border-[#D4AF37]/30">
+              <div className="absolute top-6 right-6 text-[#D4AF37]/20">
+                <Quote className="w-16 h-16" />
+              </div>
+
+              <div className="relative z-10 space-y-6">
+                {/* Real Showroom Gallery Image */}
+                <div className="aspect-4/3 rounded-2xl overflow-hidden border-2 border-[#D4AF37]/40 relative group">
+                  <img
+                    src={showcaseImage}
+                    alt={showcaseTitle}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute bottom-3 left-3 bg-stone-950/80 backdrop-blur-md px-3 py-1 rounded-full border border-[#D4AF37]/40 text-[10px] font-mono text-[#D4AF37] tracking-wider uppercase">
+                    {showcaseTitle}
+                  </div>
                 </div>
 
-                <div className="relative z-10 space-y-6">
-                  {aboutContent.founder?.image && (
-                    <div className="aspect-4/3 rounded-2xl overflow-hidden border-2 border-[#D4AF37]/40">
-                      <img
-                        src={aboutContent.founder.image}
-                        alt={aboutContent.founder?.name || "Founder"}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
+                <blockquote className="font-serif italic text-base sm:text-lg text-stone-200 leading-relaxed">
+                  "Jewellery is not merely an ornament; it is a sacred record of love, heritage, and emotion passed from one generation to the next."
+                </blockquote>
 
-                  {aboutContent.founder?.quote && (
-                    <blockquote className="font-serif italic text-base sm:text-lg text-stone-200 leading-relaxed">
-                      "{aboutContent.founder.quote}"
-                    </blockquote>
-                  )}
-
-                  <div className="pt-2 border-t border-stone-800">
+                <div className="pt-2 border-t border-stone-800 flex items-center justify-between">
+                  <div>
                     <h4 className="font-serif font-bold text-[#D4AF37] text-lg">
-                      {aboutContent.founder?.name || "Master Artisan"}
+                      {shopName}
                     </h4>
                     <p className="text-xs uppercase tracking-wider text-stone-400 font-semibold">
-                      {aboutContent.founder?.role || "Founder & Chief Goldsmith"}
+                      100% BIS Hallmarked Purity Guarantee
                     </p>
                   </div>
+                  <Gem className="w-6 h-6 text-[#D4AF37] shrink-0" />
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
 
       </div>

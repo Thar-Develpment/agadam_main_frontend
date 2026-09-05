@@ -1,9 +1,45 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Download, Sparkles, Video, Image, CheckCircle2, Loader2, X } from "lucide-react";
+import { getSiteInfo } from "../services/api";
+import { getTenantSubdomain, getShopPrefix } from "../services/apiClient";
 
 export default function WhatsAppStatusSection({ shopInfo }) {
   const [downloadingId, setDownloadingId] = useState(null);
   const [successInfo, setSuccessInfo] = useState(null);
+
+  const [livePrices, setLivePrices] = useState({
+    gold22k: "₹7,195",
+    silver999: "₹94.50",
+  });
+
+  useEffect(() => {
+    async function fetchPrices() {
+      try {
+        const res = await getSiteInfo();
+        if (res && res.success === 1 && Array.isArray(res.priceData)) {
+          let goldVal = "₹7,195";
+          let silverVal = "₹94.50";
+          res.priceData.forEach((item) => {
+            const mat = (item.material || "").toLowerCase();
+            const purity = (item.purity || "").toLowerCase();
+            const price = Number(item.price);
+            if (!isNaN(price) && price > 0) {
+              if (mat === "gold" && purity.includes("22")) {
+                goldVal = `₹${price.toLocaleString("en-IN")}`;
+              }
+              if (mat === "silver" && (purity.includes("24") || purity.includes("999"))) {
+                silverVal = `₹${price.toLocaleString("en-IN")}`;
+              }
+            }
+          });
+          setLivePrices({ gold22k: goldVal, silver999: silverVal });
+        }
+      } catch (err) {
+        console.warn("Live prices for status card fallback:", err);
+      }
+    }
+    fetchPrices();
+  }, []);
 
   const statusButtons = [
     { id: 1, label: "Status 1", desc: "Bridal Jewellery" },
@@ -14,7 +50,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
 
   /**
    * Generates a high-resolution 1080x1920 9:16 WhatsApp Status Card PNG
-   * and triggers an instant browser download.
+   * displaying Shop Name on top, Silver Price on bottom left, and Gold Price on bottom right.
    */
   const triggerImageDownload = (label, cardNum) => {
     try {
@@ -25,6 +61,10 @@ export default function WhatsAppStatusSection({ shopInfo }) {
 
       if (!ctx) return;
 
+      const activeSubdomain = getTenantSubdomain();
+      const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase() + " JEWELLERY";
+      const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
+
       // Dark luxury background
       const gradient = ctx.createLinearGradient(0, 0, 0, 1920);
       gradient.addColorStop(0, "#1C1917");
@@ -33,7 +73,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, 1080, 1920);
 
-      // Gold border
+      // Gold outer border
       ctx.strokeStyle = "#D4AF37";
       ctx.lineWidth = 14;
       ctx.strokeRect(50, 50, 980, 1820);
@@ -43,58 +83,94 @@ export default function WhatsAppStatusSection({ shopInfo }) {
       ctx.lineWidth = 2;
       ctx.strokeRect(70, 70, 940, 1780);
 
-      // Showroom Brand Header
+      // 1. Showroom Brand Header at Top of Image
       ctx.fillStyle = "#D4AF37";
-      ctx.font = "bold 52px Georgia, serif";
+      ctx.font = "bold 56px Georgia, serif";
       ctx.textAlign = "center";
-      ctx.fillText((shopInfo?.name || "AADAGAM JEWELLERY").toUpperCase(), 540, 260);
+      ctx.fillText(shopName, 540, 220);
 
       ctx.fillStyle = "#E7E5E4";
-      ctx.font = "28px sans-serif";
+      ctx.font = "24px sans-serif";
       ctx.letterSpacing = "4px";
-      ctx.fillText("EXCLUSIVE SHOWROOM COLLECTION", 540, 330);
+      ctx.fillText("EXCLUSIVE SHOWROOM COLLECTION", 540, 280);
 
-      // Decorative divider
+      // Decorative divider below header
       ctx.strokeStyle = "#D4AF37";
       ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.moveTo(340, 390);
-      ctx.lineTo(740, 390);
+      ctx.moveTo(340, 340);
+      ctx.lineTo(740, 340);
       ctx.stroke();
 
-      // Center Status Badge
+      // 2. Center Status Collection Badge
       ctx.fillStyle = "rgba(212, 175, 55, 0.15)";
       ctx.beginPath();
-      ctx.roundRect(240, 860, 600, 200, 24);
+      ctx.roundRect(240, 820, 600, 210, 24);
       ctx.fill();
       ctx.strokeStyle = "#D4AF37";
       ctx.lineWidth = 3;
       ctx.stroke();
 
       ctx.fillStyle = "#FAF9F5";
-      ctx.font = "bold 46px sans-serif";
-      ctx.fillText(`${label.toUpperCase()}`, 540, 945);
+      ctx.font = "bold 48px sans-serif";
+      ctx.fillText(`${label.toUpperCase()}`, 540, 910);
 
       ctx.fillStyle = "#D4AF37";
       ctx.font = "32px sans-serif";
-      ctx.fillText(`Daily Card #${cardNum}`, 540, 1010);
+      ctx.fillText(`Daily Card #${cardNum}`, 540, 975);
 
-      // Bottom Details
+      // 3. Middle Tagline & Contact Details
       ctx.fillStyle = "#FAF9F5";
       ctx.font = "30px sans-serif";
-      ctx.fillText("100% BIS Hallmarked 22K Gold & Certified Diamonds", 540, 1420);
+      ctx.fillText("100% BIS Hallmarked 22K Gold & Certified Diamonds", 540, 1380);
 
       ctx.fillStyle = "#A8A29E";
       ctx.font = "26px sans-serif";
-      ctx.fillText("Visit our showroom or message us on WhatsApp for orders", 540, 1480);
+      ctx.fillText("Visit our showroom or message us on WhatsApp for orders", 540, 1440);
 
       ctx.fillStyle = "#D4AF37";
-      ctx.font = "bold 32px sans-serif";
-      ctx.fillText(shopInfo?.phonePrimary || "+91 98765 43210", 540, 1560);
+      ctx.font = "bold 34px sans-serif";
+      ctx.fillText(shopInfo?.phonePrimary || "+91 98765 43210", 540, 1510);
 
-      // Trigger automatic download
+      // 4. Bottom Left Corner: Silver Price Badge
+      ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+      ctx.beginPath();
+      ctx.roundRect(100, 1640, 380, 140, 20);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(212, 175, 55, 0.4)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = "#E7E5E4";
+      ctx.font = "bold 20px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("SILVER RATE (999)", 290, 1685);
+
+      ctx.fillStyle = "#FAF9F5";
+      ctx.font = "bold 34px Georgia, serif";
+      ctx.fillText(`${livePrices.silver999} /g`, 290, 1740);
+
+      // 5. Bottom Right Corner: Gold Price Badge
+      ctx.fillStyle = "rgba(212, 175, 55, 0.15)";
+      ctx.beginPath();
+      ctx.roundRect(600, 1640, 380, 140, 20);
+      ctx.fill();
+      ctx.strokeStyle = "#D4AF37";
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      ctx.fillStyle = "#D4AF37";
+      ctx.font = "bold 20px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("GOLD RATE (22K)", 790, 1685);
+
+      ctx.fillStyle = "#F3E5AB";
+      ctx.font = "bold 34px Georgia, serif";
+      ctx.fillText(`${livePrices.gold22k} /g`, 790, 1740);
+
+      // Trigger automatic PNG download
       const link = document.createElement("a");
-      const cleanName = (shopInfo?.name || "jewellery").toLowerCase().replace(/\s+/g, "_");
+      const cleanName = shopName.toLowerCase().replace(/\s+/g, "_");
       link.download = `${cleanName}_${label.toLowerCase().replace(/\s+/g, "_")}_card_${cardNum}.png`;
       link.href = canvas.toDataURL("image/png");
       document.body.appendChild(link);
@@ -116,7 +192,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
       setDownloadingId(null);
       setSuccessInfo({
         title: `${buttonLabel} Downloaded Successfully!`,
-        desc: `High-resolution Daily Card #${randomImageNumber} has been saved to your device. Ready to share on WhatsApp!`,
+        desc: `Daily Card #${randomImageNumber} for ${(shopInfo?.name || "your showroom").toUpperCase()} saved with Live Gold & Silver rates!`,
         type: "image",
       });
 
@@ -162,7 +238,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
             Share Our Collections on WhatsApp
           </h2>
           <p className="text-stone-600 text-xs sm:text-sm font-light leading-relaxed">
-            Download daily high-resolution jewellery status cards and showcase video stories to share with your friends and family.
+            Download daily high-resolution status cards stamped with live gold & silver rates and your showroom branding.
           </p>
         </div>
 
@@ -171,7 +247,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
           {/* Row 1: 4 Flex Buttons for Status Images */}
           <div>
             <span className="block text-[11px] font-bold text-stone-400 uppercase tracking-widest mb-4">
-              Daily WhatsApp Status Images
+              Daily WhatsApp Status Images (With Live Rates)
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
               {statusButtons.map((btn) => {

@@ -38,6 +38,39 @@ export async function getSlides() {
 }
 
 /**
+ * Check if current tenant showroom is active or suspended
+ * @returns {Promise<Object>} { suspended: boolean, message?: string }
+ */
+export async function checkTenantStatus() {
+  try {
+    const subdomain = getTenantSubdomain();
+    if (!subdomain) return { suspended: false };
+
+    const tenantsRes = await adminGetAllTenants();
+    if (tenantsRes && Array.isArray(tenantsRes.data) && tenantsRes.data.length > 0) {
+      const shopPrefix = getShopPrefix(subdomain).toLowerCase();
+      const match = tenantsRes.data.find(
+        (t) =>
+          (t.subdomain && t.subdomain.toLowerCase() === subdomain.toLowerCase()) ||
+          (t.subdomain && t.subdomain.toLowerCase().includes(shopPrefix)) ||
+          (t.shop_name && t.shop_name.toLowerCase() === shopPrefix)
+      );
+
+      if (match && match.status === 0) {
+        return {
+          suspended: true,
+          message: `The showroom "${match.shop_name || shopPrefix.toUpperCase()}" is currently suspended by the platform administrator.`,
+        };
+      }
+    }
+    return { suspended: false };
+  } catch (err) {
+    console.error("Error checking tenant status:", err);
+    return { suspended: false };
+  }
+}
+
+/**
  * Fetch list of category names from backend `/user/gallery_categories`
  * @returns {Promise<Array>} Array of category names (e.g., ["All", "Necklaces", "Earrings"])
  */
@@ -321,9 +354,10 @@ export async function registerShop(regData) {
  * 2. ADMIN AUTHENTICATION & OVERVIEW MODULE (`/opxXxolN7m6CU`)
  * ========================================================================== */
 
-// Helper to construct Authorization header if token provided explicitly
+// Helper to construct Authorization header if token provided explicitly or stored in localStorage
 function getAuthHeader(token = null) {
-  if (token) return { Authorization: `Bearer ${token}` };
+  const authToken = token || localStorage.getItem("aadagam_auth_token");
+  if (authToken) return { Authorization: `Bearer ${authToken}` };
   return {};
 }
 
@@ -335,8 +369,28 @@ function getAuthHeader(token = null) {
  */
 export async function adminLogin(email, password) {
   try {
+    const cleanEmail = (email || "").trim();
+
+    // Verify if account status is inactive/suspended in am_register
+    try {
+      const tenantsRes = await adminGetAllTenants();
+      if (tenantsRes && Array.isArray(tenantsRes.data)) {
+        const match = tenantsRes.data.find(
+          (t) => t.email && t.email.toLowerCase().trim() === cleanEmail.toLowerCase()
+        );
+        if (match && match.status === 0) {
+          return {
+            status: 0,
+            message: "Your showroom account has been suspended by the platform administrator.",
+          };
+        }
+      }
+    } catch (checkErr) {
+      console.warn("Tenant status check during login skipped:", checkErr);
+    }
+
     const res = await apiClient.post("/opxXxolN7m6CU/login", {
-      email: (email || "").trim(),
+      email: cleanEmail,
       password: password || "",
     });
 
@@ -718,3 +772,34 @@ export async function adminUpdateOurStory(id, content, token = null) {
     return { status: 0, message: err.response?.data?.message || "Failed to update story." };
   }
 }
+
+/* ------------------ F. SUPER ADMIN TENANTS MANAGEMENT ------------------ */
+
+export async function adminGetAllTenants(token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/get_all_tenants",
+      {},
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminGetAllTenants:", err);
+    return { status: 0, totalRecords: 0, data: [] };
+  }
+}
+
+export async function adminToggleTenantStatus(id, status, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/toggle_tenant_status",
+      { id: Number(id), status: Number(status) },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminToggleTenantStatus:", err);
+    return { status: 0, message: err.response?.data?.message || "Failed to update tenant status." };
+  }
+}
+

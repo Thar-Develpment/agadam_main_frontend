@@ -173,7 +173,7 @@ function ClientStorefrontPage() {
         <GoldRateSection shopInfo={shopInfo} />
 
         {/* 4. About Us / Our Story Section */}
-        <AboutSection aboutContent={aboutContent} />
+        <AboutSection aboutContent={aboutContent} galleryImages={galleryImages} shopInfo={shopInfo} />
 
         {/* 5. WhatsApp Status & Video Downloads */}
         <WhatsAppStatusSection shopInfo={shopInfo} />
