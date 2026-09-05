@@ -26,7 +26,6 @@ export const mockSlides = [
     mobileImg: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=1024&h=600&q=80",
     ctaText: "Explore Bridal Collection",
     ctaLink: "#gallery",
-    badge: "New Arrival 2026",
   },
   {
     id: 2,
@@ -36,7 +35,6 @@ export const mockSlides = [
     mobileImg: "https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?auto=format&fit=crop&w=1024&h=600&q=80",
     ctaText: "View Gold Jewellery",
     ctaLink: "#gallery",
-    badge: "100% BIS Hallmarked",
   },
   {
     id: 3,
@@ -46,7 +44,6 @@ export const mockSlides = [
     mobileImg: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=1024&h=600&q=80",
     ctaText: "Discover Diamonds",
     ctaLink: "#gallery",
-    badge: "IGI & GIA Certified",
   },
   {
     id: 4,
@@ -56,7 +53,6 @@ export const mockSlides = [
     mobileImg: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=1024&h=600&q=80",
     ctaText: "Browse Temple Jewels",
     ctaLink: "#gallery",
-    badge: "Antique Heritage",
   },
   {
     id: 5,
@@ -66,7 +62,6 @@ export const mockSlides = [
     mobileImg: "https://images.unsplash.com/photo-1611591475179-42f338829141?auto=format&fit=crop&w=1024&h=600&q=80",
     ctaText: "Shop Daily Wear",
     ctaLink: "#gallery",
-    badge: "Modern Minimalist",
   },
 ];
 
@@ -243,6 +238,4 @@ export const mockAboutContent = {
     "Temple Nakshi & Antique Heritage Collections",
     "Custom Bespoke Jewellery Design Service",
   ],
-  featuredVideoId: "dQw4w9WgXcQ",
-  featuredVideoTitle: "Behind the Scenes at Jewellery Atelier",
 };

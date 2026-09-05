@@ -72,13 +72,6 @@ export default function Slideshow({ slides = [] }) {
               <div className="absolute inset-0 flex items-center">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full text-left">
                   <div className="max-w-2xl space-y-4 sm:space-y-6 animate-fade-in">
-                    {/* Badge */}
-                    {slide.badge && (
-                      <div className="inline-flex items-center gap-2 bg-[#D4AF37]/20 border border-[#D4AF37]/60 text-[#F3E5AB] px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest backdrop-blur-md">
-                        <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
-                        <span>{slide.badge}</span>
-                      </div>
-                    )}
 
                     {/* Title */}
                     <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold leading-tight text-white drop-shadow-md">

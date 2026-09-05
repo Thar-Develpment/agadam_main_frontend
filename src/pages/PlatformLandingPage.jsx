@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { registerShop } from "../services/api";
 import { getShopPrefix } from "../services/apiClient";
@@ -17,15 +17,20 @@ import {
   Loader2,
   AlertCircle,
   ExternalLink,
-  TrendingUp,
-  Video,
-  Download,
-  Layers,
   MessageCircle,
+  Star,
+  BookOpen,
+  TrendingUp,
+  LayoutDashboard,
+  Smartphone,
 } from "lucide-react";
 
 export default function PlatformLandingPage() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "Website for Jewellery Business | Aadagam";
+  }, []);
 
   const [regData, setRegData] = useState({
     shopName: "",
@@ -138,11 +143,11 @@ export default function PlatformLandingPage() {
               <Gem className="w-4 h-4 sm:w-5 sm:h-5 text-[#D4AF37]" />
             </div>
             <div>
-              <span className="font-serif text-base sm:text-2xl font-bold text-stone-900 tracking-wider block">
-                AADAGAM PLATFORM
+              <span className="font-serif text-lg sm:text-2xl font-bold text-stone-900 tracking-wider block">
+                AADAGAM
               </span>
               <span className="text-[9px] sm:text-[10px] text-[#B8860B] font-semibold uppercase tracking-widest block -mt-1">
-                Jewellery Business Platform
+                Website for Jewellery Business
               </span>
             </div>
           </div>
@@ -173,7 +178,7 @@ export default function PlatformLandingPage() {
               className="inline-flex items-center gap-2 bg-stone-900 hover:bg-stone-800 text-white font-bold px-4 py-2 rounded-xl text-xs tracking-wider uppercase transition-all shadow-sm border border-[#D4AF37]/40"
             >
               <Store className="w-3.5 h-3.5 text-[#D4AF37]" />
-              <span>Register Shop</span>
+              <span>Create Your Jewellery Website</span>
             </a>
           </div>
 
@@ -189,7 +194,7 @@ export default function PlatformLandingPage() {
               href="#register"
               className="bg-stone-900 text-white font-bold text-xs px-3 py-1.5 rounded-lg border border-[#D4AF37]/40 flex items-center gap-1 shadow-xs"
             >
-              <span>Register</span>
+              <span>Create Website</span>
             </a>
           </div>
         </div>
@@ -203,15 +208,15 @@ export default function PlatformLandingPage() {
           <div className="max-w-3xl mx-auto space-y-5 sm:space-y-6">
             <div className="inline-flex items-center gap-2 bg-[#D4AF37]/20 border border-[#D4AF37]/50 text-[#F3E5AB] px-3.5 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold uppercase tracking-widest">
               <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
-              <span>SaaS Platform for Single-Tenant Jewellery Shops</span>
+              <span>Website for Jewellery Business | Aadagam</span>
             </div>
 
             <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
-              Launch Your Luxury Jewellery Digital Store in Minutes
+              Create a Professional Website for Your Jewellery Shop
             </h1>
 
             <p className="text-stone-300 text-sm sm:text-lg font-light leading-relaxed max-w-2xl mx-auto">
-              Empower your physical jewellery showroom with an elegant, mobile-responsive online website featuring high-definition product galleries, live gold rates, YouTube video showcases, daily WhatsApp status cards, and direct customer enquiries.
+              Aadagam helps jewellery shops create and manage their own professional website, showcase jewellery, display customer reviews, share their shop details and receive customer enquiries, all from one simple platform.
             </p>
 
             {/* Action Buttons */}
@@ -220,7 +225,7 @@ export default function PlatformLandingPage() {
                 href="#register"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-gradient-to-r from-[#C5A059] via-[#D4AF37] to-[#B8860B] hover:from-[#D4AF37] hover:to-[#C5A059] text-stone-950 font-bold py-3.5 sm:py-4 px-6 sm:px-8 rounded-xl text-xs sm:text-sm tracking-wider uppercase shadow-xl transition-all hover:scale-105"
               >
-                <span>Register Your Shop Now</span>
+                <span>Create Your Jewellery Website</span>
                 <ArrowRight className="w-4 h-4" />
               </a>
 
@@ -230,7 +235,7 @@ export default function PlatformLandingPage() {
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-stone-900 hover:bg-stone-800 text-stone-200 border border-stone-700 hover:border-[#D4AF37] py-3.5 sm:py-4 px-6 sm:px-7 rounded-xl text-xs sm:text-sm font-semibold tracking-wider transition-all"
               >
-                <span>Preview Live Client Storefront</span>
+                <span>View Demo Website</span>
                 <ExternalLink className="w-4 h-4 text-[#D4AF37]" />
               </Link>
             </div>
@@ -238,99 +243,239 @@ export default function PlatformLandingPage() {
         </div>
       </section>
 
-      {/* Feature Showcase Grid */}
-      <section className="py-14 sm:py-24 bg-[#FAF9F5]">
+      {/* Your Customers Are Already Searching Online */}
+      <section className="py-14 sm:py-20 bg-white border-b border-stone-200">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
+          <h2 className="font-serif text-2xl sm:text-4xl font-bold text-stone-900">
+            Your Customers Are Already Searching Online.
+          </h2>
+
+          <p className="text-stone-700 text-sm sm:text-base leading-relaxed font-normal max-w-3xl mx-auto">
+            Make it easy for them to see your jewellery collections, learn about your shop, check customer reviews, find your showroom, and get in touch with you.
+          </p>
+
+          <p className="text-stone-700 text-sm sm:text-base leading-relaxed font-normal max-w-3xl mx-auto">
+            Aadagam gives your jewellery shop its own professional website, so your business can be discovered, trusted, and contacted online.
+          </p>
+
+          <div className="pt-4">
+            <div className="inline-block bg-[#FAF9F5] border border-[#D4AF37]/40 rounded-2xl p-4 sm:p-5 shadow-sm">
+              <p className="text-xs sm:text-sm font-bold text-stone-900 tracking-wide">
+                No complicated website setup. No coding. Just a simple online presence built for your jewellery business.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Everything Your Jewellery Shop Needs to Grow Online */}
+      <section className="py-14 sm:py-24 bg-[#FAF9F5] border-b border-stone-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16 space-y-3">
             <span className="text-xs font-semibold uppercase tracking-widest text-[#B8860B] bg-[#D4AF37]/15 px-3 py-1 rounded-full inline-block border border-[#D4AF37]/30">
-              Complete Storefront Modules
+              Features
             </span>
             <h2 className="font-serif text-3xl sm:text-5xl font-bold text-stone-900">
-              Everything Your Jewellery Shop Needs
+              Everything Your Jewellery Shop Needs to Grow Online
             </h2>
-            <p className="text-stone-600 text-xs sm:text-base font-light">
-              Designed specifically for gold, diamond, polki, and antique jewellery retailers.
-            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 text-left">
-            {/* Feature 1 */}
-            <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-[#D4AF37]/10 text-[#B8860B] flex items-center justify-center">
-                <Layers className="w-6 h-6" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
+            {/* 01 */}
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 text-[#B8860B] flex items-center justify-center font-bold text-sm">
+                01
               </div>
-              <h3 className="font-serif text-xl font-bold text-stone-900">
-                Hero Banner Carousel
+              <h3 className="font-serif text-lg font-bold text-stone-900">
+                01. Showcase Your Jewellery
               </h3>
               <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed">
-                Auto-rotating hero banners with distinct high-res desktop (1920x700) and mobile (1024x600) image support, dot navigation, and CTA overlays.
+                Let customers explore your latest jewellery collections online, even before they visit your showroom.
               </p>
             </div>
 
-            {/* Feature 2 */}
-            <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-[#D4AF37]/10 text-[#B8860B] flex items-center justify-center">
-                <Gem className="w-6 h-6" />
+            {/* 02 */}
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 text-[#B8860B] flex items-center justify-center font-bold text-sm">
+                02
               </div>
-              <h3 className="font-serif text-xl font-bold text-stone-900">
-                Interactive Lightbox Gallery
+              <h3 className="font-serif text-lg font-bold text-stone-900">
+                02. Build Customer Trust
               </h3>
               <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed">
-                Filterable categories (Necklaces, Earrings, Bangles, Rings, Bridal Sets) with interactive full-screen Lightbox modal preview & keyboard controls.
+                Display your Google Reviews and let real customer experiences speak for your business.
               </p>
             </div>
 
-            {/* Feature 3 */}
-            <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-[#D4AF37]/10 text-[#B8860B] flex items-center justify-center">
-                <Video className="w-6 h-6" />
+            {/* 03 */}
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 text-[#B8860B] flex items-center justify-center font-bold text-sm">
+                03
               </div>
-              <h3 className="font-serif text-xl font-bold text-stone-900">
-                YouTube Video Showcase
+              <h3 className="font-serif text-lg font-bold text-stone-900">
+                03. Tell Your Story
               </h3>
               <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed">
-                Embed videos of your atelier, artisan craftsmanship, diamond purity guides, and bridal fashion shows with built-in modal player.
+                Share your jewellery business's history, experience and values with potential customers.
               </p>
             </div>
 
-            {/* Feature 4 */}
-            <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-[#D4AF37]/10 text-[#B8860B] flex items-center justify-center">
-                <MessageCircle className="w-6 h-6" />
+            {/* 04 */}
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 text-[#B8860B] flex items-center justify-center font-bold text-sm">
+                04
               </div>
-              <h3 className="font-serif text-xl font-bold text-stone-900">
-                Direct Customer Enquiries
+              <h3 className="font-serif text-lg font-bold text-stone-900">
+                04. Share Jewellery Price Updates
               </h3>
               <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed">
-                Integrated enquiry forms and per-product links allowing buyers to inquire about specific jewellery pieces directly from the website.
+                Keep your customers updated with the latest jewellery price on your website. Download ready-made posters or videos and share them on WhatsApp Status.
               </p>
             </div>
 
-            {/* Feature 5 */}
-            <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-[#D4AF37]/10 text-[#B8860B] flex items-center justify-center">
-                <TrendingUp className="w-6 h-6" />
+            {/* 05 */}
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 text-[#B8860B] flex items-center justify-center font-bold text-sm">
+                05
               </div>
-              <h3 className="font-serif text-xl font-bold text-stone-900">
-                Live Gold & Silver Rates
+              <h3 className="font-serif text-lg font-bold text-stone-900">
+                05. Get Discovered Easily
               </h3>
               <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed">
-                Real-time bullion rates ticker displaying daily 24K pure gold, 22K standard hallmarked gold, 18K diamond gold, and 999 fine silver.
+                Give customers one place to find your shop, location, phone number and WhatsApp.
               </p>
             </div>
 
-            {/* Feature 6 */}
-            <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-[#D4AF37]/10 text-[#B8860B] flex items-center justify-center">
-                <Download className="w-6 h-6" />
+            {/* 06 */}
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 text-[#B8860B] flex items-center justify-center font-bold text-sm">
+                06
               </div>
-              <h3 className="font-serif text-xl font-bold text-stone-900">
-                WhatsApp Status Downloads
+              <h3 className="font-serif text-lg font-bold text-stone-900">
+                06. Get More Enquiries
               </h3>
               <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed">
-                Allow customers to download daily high-resolution jewellery cards and short video stories directly to share on their WhatsApp status.
+                Make it simple for interested customers to contact your jewellery shop directly from your website.
               </p>
             </div>
+
+            {/* 07 */}
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 text-[#B8860B] flex items-center justify-center font-bold text-sm">
+                07
+              </div>
+              <h3 className="font-serif text-lg font-bold text-stone-900">
+                07. Stay Connected on WhatsApp
+              </h3>
+              <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed">
+                Give customers a quick way to move from your website to a WhatsApp conversation.
+              </p>
+            </div>
+
+            {/* 08 */}
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 text-[#B8860B] flex items-center justify-center font-bold text-sm">
+                08
+              </div>
+              <h3 className="font-serif text-lg font-bold text-stone-900">
+                08. Manage It Yourself
+              </h3>
+              <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed">
+                Keep your jewellery website updated from one simple dashboard.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Your Jewellery. Your Brand. Your Website. */}
+      <section className="py-14 sm:py-20 bg-white border-b border-stone-200">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
+          <h2 className="font-serif text-3xl sm:text-4xl font-bold text-stone-900">
+            Your Jewellery. Your Brand. Your Website.
+          </h2>
+
+          <p className="text-stone-700 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto font-normal">
+            Give your jewellery shop its own professional website with a dedicated web address from Aadagam.
+          </p>
+
+          <div className="bg-[#FAF9F5] border-2 border-[#D4AF37]/30 rounded-2xl p-6 max-w-md mx-auto shadow-sm space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-stone-500 block">
+              For example:
+            </span>
+            <span className="font-mono text-base sm:text-lg font-bold text-[#B8860B] break-all block">
+              srilakshmijewellers.aadagam.in
+            </span>
+          </div>
+
+          <p className="text-stone-600 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto font-light">
+            Your shop gets its own online identity, while Aadagam takes care of the technology, hosting and website management behind the scenes.
+          </p>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section className="py-14 sm:py-24 bg-stone-950 text-white border-b border-stone-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="max-w-3xl mx-auto mb-12 sm:mb-16 space-y-3">
+            <span className="text-xs font-semibold uppercase tracking-widest text-[#D4AF37] bg-[#D4AF37]/20 px-3.5 py-1 rounded-full inline-block border border-[#D4AF37]/40">
+              HOW IT WORKS
+            </span>
+            <h2 className="font-serif text-3xl sm:text-5xl font-bold text-white">
+              Get Your Jewellery Shop Online in 4 Simple Steps.
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 text-left mb-12">
+            {/* Step 1 */}
+            <div className="bg-stone-900 border border-stone-800 rounded-3xl p-6 space-y-3">
+              <div className="text-[#D4AF37] font-serif text-3xl font-bold">01</div>
+              <h3 className="font-serif text-xl font-bold text-white">01. Create Your Account</h3>
+              <p className="text-xs sm:text-sm text-stone-400 font-light leading-relaxed">
+                Enter your jewellery shop details and get started.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="bg-stone-900 border border-stone-800 rounded-3xl p-6 space-y-3">
+              <div className="text-[#D4AF37] font-serif text-3xl font-bold">02</div>
+              <h3 className="font-serif text-xl font-bold text-white">02. Add Your Collections</h3>
+              <p className="text-xs sm:text-sm text-stone-400 font-light leading-relaxed">
+                Upload your jewellery photos and organise them into collections.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="bg-stone-900 border border-stone-800 rounded-3xl p-6 space-y-3">
+              <div className="text-[#D4AF37] font-serif text-3xl font-bold">03</div>
+              <h3 className="font-serif text-xl font-bold text-white">03. Add Your Business Details</h3>
+              <p className="text-xs sm:text-sm text-stone-400 font-light leading-relaxed">
+                Add your shop location, phone number, WhatsApp number, opening hours and other important information.
+              </p>
+            </div>
+
+            {/* Step 4 */}
+            <div className="bg-stone-900 border border-stone-800 rounded-3xl p-6 space-y-3">
+              <div className="text-[#D4AF37] font-serif text-3xl font-bold">04</div>
+              <h3 className="font-serif text-xl font-bold text-white">04. Publish Your Website</h3>
+              <p className="text-xs sm:text-sm text-stone-400 font-light leading-relaxed">
+                Your jewellery shop website goes live with your own Aadagam subdomain.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <p className="text-stone-300 font-medium text-sm sm:text-base">
+              No developers. No complicated setup.
+            </p>
+
+            <a
+              href="#register"
+              className="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-[#C5A059] via-[#D4AF37] to-[#B8860B] hover:from-[#D4AF37] hover:to-[#C5A059] text-stone-950 font-bold py-4 px-8 rounded-xl text-xs sm:text-sm tracking-wider uppercase shadow-xl transition-all hover:scale-105"
+            >
+              <span>Create Your Jewellery Website</span>
+              <ArrowRight className="w-4 h-4" />
+            </a>
           </div>
         </div>
       </section>
@@ -340,13 +485,13 @@ export default function PlatformLandingPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="mb-10 space-y-3">
             <span className="text-xs font-semibold uppercase tracking-widest text-[#B8860B] bg-[#D4AF37]/15 px-3.5 py-1 rounded-full inline-block border border-[#D4AF37]/30">
-              Instant Onboarding
+              Get Started
             </span>
             <h2 className="font-serif text-3xl sm:text-5xl font-bold text-stone-900">
-              Register Your Jewellery Business
+              Create Your Jewellery Website
             </h2>
             <p className="text-stone-600 text-xs sm:text-base font-light">
-              Fill in your shop details below to register your business and launch your storefront.
+              Enter your jewellery shop details below to get started.
             </p>
           </div>
 
@@ -614,7 +759,7 @@ export default function PlatformLandingPage() {
                   ) : (
                     <>
                       <ShieldCheck className="w-5 h-5 text-[#D4AF37]" />
-                      <span>Complete Registration</span>
+                      <span>Create Your Jewellery Website</span>
                     </>
                   )}
                 </button>
@@ -624,51 +769,50 @@ export default function PlatformLandingPage() {
         </div>
       </section>
 
-      {/* Platform Footer */}
+      {/* Platform Footer & Get In Touch */}
       <footer className="bg-stone-950 text-stone-400 border-t border-stone-850 pt-14 sm:pt-16 pb-8 text-left">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 sm:gap-10 pb-12 border-b border-stone-900">
             {/* Column 1: Brand Info */}
-            <div className="lg:col-span-5 space-y-4">
+            <div className="lg:col-span-6 space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37] flex items-center justify-center">
                   <Gem className="w-5 h-5 text-[#D4AF37]" />
                 </div>
                 <span className="font-serif text-2xl font-bold text-white tracking-wider">
-                  AADAGAM PLATFORM
+                  AADAGAM
                 </span>
               </div>
-              <p className="text-stone-400 text-xs sm:text-sm font-light leading-relaxed max-w-sm">
-                Empowering independent jewellery showrooms and boutique goldsmiths to build premium digital catalogues, display artisan craftsmanship, and receive client enquiries directly.
+              <p className="text-stone-300 text-xs sm:text-sm font-light leading-relaxed max-w-md">
+                Website for Jewellery Business | Aadagam. Take your jewellery business online with Aadagam. Build your website, showcase collections, share live gold rates and turn visitors into customer enquiries.
               </p>
             </div>
 
-            {/* Column 2: Platform Features */}
-            <div className="lg:col-span-3 space-y-3">
-              <h4 className="font-serif font-bold text-white text-base tracking-wider uppercase">
-                Platform Features
+            {/* Column 2: Get In Touch */}
+            <div className="lg:col-span-6 space-y-4">
+              <h4 className="font-serif font-bold text-white text-lg tracking-wider uppercase">
+                Get In Touch
               </h4>
-              <ul className="space-y-2 text-xs sm:text-sm font-light text-stone-400">
-                <li className="hover:text-[#D4AF37] transition-colors">Instant Tenant Onboarding</li>
-                <li className="hover:text-[#D4AF37] transition-colors">Dynamic Image Catalogue</li>
-                <li className="hover:text-[#D4AF37] transition-colors">Live Bullion Rates Tracker</li>
-                <li className="hover:text-[#D4AF37] transition-colors">YouTube Atelier Showcase</li>
-                <li className="hover:text-[#D4AF37] transition-colors">WhatsApp Status Downloads</li>
-              </ul>
-            </div>
-
-            {/* Column 3: Contact & Support */}
-            <div className="lg:col-span-4 space-y-3">
-              <h4 className="font-serif font-bold text-white text-base tracking-wider uppercase">
-                Contact & Support
-              </h4>
-              <p className="text-xs sm:text-sm text-stone-400 font-light leading-relaxed">
-                Have questions about single-tenant plans, hosting custom subdomains, or technical integrations?
+              <p className="text-xs sm:text-sm text-stone-300 font-normal">
+                Mobile Number for calling | WhatsApp
               </p>
-              <div className="pt-2 text-xs text-stone-500 font-mono space-y-1">
-                <p>Support: <a href="mailto:support@aadagam.com" className="hover:text-[#D4AF37]">support@aadagam.com</a></p>
-                <p>Partnerships: <a href="mailto:partner@aadagam.com" className="hover:text-[#D4AF37]">partner@aadagam.com</a></p>
-                <p className="text-[#D4AF37] font-sans text-[11px] font-semibold mt-1">Available 24/7 for technical assistance</p>
+              <div className="flex flex-wrap gap-4 pt-1">
+                <a
+                  href="tel:+919876543210"
+                  className="inline-flex items-center gap-2 bg-stone-900 hover:bg-stone-800 text-[#D4AF37] border border-stone-700 px-4 py-2.5 rounded-xl text-xs font-bold transition-all"
+                >
+                  <Phone className="w-4 h-4 text-[#D4AF37]" />
+                  <span>Call Mobile Number</span>
+                </a>
+                <a
+                  href="https://wa.me/919876543210"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/50 px-4 py-2.5 rounded-xl text-xs font-bold transition-all"
+                >
+                  <MessageCircle className="w-4 h-4 text-emerald-400" />
+                  <span>WhatsApp</span>
+                </a>
               </div>
             </div>
           </div>
@@ -676,16 +820,13 @@ export default function PlatformLandingPage() {
           {/* Bottom Copyright Bar */}
           <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500 font-light">
             <p>
-              &copy; {new Date().getFullYear()} Aadagam SaaS Platform. All Rights Reserved.
+              &copy; {new Date().getFullYear()} Aadagam. All Rights Reserved.
             </p>
-            <div className="flex items-center gap-1 text-stone-400">
-              <span>Crafted for luxury retail showrooms</span>
-            </div>
             <a
               href="#register"
               className="text-[#D4AF37] hover:underline font-semibold"
             >
-              Start Your Showroom &rarr;
+              Create Your Jewellery Website &rarr;
             </a>
           </div>
         </div>

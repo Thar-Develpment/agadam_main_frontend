@@ -98,27 +98,6 @@ export default function AboutSection({ aboutContent }) {
           )}
         </div>
 
-        {/* Embedded Featured Article Video */}
-        {aboutContent.featuredVideoId && (
-          <div className="bg-stone-900 rounded-3xl p-6 sm:p-10 border border-[#D4AF37]/30 text-white">
-            <div className="max-w-3xl mx-auto text-center space-y-4">
-              <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#D4AF37]">
-                {aboutContent.featuredVideoTitle || "Explore Our Heritage Studio"}
-              </h3>
-              <p className="text-stone-400 text-xs sm:text-sm font-light">
-                Take a 3-minute video tour inside our crafting lab where 24K gold and diamonds are transformed into magnificent heritage pieces.
-              </p>
-              <div className="aspect-video w-full rounded-2xl overflow-hidden shadow-2xl border border-stone-800 mt-6">
-                <iframe
-                  src={`https://www.youtube.com/embed/${aboutContent.featuredVideoId}`}
-                  title={aboutContent.featuredVideoTitle || "Showroom Heritage Video"}
-                  className="w-full h-full border-0"
-                  allowFullScreen
-                />
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </section>
   );

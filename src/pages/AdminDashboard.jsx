@@ -553,11 +553,10 @@ export default function AdminDashboard() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-semibold tracking-wider uppercase transition-all ${
-                  isActive
-                    ? "bg-[#1C1917] text-[#FAF9F5] shadow-md shadow-stone-950/10"
-                    : "text-stone-600 hover:bg-stone-100/70 hover:text-stone-900"
-                }`}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-semibold tracking-wider uppercase transition-all ${isActive
+                  ? "bg-[#1C1917] text-[#FAF9F5] shadow-md shadow-stone-950/10"
+                  : "text-stone-600 hover:bg-stone-100/70 hover:text-stone-900"
+                  }`}
               >
                 <div className="flex items-center gap-3">
                   <Icon className={`w-4 h-4 ${isActive ? "text-[#D4AF37]" : "text-stone-400"}`} />
@@ -565,9 +564,8 @@ export default function AdminDashboard() {
                 </div>
                 {tab.count !== undefined && (
                   <span
-                    className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
-                      isActive ? "bg-[#D4AF37] text-stone-950 font-bold" : "bg-stone-100 text-stone-500"
-                    }`}
+                    className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${isActive ? "bg-[#D4AF37] text-stone-950 font-bold" : "bg-stone-100 text-stone-500"
+                      }`}
                   >
                     {tab.count}
                   </span>
@@ -647,14 +645,15 @@ export default function AdminDashboard() {
                     >
                       {priceForm.material === "gold" ? (
                         <>
-                          <option value="22k">22K (916 BIS Hallmark)</option>
-                          <option value="24k">24K (999 Pure Bullion)</option>
-                          <option value="18k">18K (750 Diamond Gold)</option>
+                          <option value="22k">22K Gold</option>
+                          <option value="24k">24K Gold</option>
+                          <option value="18k">18K Gold</option>
                         </>
                       ) : (
                         <>
-                          <option value="18k">Fine Silver (999 Purity)</option>
-                          <option value="22k">Standard Silver</option>
+                          <option value="22k">22K Silver</option>
+                          <option value="24k">24K Silver</option>
+                          <option value="18k">18K Silver</option>
                         </>
                       )}
                     </select>
@@ -797,11 +796,10 @@ export default function AdminDashboard() {
                         </div>
                         <button
                           onClick={() => handleToggleCategoryStatus(cat)}
-                          className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-colors ${
-                            cat.status === 1
-                              ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
-                              : "bg-stone-200 text-stone-600 hover:bg-stone-300"
-                          }`}
+                          className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-colors ${cat.status === 1
+                            ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                            : "bg-stone-200 text-stone-600 hover:bg-stone-300"
+                            }`}
                         >
                           {cat.status === 1 ? "Active" : "Inactive"}
                         </button>
@@ -917,9 +915,8 @@ export default function AdminDashboard() {
                           <span className="text-[10px] font-mono text-stone-400">ID #{img.id}</span>
                           <button
                             onClick={() => handleToggleGalleryStatus(img)}
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                              img.status === 1 ? "bg-emerald-100 text-emerald-800" : "bg-stone-200 text-stone-600"
-                            }`}
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${img.status === 1 ? "bg-emerald-100 text-emerald-800" : "bg-stone-200 text-stone-600"
+                              }`}
                           >
                             {img.status === 1 ? "Active" : "Inactive"}
                           </button>
@@ -1015,9 +1012,8 @@ export default function AdminDashboard() {
                               <span className="text-[10px] font-mono text-stone-500">ID #{v.id}</span>
                               <button
                                 onClick={() => handleToggleVideoStatus(v)}
-                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                                  v.status === 1 ? "bg-emerald-100 text-emerald-800" : "bg-stone-200 text-stone-600"
-                                }`}
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${v.status === 1 ? "bg-emerald-100 text-emerald-800" : "bg-stone-200 text-stone-600"
+                                  }`}
                               >
                                 {v.status === 1 ? "Active" : "Inactive"}
                               </button>
@@ -1093,11 +1089,10 @@ export default function AdminDashboard() {
                           </button>
                           <button
                             onClick={() => handleToggleEnquiryStatus(enq)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
-                              enq.status === 1
-                                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
-                                : "bg-amber-100 text-amber-800 hover:bg-amber-200"
-                            }`}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${enq.status === 1
+                              ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                              : "bg-amber-100 text-amber-800 hover:bg-amber-200"
+                              }`}
                           >
                             {enq.status === 1 ? "Resolved" : "Mark Resolved"}
                           </button>
@@ -1369,11 +1364,10 @@ export default function AdminDashboard() {
             <div className="pt-2 flex items-center justify-between">
               <button
                 onClick={() => handleToggleEnquiryStatus(selectedEnquiry)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold ${
-                  selectedEnquiry.status === 1
-                    ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
-                    : "bg-amber-100 text-amber-800 hover:bg-amber-200"
-                }`}
+                className={`px-4 py-2 rounded-xl text-xs font-bold ${selectedEnquiry.status === 1
+                  ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                  : "bg-amber-100 text-amber-800 hover:bg-amber-200"
+                  }`}
               >
                 Status: {selectedEnquiry.status === 1 ? "Resolved" : "Mark as Resolved"}
               </button>
@@ -1391,11 +1385,10 @@ export default function AdminDashboard() {
       {/* Floating Toast Notification */}
       {showToast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-xl border flex items-center gap-2 text-xs font-semibold animate-fade-in ${
-            toastType === "error"
-              ? "bg-rose-900 text-white border-rose-700"
-              : "bg-stone-950 text-[#F3E5AB] border-[#D4AF37]/50"
-          }`}
+          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-xl border flex items-center gap-2 text-xs font-semibold animate-fade-in ${toastType === "error"
+            ? "bg-rose-900 text-white border-rose-700"
+            : "bg-stone-950 text-[#F3E5AB] border-[#D4AF37]/50"
+            }`}
         >
           {toastType === "error" ? (
             <AlertCircle className="w-4 h-4 text-rose-300" />
