@@ -107,6 +107,13 @@ export default function AdminDashboard() {
   // 7. Contact Profile
   const [contactInfo, setContactInfo] = useState({});
 
+  // 8. Delete Confirmation Modal State
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    type: "", // 'slide' | 'category' | 'gallery' | 'video'
+    item: null
+  });
+
   const triggerToast = (msg, type = "success") => {
     setToastMessage(msg);
     setToastType(type);
@@ -448,12 +455,57 @@ export default function AdminDashboard() {
     setNewSlide({ title: "", subtitle: "", desktopImg: "", ctaText: "Explore Collection", badge: "" });
   };
 
-  const handleDeleteSlide = (id) => {
-    const updated = slides.filter((s) => s.id !== id);
-    setSlides(updated);
-    const shopPrefix = getShopPrefix(adminUser.domain);
-    localStorage.setItem(`aadagam_carousel_slides_${shopPrefix}`, JSON.stringify(updated));
-    triggerToast("Slide removed");
+  const openDeleteModal = (type, item) => {
+    setDeleteModal({
+      isOpen: true,
+      type,
+      item
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteModal.item) return;
+    const { type, item } = deleteModal;
+
+    if (type === "slide") {
+      const updated = slides.filter((s) => s.id !== item.id);
+      setSlides(updated);
+      const shopPrefix = getShopPrefix(adminUser.domain);
+      localStorage.setItem(`aadagam_carousel_slides_${shopPrefix}`, JSON.stringify(updated));
+      triggerToast("Hero slide removed.");
+    } else if (type === "category") {
+      setIsLoading(true);
+      const res = await adminUpdateCategory(item.id, item.category_name, 0);
+      setIsLoading(false);
+      if (res.status === 1) {
+        triggerToast("Category deleted successfully.");
+        loadCategories(categoryPage);
+      } else {
+        triggerToast(res.message || "Failed to delete category.", "error");
+      }
+    } else if (type === "gallery") {
+      setIsLoading(true);
+      const res = await adminUpdateGallery(item.id, item.category_id, item.image_url, 0);
+      setIsLoading(false);
+      if (res.status === 1) {
+        triggerToast("Gallery image deleted successfully.");
+        loadGallery(galleryPage);
+      } else {
+        triggerToast(res.message || "Failed to delete image.", "error");
+      }
+    } else if (type === "video") {
+      setIsLoading(true);
+      const res = await adminUpdateVideo(item.id, item.video_url, 0);
+      setIsLoading(false);
+      if (res.status === 1) {
+        triggerToast("Showcase video deleted successfully.");
+        loadVideos(videoPage);
+      } else {
+        triggerToast(res.message || "Failed to delete video.", "error");
+      }
+    }
+
+    setDeleteModal({ isOpen: false, type: "", item: null });
   };
 
   const handleSaveContactInfo = (e) => {
@@ -794,15 +846,24 @@ export default function AdminDashboard() {
                             {cat.category_name}
                           </h4>
                         </div>
-                        <button
-                          onClick={() => handleToggleCategoryStatus(cat)}
-                          className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-colors ${cat.status === 1
-                            ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
-                            : "bg-stone-200 text-stone-600 hover:bg-stone-300"
-                            }`}
-                        >
-                          {cat.status === 1 ? "Active" : "Inactive"}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleToggleCategoryStatus(cat)}
+                            className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-colors ${cat.status === 1
+                              ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                              : "bg-stone-200 text-stone-600 hover:bg-stone-300"
+                              }`}
+                          >
+                            {cat.status === 1 ? "Active" : "Inactive"}
+                          </button>
+                          <button
+                            onClick={() => openDeleteModal("category", cat)}
+                            className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                            title="Delete category"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -913,13 +974,22 @@ export default function AdminDashboard() {
 
                         <div className="p-3 flex items-center justify-between">
                           <span className="text-[10px] font-mono text-stone-400">ID #{img.id}</span>
-                          <button
-                            onClick={() => handleToggleGalleryStatus(img)}
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${img.status === 1 ? "bg-emerald-100 text-emerald-800" : "bg-stone-200 text-stone-600"
-                              }`}
-                          >
-                            {img.status === 1 ? "Active" : "Inactive"}
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleToggleGalleryStatus(img)}
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${img.status === 1 ? "bg-emerald-100 text-emerald-800" : "bg-stone-200 text-stone-600"
+                                }`}
+                            >
+                              {img.status === 1 ? "Active" : "Inactive"}
+                            </button>
+                            <button
+                              onClick={() => openDeleteModal("gallery", img)}
+                              className="p-1 rounded-lg text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                              title="Delete image"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1010,13 +1080,22 @@ export default function AdminDashboard() {
                             </span>
                             <div className="flex items-center justify-between pt-2 border-t border-stone-200">
                               <span className="text-[10px] font-mono text-stone-500">ID #{v.id}</span>
-                              <button
-                                onClick={() => handleToggleVideoStatus(v)}
-                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${v.status === 1 ? "bg-emerald-100 text-emerald-800" : "bg-stone-200 text-stone-600"
-                                  }`}
-                              >
-                                {v.status === 1 ? "Active" : "Inactive"}
-                              </button>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => handleToggleVideoStatus(v)}
+                                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${v.status === 1 ? "bg-emerald-100 text-emerald-800" : "bg-stone-200 text-stone-600"
+                                    }`}
+                                >
+                                  {v.status === 1 ? "Active" : "Inactive"}
+                                </button>
+                                <button
+                                  onClick={() => openDeleteModal("video", v)}
+                                  className="p-1 rounded-lg text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                                  title="Delete video"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1237,7 +1316,7 @@ export default function AdminDashboard() {
                         <p className="text-[11px] text-stone-500 font-light truncate max-w-xs">{s.subtitle}</p>
                       </div>
                       <button
-                        onClick={() => handleDeleteSlide(s.id)}
+                        onClick={() => openDeleteModal("slide", s)}
                         className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors"
                         title="Delete slide"
                       >
@@ -1282,9 +1361,10 @@ export default function AdminDashboard() {
                     Primary Phone
                   </label>
                   <input
-                    type="text"
+                    type="tel"
+                    placeholder="e.g. +91 98765 43210"
                     value={contactInfo.phonePrimary || ""}
-                    onChange={(e) => setContactInfo({ ...contactInfo, phonePrimary: e.target.value })}
+                    onChange={(e) => setContactInfo({ ...contactInfo, phonePrimary: e.target.value.replace(/[^0-9+ \-]/g, "") })}
                     className="w-full px-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
                   />
                 </div>
@@ -1294,9 +1374,10 @@ export default function AdminDashboard() {
                     Secondary Phone
                   </label>
                   <input
-                    type="text"
+                    type="tel"
+                    placeholder="e.g. +91 98765 43211"
                     value={contactInfo.phoneSecondary || ""}
-                    onChange={(e) => setContactInfo({ ...contactInfo, phoneSecondary: e.target.value })}
+                    onChange={(e) => setContactInfo({ ...contactInfo, phoneSecondary: e.target.value.replace(/[^0-9+ \-]/g, "") })}
                     className="w-full px-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
                   />
                 </div>
@@ -1376,6 +1457,73 @@ export default function AdminDashboard() {
                 className="bg-stone-900 hover:bg-stone-800 text-white px-5 py-2 rounded-xl text-xs font-semibold"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Alert Modal */}
+      {deleteModal.isOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setDeleteModal({ isOpen: false, type: "", item: null })}
+        >
+          <div
+            className="bg-white border border-stone-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-serif text-xl font-bold text-stone-900">
+                  Confirm Deletion
+                </h3>
+                <p className="text-xs text-stone-500 font-light">
+                  Are you sure you want to delete this {
+                    deleteModal.type === "slide" ? "hero slide" :
+                    deleteModal.type === "category" ? "category" :
+                    deleteModal.type === "gallery" ? "gallery image" : "showcase video"
+                  }?
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-stone-50 border border-stone-100 rounded-2xl p-4 text-xs text-stone-700 space-y-1">
+              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
+                Item Details:
+              </span>
+              <p className="font-semibold text-stone-900 truncate">
+                {deleteModal.type === "slide" && (deleteModal.item?.title || "Untitled Slide")}
+                {deleteModal.type === "category" && (deleteModal.item?.category_name || `Category #${deleteModal.item?.id}`)}
+                {deleteModal.type === "gallery" && (deleteModal.item?.image_url || `Image #${deleteModal.item?.id}`)}
+                {deleteModal.type === "video" && (deleteModal.item?.video_url || `Video #${deleteModal.item?.id}`)}
+              </p>
+              <p className="text-[11px] text-rose-500 font-medium pt-1">
+                This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-1">
+              <button
+                onClick={() => setDeleteModal({ isOpen: false, type: "", item: null })}
+                className="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-700 hover:bg-stone-100 text-xs font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={isLoading}
+                className="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-rose-600/20 disabled:opacity-50 cursor-pointer"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                ) : (
+                  <Trash2 className="w-4 h-4 text-white" />
+                )}
+                <span>Yes, Delete</span>
               </button>
             </div>
           </div>

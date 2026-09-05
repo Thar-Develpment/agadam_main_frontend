@@ -174,7 +174,7 @@ export default function EnquiryForm() {
                 placeholder="e.g. +91 98765 43210"
                 value={formData.phone}
                 onChange={(e) => {
-                  setFormData({ ...formData, phone: e.target.value });
+                  setFormData({ ...formData, phone: e.target.value.replace(/[^0-9+ \-]/g, "") });
                   if (errors.phone) setErrors({ ...errors, phone: null });
                 }}
                 className={`w-full pl-10 pr-4 py-3 bg-[#FAF9F5] border rounded-xl text-base sm:text-sm focus:outline-none focus:ring-2 transition-all ${
