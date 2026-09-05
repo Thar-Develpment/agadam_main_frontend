@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import PlatformLandingPage from "./pages/PlatformLandingPage";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import {
   getContactInfo,
   getSlides,
@@ -10,6 +11,7 @@ import {
   getVideos,
   getAboutContent,
   getGalleryCategories,
+  checkTenantStatus,
 } from "./services/api";
 
 import Header from "./components/Header";
@@ -21,7 +23,7 @@ import WhatsAppStatusSection from "./components/WhatsAppStatusSection";
 import VideoGallery from "./components/VideoGallery";
 import ContactSection from "./components/ContactSection";
 import Footer from "./components/Footer";
-import { Gem, Loader2, Sparkles } from "lucide-react";
+import { Gem, Loader2, Sparkles, Lock, AlertCircle } from "lucide-react";
 import { getTenantSubdomain, getShopPrefix } from "./services/apiClient";
 
 /**
@@ -37,12 +39,24 @@ function ClientStorefrontPage() {
 
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [isLoading, setIsLoading] = useState(true);
+  const [isSuspended, setIsSuspended] = useState(false);
+  const [suspendedMessage, setSuspendedMessage] = useState("");
 
   // Initial Data Fetching from API service stub
   useEffect(() => {
     async function loadInitialData() {
       try {
         setIsLoading(true);
+
+        // Check if current tenant showroom is active or suspended
+        const statusCheck = await checkTenantStatus();
+        if (statusCheck && statusCheck.suspended) {
+          setIsSuspended(true);
+          setSuspendedMessage(statusCheck.message);
+          setIsLoading(false);
+          return;
+        }
+
         const [info, slideData, videoData, aboutData, categoryData] = await Promise.all([
           getContactInfo(),
           getSlides(),
@@ -112,6 +126,37 @@ function ClientStorefrontPage() {
     }
   }, [selectedCategory, isLoading]);
 
+  // Render Suspended Account Screen if tenant account is marked Inactive (status = 0)
+  if (isSuspended) {
+    return (
+      <div className="min-h-screen bg-[#FAF9F5] flex flex-col justify-center items-center px-4 py-12 text-stone-800 selection:bg-[#D4AF37] selection:text-stone-950">
+        <div className="max-w-md w-full text-center space-y-6 bg-white border border-rose-200/80 rounded-[32px] p-8 sm:p-10 shadow-2xl shadow-stone-900/5 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-rose-500 via-amber-500 to-rose-600" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-50 border border-rose-100 text-rose-600 mb-2 shadow-inner">
+            <Lock className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="font-serif text-2xl font-bold text-stone-900 tracking-wide">
+              Showroom Account Suspended
+            </h2>
+            <p className="text-xs text-stone-600 leading-relaxed max-w-sm mx-auto">
+              {suspendedMessage || "This showroom website has been suspended by the platform administrator. Access to online catalogues and live gold rates is currently restricted."}
+            </p>
+          </div>
+          <div className="pt-4 border-t border-stone-100 flex flex-col gap-3">
+            <a
+              href="/"
+              className="w-full inline-flex items-center justify-center px-6 py-3.5 bg-stone-950 text-[#D4AF37] font-semibold text-xs rounded-2xl hover:bg-stone-800 transition-colors shadow-lg shadow-stone-950/10"
+            >
+              Return to Platform Home
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render Luxury Loading State while fetching components
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#FAF9F5] flex flex-col items-center justify-center p-6 text-center select-none animate-fade-in">
@@ -205,6 +250,9 @@ function MainLayout() {
 
       {/* Page 4: Admin Management Dashboard */}
       <Route path="/admin/dashboard" element={<AdminDashboard />} />
+
+      {/* Page 5: Super Admin Portal */}
+      <Route path="/superadmin" element={<SuperAdminDashboard />} />
 
       {/* Fallback route */}
       <Route path="*" element={<PlatformLandingPage />} />
