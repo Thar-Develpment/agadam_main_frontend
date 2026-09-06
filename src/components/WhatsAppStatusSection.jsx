@@ -42,16 +42,158 @@ export default function WhatsAppStatusSection({ shopInfo }) {
   }, []);
 
   const statusButtons = [
-    { id: 1, label: "Status 1", desc: "Bridal Jewellery" },
-    { id: 2, label: "Status 2", desc: "Gold Chokers" },
-    { id: 3, label: "Status 3", desc: "Diamond Solitaires" },
-    { id: 4, label: "Status 4", desc: "Temple Bangles" },
+    { id: 1, label: "Status Design - 1", desc: "Bridal Jewellery" },
+    { id: 2, label: "Status Design - 2", desc: "Gold Chokers" },
+    { id: 3, label: "Status Design - 3", desc: "Diamond Solitaires" },
+    { id: 4, label: "Status Design - 4", desc: "Temple Bangles" },
   ];
 
   /**
    * Generates a high-resolution 1080x1920 9:16 WhatsApp Status Card PNG
    * displaying Shop Name on top, Silver Price on bottom left, and Gold Price on bottom right.
    */
+  const triggerImageDownloadNew = (label, cardNum, imageUrl = '') => {
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1080;
+      canvas.height = 1920;
+      const ctx = canvas.getContext("2d");
+
+      if (!ctx) return;
+
+      const getRandomImg = Math.floor(Math.random() * 30) + 1;
+
+      // Image-ah load panrom
+      const img = new window.Image();
+      img.crossOrigin = "anonymous"; // CORS issue varama iruka
+      img.src = imageUrl || `../../public/aadagam (${getRandomImg}).png`;
+
+      img.onload = () => {
+        // 1. First Background Image-ah draw panrom (Full canvas fit aagum)
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // (Optional) Image mela oru dark overlay podanum-na intha comment-ah remove pannu:
+        /*
+        ctx.fillStyle = "rgba(0, 0, 0, 0.4)"; // Dark shade
+        ctx.fillRect(0, 0, 1080, 1920);
+        */
+
+        const activeSubdomain = getTenantSubdomain();
+        const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase() + " JEWELLERY";
+        const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
+
+        // Gold outer border
+        ctx.strokeStyle = "#D4AF37";
+        ctx.lineWidth = 14;
+        ctx.strokeRect(50, 50, 980, 1820);
+
+        // Inner subtle border
+        ctx.strokeStyle = "rgba(212, 175, 55, 0.35)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(70, 70, 940, 1780);
+
+        // 1. Showroom Brand Header at Top of Image
+        ctx.fillStyle = "#D4AF37";
+        ctx.font = "bold 56px Georgia, serif";
+        ctx.textAlign = "center";
+        ctx.fillText(shopName, 540, 220);
+
+        ctx.fillStyle = "#E7E5E4";
+        ctx.font = "24px sans-serif";
+        // Note: canvas context doesn't always support letterSpacing directly in all old browsers, 
+        // but if supported it works, otherwise safe to ignore.
+        ctx.letterSpacing = "4px";
+        ctx.fillText("EXCLUSIVE SHOWROOM COLLECTION", 540, 280);
+
+        // Decorative divider below header
+        ctx.strokeStyle = "#D4AF37";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(340, 340);
+        ctx.lineTo(740, 340);
+        ctx.stroke();
+
+        // 2. Center Status Collection Badge
+        // ctx.fillStyle = "rgba(28, 25, 23, 0.85);"; // Solid dark background for readability over image
+        // ctx.beginPath();
+        // ctx.roundRect(240, 820, 600, 210, 24);
+        // ctx.fill();
+        // ctx.strokeStyle = "#D4AF37";
+        // ctx.lineWidth = 3;
+        // ctx.stroke();
+
+        // ctx.fillStyle = "#FAF9F5";
+        // ctx.font = "bold 48px sans-serif";
+        // ctx.textAlign = "center";
+        // ctx.fillText(`${label.toUpperCase()}`, 540, 910);
+
+        // ctx.fillStyle = "#D4AF37";
+        // ctx.font = "32px sans-serif";
+        // ctx.fillText(`Daily Card #${cardNum}`, 540, 975);
+
+        // 3. Middle Tagline & Contact Details
+        ctx.fillStyle = "#FAF9F5";
+        ctx.font = "30px sans-serif";
+        ctx.fillText("100% BIS Hallmarked 22K Gold & Certified Diamonds", 540, 1380);
+
+        ctx.fillStyle = "#A8A29E";
+        ctx.font = "26px sans-serif";
+        ctx.fillText("Visit our showroom or message us on WhatsApp for orders", 540, 1440);
+
+        ctx.fillStyle = "#D4AF37";
+        ctx.font = "bold 34px sans-serif";
+        ctx.fillText(shopInfo?.phonePrimary || "+91 98765 43210", 540, 1510);
+
+        // 4. Bottom Left Corner: Silver Price Badge
+        ctx.fillStyle = "rgba(28, 25, 23, 0.85)";
+        ctx.beginPath();
+        ctx.roundRect(100, 1640, 380, 140, 20);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(212, 175, 55, 0.4)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = "#E7E5E4";
+        ctx.font = "bold 20px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("SILVER RATE (999)", 290, 1685);
+
+        ctx.fillStyle = "#FAF9F5";
+        ctx.font = "bold 34px Georgia, serif";
+        ctx.fillText(`${livePrices.silver999} /g`, 290, 1740);
+
+        // 5. Bottom Right Corner: Gold Price Badge
+        ctx.fillStyle = "rgba(28, 25, 23, 0.85)";
+        ctx.beginPath();
+        ctx.roundRect(600, 1640, 380, 140, 20);
+        ctx.fill();
+        ctx.strokeStyle = "#D4AF37";
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.fillStyle = "#D4AF37";
+        ctx.font = "bold 20px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("GOLD RATE (22K)", 790, 1685);
+
+        ctx.fillStyle = "#F3E5AB";
+        ctx.font = "bold 34px Georgia, serif";
+        ctx.fillText(`${livePrices.gold22k} /g`, 790, 1740);
+
+        // Trigger automatic PNG download
+        const link = document.createElement("a");
+        const cleanName = shopName.toLowerCase().replace(/\s+/g, "_");
+        link.download = `${cleanName}_${label.toLowerCase().replace(/\s+/g, "_")}_card_${cardNum}.png`;
+        link.href = canvas.toDataURL("image/png");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+    } catch (e) {
+      console.warn("Canvas download fallback:", e);
+    }
+  };
+
   const triggerImageDownload = (label, cardNum) => {
     try {
       const canvas = document.createElement("canvas");
@@ -188,7 +330,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
     const randomImageNumber = Math.floor(Math.random() * 50) + 1;
 
     setTimeout(() => {
-      triggerImageDownload(buttonLabel, randomImageNumber);
+      triggerImageDownloadNew(buttonLabel, randomImageNumber);
       setDownloadingId(null);
       setSuccessInfo({
         title: `${buttonLabel} Downloaded Successfully!`,
