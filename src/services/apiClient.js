@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Determine the backend API URL. Fallback to localhost:5000 if not specified in environment variables.
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_BASE_URL = "https://agadammainbackend-production.up.railway.app";
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -90,7 +90,7 @@ export function getShopPrefix(subdomain = "") {
  */
 export function getTenantSubdomain() {
   const hostname = window.location.hostname;
-  
+
   // If running locally (localhost or 127.0.0.1)
   if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.startsWith("192.168.")) {
     const params = new URLSearchParams(window.location.search);
