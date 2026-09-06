@@ -66,7 +66,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
       // Image-ah load panrom
       const img = new window.Image();
       img.crossOrigin = "anonymous"; // CORS issue varama iruka
-      img.src = imageUrl || `../../public/aadagam (${getRandomImg}).png`;
+      img.src = imageUrl || `/aadagam (${getRandomImg}).png`;
 
       img.onload = () => {
         // 1. First Background Image-ah draw panrom (Full canvas fit aagum)
