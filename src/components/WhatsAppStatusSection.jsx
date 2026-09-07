@@ -63,75 +63,76 @@ export default function WhatsAppStatusSection({ shopInfo }) {
 
       const getRandomImg = Math.floor(Math.random() * 30) + 1;
 
-      // Image-ah load panrom
+      // Load background image
       const img = new window.Image();
-      img.crossOrigin = "anonymous"; // CORS issue varama iruka
+      img.crossOrigin = "anonymous";
       img.src = imageUrl || `/aadagam (${getRandomImg}).png`;
 
       img.onload = () => {
-        // 1. First Background Image-ah draw panrom (Full canvas fit aagum)
+        // 1. Draw Background Image (Full canvas fit)
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        // (Optional) Image mela oru dark overlay podanum-na intha comment-ah remove pannu:
-        /*
-        ctx.fillStyle = "rgba(0, 0, 0, 0.4)"; // Dark shade
-        ctx.fillRect(0, 0, 1080, 1920);
-        */
 
         const activeSubdomain = getTenantSubdomain();
         const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase() + " JEWELLERY";
         const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
 
-        // Gold outer border
+        // 2. Static Luxury Brand Logo Emblem at Top Center
+        ctx.save();
+        // Logo outer circle backdrop
+        ctx.fillStyle = "rgba(20, 18, 16, 0.88)";
+        ctx.beginPath();
+        ctx.arc(540, 130, 48, 0, Math.PI * 2);
+        ctx.fill();
         ctx.strokeStyle = "#D4AF37";
-        ctx.lineWidth = 14;
-        ctx.strokeRect(50, 50, 980, 1820);
+        ctx.lineWidth = 3;
+        ctx.stroke();
 
-        // Inner subtle border
-        ctx.strokeStyle = "rgba(212, 175, 55, 0.35)";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(70, 70, 940, 1780);
+        // Inner gold ring
+        ctx.strokeStyle = "rgba(243, 229, 171, 0.6)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(540, 130, 42, 0, Math.PI * 2);
+        ctx.stroke();
 
-        // 1. Showroom Brand Header at Top of Image
+        // Diamond / Gem Logo Icon Mark inside logo circle
         ctx.fillStyle = "#D4AF37";
-        ctx.font = "bold 56px Georgia, serif";
+        ctx.beginPath();
+        ctx.moveTo(540, 106); // Top tip
+        ctx.lineTo(564, 122); // Right vertex
+        ctx.lineTo(540, 154); // Bottom tip
+        ctx.lineTo(516, 122); // Left vertex
+        ctx.closePath();
+        ctx.fill();
+
+        // Diamond Facets Geometry lines
+        ctx.strokeStyle = "#FFF8DC";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(516, 122); ctx.lineTo(564, 122); // Horizontal girdle
+        ctx.moveTo(540, 106); ctx.lineTo(540, 154); // Vertical center axis
+        ctx.stroke();
+        ctx.restore();
+
+        // 3. Showroom Brand Header at Top of Image
+        ctx.fillStyle = "#D4AF37";
+        ctx.font = "bold 52px Georgia, serif";
         ctx.textAlign = "center";
-        ctx.fillText(shopName, 540, 220);
+        ctx.fillText(shopName, 540, 230);
 
         ctx.fillStyle = "#E7E5E4";
-        ctx.font = "24px sans-serif";
-        // Note: canvas context doesn't always support letterSpacing directly in all old browsers, 
-        // but if supported it works, otherwise safe to ignore.
+        ctx.font = "22px sans-serif";
         ctx.letterSpacing = "4px";
         ctx.fillText("EXCLUSIVE SHOWROOM COLLECTION", 540, 280);
 
         // Decorative divider below header
         ctx.strokeStyle = "#D4AF37";
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(340, 340);
-        ctx.lineTo(740, 340);
+        ctx.moveTo(360, 320);
+        ctx.lineTo(720, 320);
         ctx.stroke();
 
-        // 2. Center Status Collection Badge
-        // ctx.fillStyle = "rgba(28, 25, 23, 0.85);"; // Solid dark background for readability over image
-        // ctx.beginPath();
-        // ctx.roundRect(240, 820, 600, 210, 24);
-        // ctx.fill();
-        // ctx.strokeStyle = "#D4AF37";
-        // ctx.lineWidth = 3;
-        // ctx.stroke();
-
-        // ctx.fillStyle = "#FAF9F5";
-        // ctx.font = "bold 48px sans-serif";
-        // ctx.textAlign = "center";
-        // ctx.fillText(`${label.toUpperCase()}`, 540, 910);
-
-        // ctx.fillStyle = "#D4AF37";
-        // ctx.font = "32px sans-serif";
-        // ctx.fillText(`Daily Card #${cardNum}`, 540, 975);
-
-        // 3. Middle Tagline & Contact Details
+        // 4. Middle Tagline & Contact Details
         ctx.fillStyle = "#FAF9F5";
         ctx.font = "30px sans-serif";
         ctx.fillText("100% BIS Hallmarked 22K Gold & Certified Diamonds", 540, 1380);
@@ -144,26 +145,32 @@ export default function WhatsAppStatusSection({ shopInfo }) {
         ctx.font = "bold 34px sans-serif";
         ctx.fillText(shopInfo?.phonePrimary || "+91 98765 43210", 540, 1510);
 
-        // 4. Bottom Left Corner: Silver Price Badge
-        ctx.fillStyle = "rgba(28, 25, 23, 0.85)";
+        // 5. Bottom Left Corner: Silver Price Badge (Brighter Frosted Cream Background)
+        const silverGrad = ctx.createLinearGradient(100, 1640, 480, 1780);
+        silverGrad.addColorStop(0, "rgba(255, 253, 248, 0.94)");
+        silverGrad.addColorStop(1, "rgba(242, 238, 226, 0.92)");
+        ctx.fillStyle = silverGrad;
         ctx.beginPath();
         ctx.roundRect(100, 1640, 380, 140, 20);
         ctx.fill();
-        ctx.strokeStyle = "rgba(212, 175, 55, 0.4)";
+        ctx.strokeStyle = "#B8860B";
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        ctx.fillStyle = "#E7E5E4";
+        ctx.fillStyle = "#57534E";
         ctx.font = "bold 20px sans-serif";
         ctx.textAlign = "center";
         ctx.fillText("SILVER RATE (999)", 290, 1685);
 
-        ctx.fillStyle = "#FAF9F5";
+        ctx.fillStyle = "#1C1917";
         ctx.font = "bold 34px Georgia, serif";
         ctx.fillText(`${livePrices.silver999} /g`, 290, 1740);
 
-        // 5. Bottom Right Corner: Gold Price Badge
-        ctx.fillStyle = "rgba(28, 25, 23, 0.85)";
+        // 6. Bottom Right Corner: Gold Price Badge (Brighter Frosted Champagne Background)
+        const goldGrad = ctx.createLinearGradient(600, 1640, 980, 1780);
+        goldGrad.addColorStop(0, "rgba(255, 251, 235, 0.94)");
+        goldGrad.addColorStop(1, "rgba(254, 243, 199, 0.92)");
+        ctx.fillStyle = goldGrad;
         ctx.beginPath();
         ctx.roundRect(600, 1640, 380, 140, 20);
         ctx.fill();
@@ -171,12 +178,12 @@ export default function WhatsAppStatusSection({ shopInfo }) {
         ctx.lineWidth = 2.5;
         ctx.stroke();
 
-        ctx.fillStyle = "#D4AF37";
+        ctx.fillStyle = "#78350F";
         ctx.font = "bold 20px sans-serif";
         ctx.textAlign = "center";
         ctx.fillText("GOLD RATE (22K)", 790, 1685);
 
-        ctx.fillStyle = "#F3E5AB";
+        ctx.fillStyle = "#1C1917";
         ctx.font = "bold 34px Georgia, serif";
         ctx.fillText(`${livePrices.gold22k} /g`, 790, 1740);
 
@@ -207,7 +214,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
       const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase() + " JEWELLERY";
       const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
 
-      // Dark luxury background
+      // Dark luxury background gradient
       const gradient = ctx.createLinearGradient(0, 0, 0, 1920);
       gradient.addColorStop(0, "#1C1917");
       gradient.addColorStop(0.5, "#292524");
@@ -215,36 +222,59 @@ export default function WhatsAppStatusSection({ shopInfo }) {
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, 1080, 1920);
 
-      // Gold outer border
+      // Static Luxury Brand Logo Emblem at Top Center
+      ctx.save();
+      ctx.fillStyle = "rgba(20, 18, 16, 0.88)";
+      ctx.beginPath();
+      ctx.arc(540, 130, 48, 0, Math.PI * 2);
+      ctx.fill();
       ctx.strokeStyle = "#D4AF37";
-      ctx.lineWidth = 14;
-      ctx.strokeRect(50, 50, 980, 1820);
+      ctx.lineWidth = 3;
+      ctx.stroke();
 
-      // Inner subtle border
-      ctx.strokeStyle = "rgba(212, 175, 55, 0.35)";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(70, 70, 940, 1780);
+      ctx.strokeStyle = "rgba(243, 229, 171, 0.6)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(540, 130, 42, 0, Math.PI * 2);
+      ctx.stroke();
 
-      // 1. Showroom Brand Header at Top of Image
       ctx.fillStyle = "#D4AF37";
-      ctx.font = "bold 56px Georgia, serif";
+      ctx.beginPath();
+      ctx.moveTo(540, 106);
+      ctx.lineTo(564, 122);
+      ctx.lineTo(540, 154);
+      ctx.lineTo(516, 122);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = "#FFF8DC";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(516, 122); ctx.lineTo(564, 122);
+      ctx.moveTo(540, 106); ctx.lineTo(540, 154);
+      ctx.stroke();
+      ctx.restore();
+
+      // Showroom Brand Header
+      ctx.fillStyle = "#D4AF37";
+      ctx.font = "bold 52px Georgia, serif";
       ctx.textAlign = "center";
-      ctx.fillText(shopName, 540, 220);
+      ctx.fillText(shopName, 540, 230);
 
       ctx.fillStyle = "#E7E5E4";
-      ctx.font = "24px sans-serif";
+      ctx.font = "22px sans-serif";
       ctx.letterSpacing = "4px";
       ctx.fillText("EXCLUSIVE SHOWROOM COLLECTION", 540, 280);
 
       // Decorative divider below header
       ctx.strokeStyle = "#D4AF37";
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(340, 340);
-      ctx.lineTo(740, 340);
+      ctx.moveTo(360, 320);
+      ctx.lineTo(720, 320);
       ctx.stroke();
 
-      // 2. Center Status Collection Badge
+      // Center Status Collection Badge
       ctx.fillStyle = "rgba(212, 175, 55, 0.15)";
       ctx.beginPath();
       ctx.roundRect(240, 820, 600, 210, 24);
@@ -261,7 +291,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
       ctx.font = "32px sans-serif";
       ctx.fillText(`Daily Card #${cardNum}`, 540, 975);
 
-      // 3. Middle Tagline & Contact Details
+      // Middle Tagline & Contact Details
       ctx.fillStyle = "#FAF9F5";
       ctx.font = "30px sans-serif";
       ctx.fillText("100% BIS Hallmarked 22K Gold & Certified Diamonds", 540, 1380);
@@ -274,26 +304,32 @@ export default function WhatsAppStatusSection({ shopInfo }) {
       ctx.font = "bold 34px sans-serif";
       ctx.fillText(shopInfo?.phonePrimary || "+91 98765 43210", 540, 1510);
 
-      // 4. Bottom Left Corner: Silver Price Badge
-      ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+      // Bottom Left Corner: Silver Price Badge (Brighter Frosted Cream Background)
+      const silverGrad = ctx.createLinearGradient(100, 1640, 480, 1780);
+      silverGrad.addColorStop(0, "rgba(255, 253, 248, 0.94)");
+      silverGrad.addColorStop(1, "rgba(242, 238, 226, 0.92)");
+      ctx.fillStyle = silverGrad;
       ctx.beginPath();
       ctx.roundRect(100, 1640, 380, 140, 20);
       ctx.fill();
-      ctx.strokeStyle = "rgba(212, 175, 55, 0.4)";
+      ctx.strokeStyle = "#B8860B";
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      ctx.fillStyle = "#E7E5E4";
+      ctx.fillStyle = "#57534E";
       ctx.font = "bold 20px sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("SILVER RATE (999)", 290, 1685);
 
-      ctx.fillStyle = "#FAF9F5";
+      ctx.fillStyle = "#1C1917";
       ctx.font = "bold 34px Georgia, serif";
       ctx.fillText(`${livePrices.silver999} /g`, 290, 1740);
 
-      // 5. Bottom Right Corner: Gold Price Badge
-      ctx.fillStyle = "rgba(212, 175, 55, 0.15)";
+      // Bottom Right Corner: Gold Price Badge (Brighter Frosted Champagne Background)
+      const goldGrad = ctx.createLinearGradient(600, 1640, 980, 1780);
+      goldGrad.addColorStop(0, "rgba(255, 251, 235, 0.94)");
+      goldGrad.addColorStop(1, "rgba(244, 232, 195, 0.92)");
+      ctx.fillStyle = goldGrad;
       ctx.beginPath();
       ctx.roundRect(600, 1640, 380, 140, 20);
       ctx.fill();
@@ -301,12 +337,12 @@ export default function WhatsAppStatusSection({ shopInfo }) {
       ctx.lineWidth = 2.5;
       ctx.stroke();
 
-      ctx.fillStyle = "#D4AF37";
+      ctx.fillStyle = "#78350F";
       ctx.font = "bold 20px sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("GOLD RATE (22K)", 790, 1685);
 
-      ctx.fillStyle = "#F3E5AB";
+      ctx.fillStyle = "#1C1917";
       ctx.font = "bold 34px Georgia, serif";
       ctx.fillText(`${livePrices.gold22k} /g`, 790, 1740);
 
