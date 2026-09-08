@@ -2,13 +2,13 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { adminGetAllTenants, adminToggleTenantStatus } from "../services/api";
 import { getStorefrontUrl, PLATFORM_DOMAIN } from "../services/apiClient";
+import AadagamLogo from "../components/AadagamLogo";
 import {
   ShieldCheck,
   Store,
   User,
   Mail,
   MapPin,
-  Globe,
   ExternalLink,
   Power,
   RefreshCw,
@@ -16,7 +16,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  Gem,
   Lock,
   ArrowLeft,
   Users
@@ -173,18 +172,18 @@ export default function SuperAdminDashboard() {
   // Render Super Admin Login if not authenticated
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#FAF9F5] text-stone-800 flex items-center justify-center p-4 font-sans selection:bg-[#D4AF37] selection:text-stone-950">
-        <div className="max-w-md w-full bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-          <div className="text-center space-y-2">
-            <div className="w-14 h-14 rounded-full bg-stone-900 border-2 border-[#D4AF37] flex items-center justify-center mx-auto shadow-md">
-              <ShieldCheck className="w-7 h-7 text-[#D4AF37]" />
+      <div className="min-h-screen bg-white text-stone-900 flex items-center justify-center p-4 font-sans selection:bg-[#783bf0] selection:text-white">
+        <div className="max-w-md w-full bg-white border border-stone-200/90 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-stone-900/5 space-y-6">
+          <div className="text-center space-y-3 flex flex-col items-center">
+            <AadagamLogo variant="stacked" size="xl" iconClassName="w-20 h-20 sm:w-24 sm:h-24" theme="light" />
+            <div>
+              <h1 className="font-serif text-2xl font-black text-black tracking-wide">
+                SUPER ADMIN PORTAL
+              </h1>
+              <p className="text-stone-500 text-xs font-normal mt-1">
+                Enter Super Admin master key to manage all registered jewellery showroom accounts.
+              </p>
             </div>
-            <h1 className="font-serif text-2xl font-bold text-stone-900 tracking-wide">
-              SUPER ADMIN PORTAL
-            </h1>
-            <p className="text-stone-500 text-xs font-light">
-              Enter Super Admin master key to manage all registered jewellery showroom accounts.
-            </p>
           </div>
 
           <form onSubmit={handleSuperLogin} className="space-y-4">
@@ -208,7 +207,7 @@ export default function SuperAdminDashboard() {
                   placeholder="Enter pin (e.g. aadagam2026)"
                   value={superPin}
                   onChange={(e) => setSuperPin(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-sm focus:outline-none focus:border-[#D4AF37]"
+                  className="w-full pl-10 pr-4 py-3 bg-stone-50/60 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-[#783bf0] focus:ring-2 focus:ring-[#783bf0]/20 focus:bg-white transition-all"
                   required
                 />
               </div>
@@ -217,9 +216,9 @@ export default function SuperAdminDashboard() {
 
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3.5 px-6 rounded-xl text-xs tracking-wider uppercase transition-all shadow-md cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 bg-[#783bf0] hover:bg-[#6828e8] text-white font-bold py-3.5 px-6 rounded-xl text-xs tracking-wider uppercase transition-all shadow-md shadow-[#783bf0]/25 hover:shadow-lg hover:shadow-[#783bf0]/35 cursor-pointer"
             >
-              <ShieldCheck className="w-4 h-4 text-[#D4AF37]" />
+              <ShieldCheck className="w-4 h-4 text-white" />
               <span>Access Super Admin Portal</span>
             </button>
           </form>
@@ -227,7 +226,7 @@ export default function SuperAdminDashboard() {
           <div className="pt-2 text-center border-t border-stone-100">
             <Link
               to="/"
-              className="inline-flex items-center gap-1 text-xs text-stone-500 hover:text-[#B8860B]"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-[#783bf0] transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Return to Platform Home</span>
@@ -239,32 +238,26 @@ export default function SuperAdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF9F5] text-stone-800 flex flex-col font-sans selection:bg-[#D4AF37] selection:text-stone-950">
+    <div className="min-h-screen bg-stone-50 text-stone-900 flex flex-col font-sans selection:bg-[#783bf0] selection:text-white">
       {/* Top Header Navbar */}
-      <header className="bg-stone-950 text-white border-b border-stone-850 py-3.5 px-6 sticky top-0 z-30 shadow-md">
+      <header className="bg-black text-white border-b border-stone-850 py-3.5 px-6 sticky top-0 z-30 shadow-md">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37] flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5 text-[#D4AF37]" />
-            </div>
-            <div>
-              <span className="font-serif text-lg sm:text-xl font-bold tracking-wide block">
-                SUPER ADMIN PORTAL
-              </span>
-              <span className="text-[9px] text-[#B8860B] font-bold tracking-widest uppercase block -mt-1">
-                Platform Account Status Control
-              </span>
-            </div>
+          <div className="flex items-center gap-4">
+            <AadagamLogo variant="horizontal" size="sm" iconClassName="w-10 h-10 sm:w-12 sm:h-12" theme="dark" />
+            <span className="hidden sm:inline-block text-stone-700">|</span>
+            <span className="text-[11px] text-[#783bf0] font-bold tracking-widest uppercase hidden sm:inline-block">
+              Super Admin Control Center
+            </span>
           </div>
 
           <div className="flex items-center gap-3">
             <button
               onClick={loadTenants}
               disabled={isLoading}
-              className="p-2 rounded-xl bg-stone-900 border border-stone-800 text-stone-300 hover:text-white transition-colors"
+              className="p-2 rounded-xl bg-stone-900 border border-stone-800 text-stone-300 hover:text-white hover:border-[#783bf0] transition-colors cursor-pointer"
               title="Refresh Tenants"
             >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-[#D4AF37]" : ""}`} />
+              <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-[#783bf0]" : ""}`} />
             </button>
 
             <button
@@ -281,21 +274,21 @@ export default function SuperAdminDashboard() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1 space-y-6">
         {/* Metric Cards Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white border border-stone-200 rounded-3xl p-5 shadow-xs flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-stone-900 text-[#D4AF37] flex items-center justify-center shrink-0">
+          <div className="bg-white border border-stone-200/90 rounded-3xl p-5 shadow-xs flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#783bf0]/10 text-[#783bf0] flex items-center justify-center shrink-0">
               <Users className="w-6 h-6" />
             </div>
             <div>
               <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
                 Total Registered Shops
               </span>
-              <span className="font-serif text-2xl font-bold text-stone-900">
+              <span className="font-serif text-2xl font-black text-black">
                 {tenants.length}
               </span>
             </div>
           </div>
 
-          <div className="bg-white border border-stone-200 rounded-3xl p-5 shadow-xs flex items-center gap-4">
+          <div className="bg-white border border-stone-200/90 rounded-3xl p-5 shadow-xs flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
               <CheckCircle2 className="w-6 h-6" />
             </div>
@@ -309,7 +302,7 @@ export default function SuperAdminDashboard() {
             </div>
           </div>
 
-          <div className="bg-white border border-stone-200 rounded-3xl p-5 shadow-xs flex items-center gap-4">
+          <div className="bg-white border border-stone-200/90 rounded-3xl p-5 shadow-xs flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
               <Power className="w-6 h-6" />
             </div>
@@ -325,10 +318,10 @@ export default function SuperAdminDashboard() {
         </div>
 
         {/* Directory Controls & Table Card */}
-        <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+        <div className="bg-white border border-stone-200/90 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-100 pb-5">
             <div>
-              <h2 className="font-serif text-2xl font-bold text-stone-900">
+              <h2 className="font-serif text-2xl font-black text-black">
                 Registered Showrooms Control Directory
               </h2>
               <p className="text-xs text-stone-500 mt-1">
@@ -339,27 +332,27 @@ export default function SuperAdminDashboard() {
             {/* Filters & Search */}
             <div className="flex flex-wrap items-center gap-3">
               {/* Filter Tabs */}
-              <div className="bg-[#FAF9F5] border border-stone-200 rounded-xl p-1 flex gap-1 text-xs">
+              <div className="bg-stone-100/70 border border-stone-200 rounded-xl p-1 flex gap-1 text-xs">
                 <button
                   onClick={() => setStatusFilter("all")}
-                  className={`px-3 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer ${
-                    statusFilter === "all" ? "bg-stone-900 text-white" : "text-stone-600 hover:text-stone-900"
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-colors cursor-pointer ${
+                    statusFilter === "all" ? "bg-[#783bf0] text-white shadow-xs" : "text-stone-600 hover:text-black"
                   }`}
                 >
                   All ({tenants.length})
                 </button>
                 <button
                   onClick={() => setStatusFilter("active")}
-                  className={`px-3 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer ${
-                    statusFilter === "active" ? "bg-emerald-700 text-white" : "text-stone-600 hover:text-stone-900"
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-colors cursor-pointer ${
+                    statusFilter === "active" ? "bg-emerald-700 text-white shadow-xs" : "text-stone-600 hover:text-black"
                   }`}
                 >
                   Active ({tenants.filter((t) => t.status === 1).length})
                 </button>
                 <button
                   onClick={() => setStatusFilter("inactive")}
-                  className={`px-3 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer ${
-                    statusFilter === "inactive" ? "bg-rose-700 text-white" : "text-stone-600 hover:text-stone-900"
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-colors cursor-pointer ${
+                    statusFilter === "inactive" ? "bg-rose-700 text-white shadow-xs" : "text-stone-600 hover:text-black"
                   }`}
                 >
                   Inactive ({tenants.filter((t) => t.status === 0).length})
@@ -376,7 +369,7 @@ export default function SuperAdminDashboard() {
                   placeholder="Search shop, email, city..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-4 py-2 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37] w-48 sm:w-64"
+                  className="pl-9 pr-4 py-2 bg-stone-50/60 border border-stone-200 rounded-xl text-xs focus:outline-none focus:border-[#783bf0] focus:ring-2 focus:ring-[#783bf0]/20 focus:bg-white w-48 sm:w-64 transition-all"
                 />
               </div>
             </div>
@@ -385,7 +378,7 @@ export default function SuperAdminDashboard() {
           {/* Tenants Data Table */}
           {isLoading && tenants.length === 0 ? (
             <div className="py-16 text-center text-stone-400 space-y-2">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#D4AF37]" />
+              <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#783bf0]" />
               <p className="text-xs">Loading registered tenants...</p>
             </div>
           ) : filteredTenants.length === 0 ? (
@@ -396,7 +389,7 @@ export default function SuperAdminDashboard() {
             <div className="overflow-x-auto rounded-2xl border border-stone-200">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-stone-900 text-stone-300 text-[10px] font-bold uppercase tracking-wider">
+                  <tr className="bg-black text-stone-200 text-[10px] font-bold uppercase tracking-wider">
                     <th className="py-3.5 px-4">ID</th>
                     <th className="py-3.5 px-4">Jewellery Shop Name</th>
                     <th className="py-3.5 px-4">Subdomain URL</th>
@@ -411,7 +404,7 @@ export default function SuperAdminDashboard() {
                   {filteredTenants.map((t) => (
                     <tr
                       key={t.id}
-                      className={`hover:bg-[#FAF9F5] transition-colors ${
+                      className={`hover:bg-purple-50/30 transition-colors ${
                         t.status === 0 ? "bg-rose-50/30" : ""
                       }`}
                     >
@@ -419,9 +412,9 @@ export default function SuperAdminDashboard() {
                         #{t.id}
                       </td>
 
-                      <td className="py-4 px-4 font-bold text-stone-900">
+                      <td className="py-4 px-4 font-bold text-black">
                         <div className="flex items-center gap-2">
-                          <Store className="w-4 h-4 text-[#B8860B] shrink-0" />
+                          <Store className="w-4 h-4 text-[#783bf0] shrink-0" />
                           <span>{t.shop_name}</span>
                         </div>
                       </td>
@@ -431,10 +424,10 @@ export default function SuperAdminDashboard() {
                           href={getStorefrontUrl(t.subdomain)}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-[#B8860B] hover:underline font-mono font-semibold inline-flex items-center gap-1"
+                          className="text-[#783bf0] hover:underline font-mono font-bold inline-flex items-center gap-1"
                         >
                           <span>{t.subdomain}</span>
-                          <ExternalLink className="w-3 h-3 text-[#B8860B]" />
+                          <ExternalLink className="w-3 h-3 text-[#783bf0]" />
                         </a>
                       </td>
 
@@ -495,7 +488,7 @@ export default function SuperAdminDashboard() {
       {/* Confirmation Modal for Active / Inactive Toggle */}
       {toggleModal.isOpen && toggleModal.tenant && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
           onClick={() => setToggleModal({ isOpen: false, tenant: null })}
         >
           <div
@@ -513,12 +506,12 @@ export default function SuperAdminDashboard() {
                 <Power className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-serif text-xl font-bold text-stone-900">
+                <h3 className="font-serif text-xl font-black text-black">
                   {toggleModal.tenant.status === 1
                     ? "Deactivate User Account?"
                     : "Activate User Account?"}
                 </h3>
-                <p className="text-xs text-stone-500 font-light">
+                <p className="text-xs text-stone-500 font-normal">
                   {toggleModal.tenant.status === 1
                     ? "Setting this registered user to Inactive will suspend their website access."
                     : "Setting this user to Active will restore full website access."}
@@ -526,11 +519,11 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
 
-            <div className="bg-stone-50 border border-stone-100 rounded-2xl p-4 text-xs text-stone-700 space-y-1">
+            <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 text-xs text-stone-700 space-y-1">
               <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
                 Target Showroom:
               </span>
-              <p className="font-semibold text-stone-900">
+              <p className="font-bold text-black">
                 {toggleModal.tenant.shop_name} ({toggleModal.tenant.subdomain})
               </p>
               <p className="text-[11px] text-stone-500">
@@ -541,7 +534,7 @@ export default function SuperAdminDashboard() {
             <div className="flex items-center justify-end gap-3 pt-1">
               <button
                 onClick={() => setToggleModal({ isOpen: false, tenant: null })}
-                className="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-700 hover:bg-stone-100 text-xs font-semibold transition-colors"
+                className="px-4 py-2.5 rounded-xl border border-stone-200 text-stone-700 hover:bg-stone-50 text-xs font-semibold transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -576,13 +569,13 @@ export default function SuperAdminDashboard() {
           className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-xl border flex items-center gap-2 text-xs font-semibold animate-fade-in ${
             toastType === "error"
               ? "bg-rose-900 text-white border-rose-700"
-              : "bg-stone-950 text-[#F3E5AB] border-[#D4AF37]/50"
+              : "bg-black text-white border-[#783bf0]/60"
           }`}
         >
           {toastType === "error" ? (
             <AlertCircle className="w-4 h-4 text-rose-300" />
           ) : (
-            <CheckCircle2 className="w-4 h-4 text-[#D4AF37]" />
+            <CheckCircle2 className="w-4 h-4 text-[#783bf0]" />
           )}
           <span>{toastMessage}</span>
         </div>

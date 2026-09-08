@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, ArrowLeft, Gem, Loader2, AlertCircle } from "lucide-react";
+import { Mail, Lock, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { adminLogin } from "../services/api";
+import AadagamLogo from "../components/AadagamLogo";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -43,32 +44,31 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF9F5] flex flex-col justify-center items-center px-4 py-12 text-stone-800 selection:bg-[#D4AF37] selection:text-stone-950">
+    <div className="min-h-screen bg-white flex flex-col justify-center items-center px-4 py-12 text-stone-900 selection:bg-[#783bf0] selection:text-white relative">
       {/* Back to Home Button */}
       <Link
         to="/"
-        className="absolute top-6 left-6 inline-flex items-center gap-2 text-xs font-semibold text-stone-600 hover:text-[#B8860B] transition-colors"
+        className="absolute top-6 left-6 inline-flex items-center gap-2 text-xs font-bold text-stone-600 hover:text-[#783bf0] transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Back to Homepage</span>
       </Link>
 
-      <div className="max-w-md w-full space-y-8 bg-white border border-[#D4AF37]/20 rounded-[32px] p-8 sm:p-10 shadow-2xl shadow-stone-900/5 relative">
+      <div className="max-w-md w-full space-y-5 bg-white border border-stone-200/90 rounded-[28px] p-6 sm:p-8 shadow-xl shadow-stone-900/5 relative">
         {/* Brand Icon and Header */}
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-stone-950 border border-[#D4AF37] text-[#D4AF37] mb-4 shadow-lg">
-            <Gem className="w-6 h-6" />
-          </div>
-          <h2 className="font-serif text-3xl font-bold text-stone-900 tracking-wide">
+        <div className="text-center flex flex-col items-center">
+          <AadagamLogo variant="stacked" size="sm" iconClassName="w-10 h-10 sm:w-12 sm:h-12" theme="light" className="mb-2" />
+          
+          <h2 className="font-serif text-2xl font-bold text-black tracking-wide">
             Admin Sign In
           </h2>
-          <p className="text-xs text-stone-500 mt-1.5 max-w-xs mx-auto">
+          <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto">
             Log in to manage your showroom's dynamic catalogues, gold rates, and customer enquiries.
           </p>
         </div>
 
         {/* Login Form */}
-        <form onSubmit={handleLogin} className="space-y-5 pt-2">
+        <form onSubmit={handleLogin} className="space-y-4 pt-1">
           {errors.submit && (
             <div className="bg-rose-50 border border-rose-100 text-rose-800 text-xs p-4 rounded-2xl flex items-start gap-2.5 animate-fade-in">
               <AlertCircle className="w-4.5 h-4.5 shrink-0 text-rose-500 mt-0.5" />
@@ -90,7 +90,7 @@ export default function AdminLogin() {
                 placeholder="e.g. manager@yourbrand.com"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border border-stone-200 rounded-2xl text-sm focus:outline-none focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:bg-white transition-all"
+                className="w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border border-stone-200 rounded-2xl text-sm focus:outline-none focus:border-[#783bf0] focus:ring-2 focus:ring-[#783bf0]/20 focus:bg-white transition-all"
                 required
               />
             </div>
@@ -110,7 +110,7 @@ export default function AdminLogin() {
                 placeholder="Enter password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border border-stone-200 rounded-2xl text-sm focus:outline-none focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:bg-white transition-all"
+                className="w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border border-stone-200 rounded-2xl text-sm focus:outline-none focus:border-[#783bf0] focus:ring-2 focus:ring-[#783bf0]/20 focus:bg-white transition-all"
                 required
               />
             </div>
@@ -120,11 +120,11 @@ export default function AdminLogin() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-[#FAF9F5] border border-[#D4AF37]/30 hover:border-[#D4AF37] font-bold py-4 px-6 rounded-2xl text-sm tracking-wider uppercase transition-all shadow-md shadow-stone-950/10 hover:shadow-xl hover:shadow-[#D4AF37]/5 hover:-translate-y-0.5 disabled:opacity-75 disabled:hover:translate-y-0 disabled:hover:shadow-md mt-4 cursor-pointer"
+            className="w-full flex items-center justify-center gap-2 bg-[#783bf0] hover:bg-[#6828e8] text-white font-bold py-4 px-6 rounded-2xl text-sm tracking-wider uppercase transition-all shadow-md shadow-[#783bf0]/20 hover:shadow-xl hover:shadow-[#783bf0]/30 hover:-translate-y-0.5 disabled:opacity-75 disabled:hover:translate-y-0 disabled:hover:shadow-md mt-4 cursor-pointer"
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin text-[#D4AF37]" />
+                <Loader2 className="w-5 h-5 animate-spin text-white" />
                 <span>Authenticating...</span>
               </>
             ) : (
@@ -136,7 +136,7 @@ export default function AdminLogin() {
         {/* Footer Link to Registration */}
         <div className="text-center text-xs text-stone-500 pt-4 border-t border-stone-100 mt-6">
           <span>Don't have a storefront yet? </span>
-          <a href="/#register" className="text-[#B8860B] hover:underline font-semibold">
+          <a href="/#register" className="text-[#783bf0] hover:underline font-bold">
             Register your showroom now
           </a>
         </div>
