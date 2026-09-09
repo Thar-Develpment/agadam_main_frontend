@@ -75,7 +75,8 @@ export function parseJwt(token) {
  * Change this ONE constant (or set VITE_PLATFORM_DOMAIN in your .env / environment)
  * to update the platform domain across the entire application!
  */
-export const PLATFORM_DOMAIN = import.meta.env.VITE_PLATFORM_DOMAIN || "aadagam.com";
+export const PLATFORM_DOMAIN = import.meta.env.VITE_PLATFORM_DOMAIN || import.meta.env.VITE_PRIMARY_DOMAIN || "aadagam.com";
+export const PRIMARY_DOMAIN = PLATFORM_DOMAIN;
 
 /**
  * Extract clean shop prefix identifier from a subdomain or domain string

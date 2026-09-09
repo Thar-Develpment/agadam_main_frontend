@@ -389,7 +389,7 @@ export default function PlatformLandingPage() {
               For example:
             </span>
             <span className="font-mono text-base sm:text-lg font-bold text-[#783bf0] break-all block">
-              srilakshmijewellers.{PRIMARY_DOMAIN}
+              srilakshmijewellers.{PLATFORM_DOMAIN}
             </span>
           </div>
 
