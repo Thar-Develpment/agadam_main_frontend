@@ -24,7 +24,7 @@ import VideoGallery from "./components/VideoGallery";
 import ContactSection from "./components/ContactSection";
 import Footer from "./components/Footer";
 import { Gem, Loader2, Sparkles, Lock, AlertCircle } from "lucide-react";
-import { getTenantSubdomain, getShopPrefix } from "./services/apiClient";
+import { getTenantSubdomain, getShopPrefix, isTenantSubdomainHost } from "./services/apiClient";
 
 /**
  * Client Storefront Website Page ("/shop")
@@ -237,13 +237,33 @@ function ClientStorefrontPage() {
 }
 
 function MainLayout() {
+  const isSubdomain = isTenantSubdomainHost();
+
+  // If visiting via a wildcard tenant subdomain host (e.g. srilakshmi.localhost:5173 or srilakshmi.aadagam.com)
+  if (isSubdomain) {
+    return (
+      <Routes>
+        {/* Wildcard Subdomain Storefront directly at root "/" */}
+        <Route path="/" element={<ClientStorefrontPage />} />
+
+        {/* Storefront Admin Login & Dashboard */}
+        <Route path="/admin" element={<AdminLogin />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+
+        {/* Fallback for subdomain routes */}
+        <Route path="*" element={<ClientStorefrontPage />} />
+      </Routes>
+    );
+  }
+
+  // Main SaaS Platform Domain Layout (localhost:5173 or aadagam.com)
   return (
     <Routes>
       {/* Page 1: Platform Landing Page with Shop Registration */}
       <Route path="/" element={<PlatformLandingPage />} />
 
-      {/* Page 2: Client Site Storefront Page */}
-      <Route path="/shop" element={<ClientStorefrontPage />} />
+      {/* Page 2: Platform Demo Storefront Route */}
+      <Route path="/demo" element={<ClientStorefrontPage />} />
 
       {/* Page 3: Admin Sign In */}
       <Route path="/admin" element={<AdminLogin />} />

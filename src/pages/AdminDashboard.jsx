@@ -49,7 +49,7 @@ import {
   extractYoutubeId
 } from "../services/api";
 import { mockSlides, mockShopInfo } from "../services/mockData";
-import { getShopPrefix } from "../services/apiClient";
+import { getShopPrefix, getStorefrontUrl } from "../services/apiClient";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -524,7 +524,7 @@ export default function AdminDashboard() {
   if (!adminUser) return null;
 
   const shopPrefix = getShopPrefix(adminUser.domain);
-  const publicStorefrontUrl = `/shop?shop=${shopPrefix}`;
+  const publicStorefrontUrl = getStorefrontUrl(shopPrefix);
 
   const getCategoryName = (catId) => {
     const found = categories.find((c) => c.id === catId);

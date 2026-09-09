@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { registerShop } from "../services/api";
-import { getShopPrefix } from "../services/apiClient";
+import { getShopPrefix, getStorefrontUrl, PLATFORM_DOMAIN } from "../services/apiClient";
 import {
   Gem,
   Sparkles,
@@ -163,15 +163,15 @@ export default function PlatformLandingPage() {
 
             <span className="text-stone-300">|</span>
 
-            <Link
-              to="/shop"
+            <a
+              href={getStorefrontUrl("demo")}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 bg-[#D4AF37]/15 hover:bg-[#D4AF37]/25 text-stone-900 border border-[#D4AF37]/50 font-bold px-3.5 py-2 rounded-xl text-xs tracking-wider transition-all shadow-sm hover:shadow"
             >
               <span>View Demo Website</span>
               <ExternalLink className="w-3.5 h-3.5 text-[#B8860B]" />
-            </Link>
+            </a>
 
             <a
               href="#register"
@@ -229,15 +229,15 @@ export default function PlatformLandingPage() {
                 <ArrowRight className="w-4 h-4" />
               </a>
 
-              <Link
-                to="/shop"
+              <a
+                href={getStorefrontUrl("demo")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-stone-900 hover:bg-stone-800 text-stone-200 border border-stone-700 hover:border-[#D4AF37] py-3.5 sm:py-4 px-6 sm:px-7 rounded-xl text-xs sm:text-sm font-semibold tracking-wider transition-all"
               >
                 <span>View Demo Website</span>
                 <ExternalLink className="w-4 h-4 text-[#D4AF37]" />
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -520,19 +520,19 @@ export default function PlatformLandingPage() {
                 <div className="border-t border-stone-100 pt-2 mt-2">
                   <span className="block text-[10px] text-stone-400 font-sans uppercase font-bold tracking-wider mb-1">Your Store URL:</span>
                   <a
-                    href={`http://${registrationResult.domain}`}
+                    href={getStorefrontUrl(registrationResult.domain)}
                     target="_blank"
                     rel="noreferrer"
                     className="text-[#B8860B] hover:underline font-bold text-sm break-all"
                   >
-                    {registrationResult.domain}
+                    {getStorefrontUrl(registrationResult.domain)}
                   </a>
                 </div>
               </div>
 
               <div className="pt-4 flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
                 <a
-                  href={`/shop?shop=${getShopPrefix(registrationResult.domain)}`}
+                  href={getStorefrontUrl(registrationResult.domain)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-stone-900 to-stone-800 hover:from-stone-800 hover:to-stone-700 text-[#FAF9F5] font-bold py-3.5 px-8 rounded-xl text-xs sm:text-sm tracking-wider uppercase transition-all shadow-lg"
@@ -586,7 +586,7 @@ export default function PlatformLandingPage() {
                         }`}
                       />
                     </div>
-                    <span className="text-[10px] text-stone-400 mt-1 block">Subdomain: {regData.shopName || "yourshop"}.aadagam.com (max 10 chars)</span>
+                    <span className="text-[10px] text-stone-400 mt-1 block">Subdomain: {regData.shopName || "yourshop"}.{PLATFORM_DOMAIN} (max 10 chars)</span>
                     {errors.shopName && (
                       <span className="text-[11px] text-rose-500 font-medium mt-1 block">
                         {errors.shopName}

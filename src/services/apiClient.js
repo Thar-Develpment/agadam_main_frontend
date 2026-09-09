@@ -71,41 +71,105 @@ export function parseJwt(token) {
 }
 
 /**
- * Extract clean shop prefix identifier from a subdomain string
- * e.g. "myjewels.aadagam.com" -> "myjewels"
+ * SINGLE SOURCE OF TRUTH FOR PLATFORM DOMAIN
+ * Change this ONE constant (or set VITE_PLATFORM_DOMAIN in your .env / environment)
+ * to update the platform domain across the entire application!
+ */
+export const PLATFORM_DOMAIN = import.meta.env.VITE_PLATFORM_DOMAIN || "aadagam.com";
+
+/**
+ * Extract clean shop prefix identifier from a subdomain or domain string
+ * e.g. "srilakshmi.aadagam.com" -> "srilakshmi", "srilakshmi.localhost" -> "srilakshmi"
  */
 export function getShopPrefix(subdomain = "") {
   if (!subdomain) return "mycompany";
-  return subdomain.split(".")[0].toLowerCase().trim();
+  const clean = subdomain.trim().toLowerCase();
+  return clean.split(".")[0];
 }
 
 /**
- * Utility helper to extract the subdomain/tenant domain from the window hostname.
+ * Checks if the current window location is a tenant wildcard subdomain host
+ * e.g. "srilakshmi.localhost" -> true
+ * e.g. "srilakshmi.aadagam.com" -> true
+ * e.g. "localhost", "127.0.0.1", "aadagam.com", "www.aadagam.com" -> false
+ */
+export function isTenantSubdomainHost() {
+  if (typeof window === "undefined") return false;
+  const hostname = window.location.hostname.toLowerCase().trim();
+
+  // 1. Wildcard Localhost: e.g. "srilakshmi.localhost"
+  if (hostname.endsWith(".localhost") && hostname !== "localhost") {
+    return true;
+  }
+
+  // 2. Production wildcard subdomain (e.g. "srilakshmi.aadagam.com")
+  const parts = hostname.split(".");
+  if (parts.length >= 3) {
+    const prefix = parts[0];
+    const isIgnoredPrefix = ["www", "app", "admin", "api"].includes(prefix);
+    if (!isIgnoredPrefix) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Utility helper to extract the subdomain/tenant domain for backend API payloads.
  * 
- * Production URL: tom.aadagam.com -> returns "tom.aadagam.com"
- * Localhost URL: localhost:5173/?shop=tom -> returns "tom.aadagam.com"
- * Fallback URL: localhost:5173 -> returns "mycompany.aadagam.com"
+ * Localhost Wildcard: srilakshmi.localhost:5173 -> returns "srilakshmi.aadagam.com"
+ * Production Wildcard: srilakshmi.aadagam.com -> returns "srilakshmi.aadagam.com"
  * 
  * @returns {string} The fully qualified subdomain string for backend API payload.
  */
 export function getTenantSubdomain() {
-  const hostname = window.location.hostname;
+  if (typeof window === "undefined") return `mycompany.${PLATFORM_DOMAIN}`;
+  const hostname = window.location.hostname.toLowerCase().trim();
 
-  // If running locally (localhost or 127.0.0.1)
-  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.startsWith("192.168.")) {
-    const params = new URLSearchParams(window.location.search);
-    const queryShop = params.get("shop");
-    if (queryShop) {
-      return `${queryShop.toLowerCase().trim()}.aadagam.com`;
+  // Wildcard Localhost (e.g. "srilakshmi.localhost")
+  if (hostname.endsWith(".localhost") && hostname !== "localhost") {
+    const prefix = hostname.split(".")[0];
+    return `${prefix}.${PLATFORM_DOMAIN}`;
+  }
+
+  // Production wildcard subdomain
+  const parts = hostname.split(".");
+  if (parts.length >= 3) {
+    const prefix = parts[0];
+    if (!["www", "app", "admin", "api"].includes(prefix)) {
+      return hostname;
     }
-    return "mycompany.aadagam.com";
   }
 
-  // Production or external domain hosting
-  if (hostname.endsWith(".aadagam.com")) {
-    return hostname.toLowerCase().trim();
+  // Fallback default
+  return `mycompany.${PLATFORM_DOMAIN}`;
+}
+
+/**
+ * Generates a clean wildcard URL for a shop storefront.
+ * 
+ * Localhost Dev: "srilakshmi" -> "http://srilakshmi.localhost:5173/"
+ * Production: "srilakshmi" -> "https://srilakshmi.aadagam.com/"
+ * 
+ * @param {string} subdomainOrPrefix 
+ * @returns {string} Fully formatted URL for the shop storefront
+ */
+export function getStorefrontUrl(subdomainOrPrefix = "") {
+  const prefix = getShopPrefix(subdomainOrPrefix) || "mycompany";
+  if (typeof window === "undefined") return `http://${prefix}.localhost:5173/`;
+
+  const hostname = window.location.hostname.toLowerCase().trim();
+  const port = window.location.port ? `:${window.location.port}` : "";
+  const protocol = window.location.protocol;
+
+  // Local development environments
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".localhost") || hostname.startsWith("192.168.")) {
+    return `${protocol}//${prefix}.localhost${port}/`;
   }
 
-  // Fallback to the hostname itself if customized, or default.
-  return hostname.toLowerCase().trim() || "mycompany.aadagam.com";
+  // Production environment using central PLATFORM_DOMAIN (or active base domain)
+  const parts = hostname.split(".");
+  const baseDomain = parts.length >= 2 ? parts.slice(-2).join(".") : PLATFORM_DOMAIN;
+  return `${protocol}//${prefix}.${baseDomain}/`;
 }

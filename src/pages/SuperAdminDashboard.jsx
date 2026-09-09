@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { adminGetAllTenants, adminToggleTenantStatus } from "../services/api";
+import { getStorefrontUrl, PLATFORM_DOMAIN } from "../services/apiClient";
 import {
   ShieldCheck,
   Store,
@@ -77,7 +78,7 @@ export default function SuperAdminDashboard() {
           owner_name: t.ownerName || t.owner_name || "Owner",
           email: t.email || "owner@example.com",
           city: t.city || "Mumbai",
-          subdomain: t.domain || `${t.shopName}.aadagam.com`,
+          subdomain: t.domain || `${t.shopName}.${PLATFORM_DOMAIN}`,
           status: t.status !== undefined ? t.status : 1,
           created_at: t.registeredAt || new Date().toISOString(),
         }));
@@ -427,7 +428,7 @@ export default function SuperAdminDashboard() {
 
                       <td className="py-4 px-4">
                         <a
-                          href={`http://${t.subdomain}`}
+                          href={getStorefrontUrl(t.subdomain)}
                           target="_blank"
                           rel="noreferrer"
                           className="text-[#B8860B] hover:underline font-mono font-semibold inline-flex items-center gap-1"
