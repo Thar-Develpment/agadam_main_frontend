@@ -18,6 +18,8 @@ import {
   AlertCircle,
   ExternalLink,
   MessageCircle,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 export default function PlatformLandingPage() {
@@ -38,6 +40,7 @@ export default function PlatformLandingPage() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationResult, setRegistrationResult] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const pwd = regData.password || "";
   const checks = {
@@ -82,6 +85,8 @@ export default function PlatformLandingPage() {
 
     if (pwd.length !== 8) {
       newErrors.password = "Password must be exactly 8 characters long.";
+    } else if (/\s/.test(pwd)) {
+      newErrors.password = "Password must not contain spaces.";
     } else if (!/[A-Z]/.test(pwd)) {
       newErrors.password = "Password must contain at least one uppercase letter.";
     } else if (!/[a-z]/.test(pwd)) {
@@ -686,20 +691,35 @@ export default function PlatformLandingPage() {
                       <Lock className="w-4 h-4" />
                     </div>
                     <input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       maxLength={8}
                       placeholder="Enter exactly 8 characters"
                       value={regData.password}
+                      onKeyDown={(e) => {
+                        if (e.key === " ") {
+                          e.preventDefault();
+                        }
+                      }}
                       onChange={(e) => {
-                        setRegData({ ...regData, password: e.target.value });
+                        const cleanPassword = e.target.value.replace(/\s/g, "");
+                        setRegData({ ...regData, password: cleanPassword });
                         if (errors.password) setErrors({ ...errors, password: null });
                       }}
-                      className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-base sm:text-sm focus:outline-none focus:ring-2 transition-all ${
+                      className={`w-full pl-11 pr-11 py-3.5 bg-stone-50/50 border rounded-2xl text-base sm:text-sm focus:outline-none focus:ring-2 transition-all ${
                         errors.password
                           ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
                           : "border-stone-200 focus:border-[#783bf0] focus:ring-[#783bf0]/20 focus:bg-white"
                       }`}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-stone-400 hover:text-stone-700 focus:outline-none cursor-pointer"
+                      tabIndex={-1}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                   {errors.password && (
                     <span className="text-[11px] text-rose-500 font-medium mt-1 block">

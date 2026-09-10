@@ -25,6 +25,24 @@
   h1, h2, h3, h4, .font-serif {
     font-family: var(--font-serif);
   }
+
+  /* Disable browser native password reveal icon (e.g. MS Edge / IE) to prevent duplicate eye icons */
+  input::-ms-reveal,
+  input::-ms-clear {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  input::-webkit-contacts-auto-fill-button,
+  input::-webkit-credentials-auto-fill-button {
+    visibility: hidden;
+    display: none !important;
+    pointer-events: none;
+    height: 0;
+    width: 0;
+    margin: 0;
+  }
 }
 
 /* Primary Theme Utilities */

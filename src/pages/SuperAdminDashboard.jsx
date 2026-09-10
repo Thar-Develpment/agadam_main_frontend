@@ -18,7 +18,9 @@ import {
   Loader2,
   Lock,
   ArrowLeft,
-  Users
+  Users,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 export default function SuperAdminDashboard() {
@@ -29,11 +31,12 @@ export default function SuperAdminDashboard() {
   }, []);
 
   // Auth State (Super Admin Secret Access)
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem("aadagam_superadmin_session") === "active";
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    () => localStorage.getItem("aadagam_superadmin_session") === "active"
+  );
   const [superPin, setSuperPin] = useState("");
   const [pinError, setPinError] = useState("");
+  const [showSuperPin, setShowSuperPin] = useState(false);
 
   // Tenants Data State
   const [tenants, setTenants] = useState([]);
@@ -203,15 +206,24 @@ export default function SuperAdminDashboard() {
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
-                  type="password"
-                  placeholder="Enter pin (e.g. aadagam2026)"
+                  type={showSuperPin ? "text" : "password"}
+                  placeholder="Enter Master Security PIN"
                   value={superPin}
                   onChange={(e) => setSuperPin(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-stone-50/60 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-[#783bf0] focus:ring-2 focus:ring-[#783bf0]/20 focus:bg-white transition-all"
+                  className="w-full pl-10 pr-10 py-3 bg-stone-50/60 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-[#783bf0] focus:ring-2 focus:ring-[#783bf0]/20 focus:bg-white transition-all"
                   required
+                  autoComplete="current-password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowSuperPin(!showSuperPin)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-stone-400 hover:text-stone-700 focus:outline-none cursor-pointer"
+                  tabIndex={-1}
+                  aria-label={showSuperPin ? "Hide PIN" : "Show PIN"}
+                >
+                  {showSuperPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
-              <span className="text-[10px] text-stone-400 mt-1 block">Default Master Pin: <code>aadagam2026</code></span>
             </div>
 
             <button
