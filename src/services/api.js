@@ -202,23 +202,49 @@ export async function getAboutContent() {
 }
 
 /**
- * Fetch live metal/bullion prices and site info from backend `GET /user/site_info`
- * @returns {Promise<Object>} { success: number, priceData: Array<{ material, purity, price }> }
+ * Fetch live metal/bullion prices and showroom contact info from backend `POST /user/site_info`
+ * @param {string} [shopName] Optional shop name filter
+ * @returns {Promise<Object>} { success: number, priceData: Array<{ id, material, purity, price }>, siteInfoData: Object|null }
  */
-export async function getSiteInfo() {
+export async function getSiteInfo(shopName = "") {
   try {
-    const res = await apiClient.get("/user/site_info");
+    const subdomain = getTenantSubdomain();
+    const targetShop = shopName || getShopPrefix(subdomain);
+    const payload = targetShop ? { shop_name: targetShop } : {};
+
+    const res = await apiClient.post("/user/site_info", payload);
     if (res.data && (res.data.success === 1 || res.data.status === 1)) {
       return {
         success: 1,
         priceData: res.data.priceData || res.data.data || [],
-        message: res.data.message || "Prices fetched successfully",
+        siteInfoData: res.data.siteInfoData || null,
+        message: res.data.message || "Site info fetched successfully",
       };
     }
-    return { success: 0, priceData: [], message: "No price data found" };
+    return { success: 0, priceData: [], siteInfoData: null, message: "No data found" };
   } catch (err) {
     console.error("Error in getSiteInfo:", err);
-    return { success: 0, priceData: [], message: err.message };
+    return { success: 0, priceData: [], siteInfoData: null, message: err.message };
+  }
+}
+
+/**
+ * Fetch general platform configuration from backend `GET /basic/get_basic_info`
+ * @returns {Promise<Object>} { status: number, data: Object|null }
+ */
+export async function getBasicInfo() {
+  try {
+    const res = await apiClient.get("/basic/get_basic_info");
+    if (res.data && res.data.status === 1 && res.data.data) {
+      return {
+        status: 1,
+        data: res.data.data,
+      };
+    }
+    return { status: 0, data: null, message: res.data?.message || "No basic info found" };
+  } catch (err) {
+    console.error("Error in getBasicInfo:", err);
+    return { status: 0, data: null, message: err.message };
   }
 }
 
@@ -802,4 +828,84 @@ export async function adminToggleTenantStatus(id, status, token = null) {
     return { status: 0, message: err.response?.data?.message || "Failed to update tenant status." };
   }
 }
+
+/* ------------------ G. SITE INFO & S3 MULTI-IMAGE UPLOAD ------------------ */
+
+/**
+ * Update showroom contact & physical address info via `POST /opxXxolN7m6CU/update_site_info`
+ * @param {Object} siteInfo { city, address, phone, contact_us, whatsapp_no }
+ * @param {string} [token] Optional JWT token override
+ * @returns {Promise<Object>} Response object { status: number, message: string, errors?: Object }
+ */
+export async function adminUpdateSiteInfo({ city, address, phone, contact_us, whatsapp_no }, token = null) {
+  try {
+    const payload = {
+      city: (city || "").trim().slice(0, 30),
+      address: (address || "").trim().slice(0, 1500),
+      phone: (phone || "").trim().slice(0, 15),
+      contact_us: (contact_us || "").trim().slice(0, 30),
+      whatsapp_no: (whatsapp_no || "").trim().slice(0, 15),
+    };
+
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/update_site_info",
+      payload,
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminUpdateSiteInfo:", err);
+    const errData = err.response?.data;
+    return {
+      status: 0,
+      success: false,
+      message: errData?.message || err.message || "Failed to update site info.",
+      errors: errData?.errors || null,
+    };
+  }
+}
+
+/**
+ * Upload multiple images directly to Cloudflare R2 / AWS S3 via `POST /opxXxolN7m6CU/upload`
+ * @param {File[]|FileList} files Array or FileList of up to 10 image files (max 5MB each)
+ * @param {string} [token] Optional JWT token override
+ * @returns {Promise<Object>} Response object { success: boolean, message: string, urls?: string[] }
+ */
+export async function adminUploadImages(files, token = null) {
+  try {
+    const formData = new FormData();
+    const fileArray = Array.isArray(files) ? files : Array.from(files);
+
+    if (fileArray.length === 0) {
+      return { success: false, message: "Please select at least one image to upload." };
+    }
+
+    if (fileArray.length > 10) {
+      return { success: false, message: "You can upload a maximum of 10 images at once." };
+    }
+
+    fileArray.forEach((file) => {
+      formData.append("images", file);
+    });
+
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/upload",
+      formData,
+      {
+        headers: {
+          ...getAuthHeader(token),
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminUploadImages:", err);
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || "Image upload failed.",
+    };
+  }
+}
+
 
