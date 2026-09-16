@@ -878,22 +878,27 @@ export async function adminToggleTenantStatus(id, status, token = null) {
 }
 
 /**
- * Activate showroom subdomain and record payment timestamp via `POST /opxXxolN7m6CU/activate_subdomain`
- * @param {number|string} id Tenant Showroom ID
+ * Activate / Deactivate showroom subdomain and update payment/subscription status via `POST /opxXxolN7m6CU/activate_subdomain`
+ * @param {number|string} id Tenant Showroom ID (unique database ID)
+ * @param {number} [status] 1 = activate, 0 = deactivate
  * @param {string} [token] Optional JWT token override
  * @returns {Promise<Object>} Response object { status: number, message: string }
  */
-export async function adminActivateSubdomain(id, token = null) {
+export async function adminActivateSubdomain(id, status = null, token = null) {
   try {
+    const payload = { id: Number(id) };
+    if (status !== null && status !== undefined) {
+      payload.status = Number(status);
+    }
     const res = await apiClient.post(
       "/opxXxolN7m6CU/activate_subdomain",
-      { id: Number(id) },
+      payload,
       { headers: getAuthHeader(token) }
     );
     return res.data;
   } catch (err) {
     console.error("Error in adminActivateSubdomain:", err);
-    return { status: 0, message: err.response?.data?.message || "Failed to activate site" };
+    return { status: 0, message: err.response?.data?.message || "Failed to update subdomain activation status" };
   }
 }
 

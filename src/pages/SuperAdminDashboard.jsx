@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { adminGetAllTenants, adminToggleTenantStatus } from "../services/api";
+import { adminGetAllTenants, adminToggleTenantStatus, adminActivateSubdomain } from "../services/api";
 import { getStorefrontUrl, PLATFORM_DOMAIN } from "../services/apiClient";
 import AadagamLogo from "../components/AadagamLogo";
 import {
@@ -117,7 +117,7 @@ export default function SuperAdminDashboard() {
     setIsAuthenticated(false);
   };
 
-  // Handle Status Toggle
+  // Handle Status Toggle (POST /opxXxolN7m6CU/activate_subdomain)
   const handleConfirmToggle = async () => {
     if (!toggleModal.tenant) return;
     const t = toggleModal.tenant;
@@ -125,12 +125,12 @@ export default function SuperAdminDashboard() {
 
     setIsLoading(true);
     try {
-      const res = await adminToggleTenantStatus(t.id, newStatus);
+      const res = await adminActivateSubdomain(t.id, newStatus);
       setIsLoading(false);
 
       if (res && res.status === 1) {
         triggerToast(
-          `Tenant ${t.shop_name} set to ${newStatus === 1 ? "Active" : "Inactive"}.`
+          `Showroom ${t.shop_name} set to ${newStatus === 1 ? "Active" : "Inactive"}.`
         );
         // Local state update ONLY on database success
         setTenants((prev) =>
