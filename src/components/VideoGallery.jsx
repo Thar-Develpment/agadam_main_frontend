@@ -177,15 +177,26 @@ export default function VideoGallery({ videos = [] }) {
               </button>
             </div>
 
-            {/* Embed Video Iframe */}
-            <div className="relative aspect-video w-full bg-black">
-              <iframe
-                src={`https://www.youtube.com/embed/${activeVideo.youtubeId}?autoplay=1`}
-                title={activeVideo.title}
-                className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+            {/* Embed Video Player (Direct MP4/WebM or YouTube) */}
+            <div className="relative aspect-video w-full bg-black flex items-center justify-center">
+              {activeVideo.isDirectVideo || !activeVideo.youtubeId ? (
+                <video
+                  src={activeVideo.videoUrl}
+                  controls
+                  autoPlay
+                  className="w-full h-full object-contain"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              ) : (
+                <iframe
+                  src={`https://www.youtube.com/embed/${activeVideo.youtubeId}?autoplay=1`}
+                  title={activeVideo.title}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              )}
             </div>
 
             {/* Video Description Footer */}

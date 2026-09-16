@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { registerShop } from "../services/api";
-import { getShopPrefix, getStorefrontUrl, PLATFORM_DOMAIN } from "../services/apiClient";
+import { getBasicInfo } from "../services/api";
+import { getStorefrontUrl, PLATFORM_DOMAIN } from "../services/apiClient";
 import AadagamLogo from "../components/AadagamLogo";
 import {
   Sparkles,
@@ -9,129 +9,37 @@ import {
   ShieldCheck,
   CheckCircle2,
   Store,
-  User,
   Phone,
-  Mail,
-  MapPin,
-  Lock,
-  Loader2,
-  AlertCircle,
   ExternalLink,
   MessageCircle,
-  Eye,
-  EyeOff,
 } from "lucide-react";
 
 export default function PlatformLandingPage() {
   const navigate = useNavigate();
+  const [basicInfo, setBasicInfo] = useState(null);
 
   useEffect(() => {
-    document.title = "Website for Jewellery Business | Aadagam";
+    async function loadConfig() {
+      try {
+        const res = await getBasicInfo();
+        if (res && res.status === 1 && res.data) {
+          setBasicInfo(res.data);
+          if (res.data.title) {
+            document.title = `${res.data.title} | Website for Jewellery Business`;
+          }
+        }
+      } catch (err) {
+        document.title = "Website for Jewellery Business | Aadagam";
+      }
+    }
+    loadConfig();
   }, []);
 
-  const [regData, setRegData] = useState({
-    shopName: "",
-    ownerName: "",
-    email: "",
-    city: "",
-    password: "",
-  });
-
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [registrationResult, setRegistrationResult] = useState(null);
-  const [showPassword, setShowPassword] = useState(false);
-
-  const pwd = regData.password || "";
-  const checks = {
-    length: pwd.length === 8,
-    uppercase: /[A-Z]/.test(pwd),
-    lowercase: /[a-z]/.test(pwd),
-    number: /[0-9]/.test(pwd),
-  };
-
-  const validate = () => {
-    const newErrors = {};
-
-    const shopName = regData.shopName.trim();
-    if (!shopName) {
-      newErrors.shopName = "Jewellery shop name is required.";
-    } else if (shopName.length > 10) {
-      newErrors.shopName = "Shop name must not exceed 10 characters (backend constraint).";
-    }
-
-    const ownerName = regData.ownerName.trim();
-    if (!ownerName) {
-      newErrors.ownerName = "Owner / Contact person name is required.";
-    } else if (ownerName.length > 150) {
-      newErrors.ownerName = "Owner name must not exceed 150 characters.";
-    }
-
-    const email = regData.email.trim();
-    if (!email) {
-      newErrors.email = "Email address is required.";
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = "Please enter a valid email address.";
-    } else if (email.length > 255) {
-      newErrors.email = "Email must not exceed 255 characters.";
-    }
-
-    const city = regData.city.trim();
-    if (!city) {
-      newErrors.city = "City is required.";
-    } else if (city.length > 12) {
-      newErrors.city = "City name must not exceed 12 characters (backend constraint).";
-    }
-
-    if (pwd.length !== 8) {
-      newErrors.password = "Password must be exactly 8 characters long.";
-    } else if (/\s/.test(pwd)) {
-      newErrors.password = "Password must not contain spaces.";
-    } else if (!/[A-Z]/.test(pwd)) {
-      newErrors.password = "Password must contain at least one uppercase letter.";
-    } else if (!/[a-z]/.test(pwd)) {
-      newErrors.password = "Password must contain at least one lowercase letter.";
-    } else if (!/[0-9]/.test(pwd)) {
-      newErrors.password = "Password must contain at least one number.";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setRegistrationResult(null);
-
-    if (!validate()) return;
-
-    setIsSubmitting(true);
-
-    try {
-      const response = await registerShop(regData);
-      setIsSubmitting(false);
-
-      if (response.success) {
-        const existingTenants = JSON.parse(
-          localStorage.getItem("aadagam_registered_tenants") || "[]"
-        );
-        existingTenants.push({
-          ...regData,
-          domain: response.domain,
-          registeredAt: response.registeredAt,
-        });
-        localStorage.setItem("aadagam_registered_tenants", JSON.stringify(existingTenants));
-
-        setRegistrationResult(response);
-      } else {
-        setErrors({ submit: response.message || "Registration failed." });
-      }
-    } catch (err) {
-      console.error("Registration error:", err);
-      setIsSubmitting(false);
-      setErrors({ submit: "An unexpected error occurred. Please try again." });
-    }
-  };
+  const rawPhone = basicInfo?.whatsapp_no || basicInfo?.phone || "919876543210";
+  const cleanPhone = rawPhone.replace(/[^0-9]/g, "");
+  const defaultMessage = "Hello Aadagam, I am interested in creating a jewellery website for my showroom. Please share the registration details.";
+  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(defaultMessage)}`;
+  const callPhone = basicInfo?.phone || "+91 9876543210";
 
   return (
     <div className="min-h-screen bg-white text-stone-800 font-sans selection:bg-[#783bf0] selection:text-white w-full max-w-full overflow-x-hidden">
@@ -164,10 +72,11 @@ export default function PlatformLandingPage() {
             </a>
 
             <a
-              href="#register"
-              className="inline-flex items-center gap-2 bg-[#783bf0] hover:bg-[#6828e8] text-white font-bold px-4 py-2 rounded-xl text-xs tracking-wider uppercase transition-all shadow-md shadow-[#783bf0]/20"
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center bg-[#783bf0] hover:bg-[#6828e8] text-white font-bold px-4 py-2 rounded-xl text-xs tracking-wider uppercase transition-all shadow-md shadow-[#783bf0]/20"
             >
-              <Store className="w-3.5 h-3.5 text-white" />
               <span>Create Your Jewellery Website</span>
             </a>
           </div>
@@ -181,7 +90,9 @@ export default function PlatformLandingPage() {
               Sign In
             </Link>
             <a
-              href="#register"
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className="bg-[#783bf0] text-white font-bold text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-xs"
             >
               <span>Create Website</span>
@@ -212,8 +123,10 @@ export default function PlatformLandingPage() {
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3 sm:gap-4 pt-4 max-w-md sm:max-w-none mx-auto">
               <a
-                href="#register"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-[#783bf0] hover:bg-[#6828e8] text-white font-bold py-3.5 sm:py-4 px-6 sm:px-8 rounded-xl text-xs sm:text-sm tracking-wider uppercase shadow-xl shadow-[#783bf0]/25 transition-all hover:scale-105"
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-[#783bf0] hover:bg-[#6828e8] text-white font-bold py-3.5 sm:py-4 px-6 sm:px-8 rounded-xl text-xs sm:text-sm tracking-wider uppercase shadow-xl shadow-[#783bf0]/25 transition-all hover:scale-105"
               >
                 <span>Create Your Jewellery Website</span>
                 <ArrowRight className="w-4 h-4" />
@@ -420,9 +333,9 @@ export default function PlatformLandingPage() {
             {/* Step 1 */}
             <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-3 shadow-md">
               <div className="text-[#783bf0] font-serif text-3xl font-bold">01</div>
-              <h3 className="font-serif text-xl font-bold text-stone-900">01. Create Your Account</h3>
+              <h3 className="font-serif text-xl font-bold text-stone-900">01. Connect on WhatsApp</h3>
               <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed">
-                Enter your jewellery shop details and get started.
+                Reach out to us to get your verified showroom registration link.
               </p>
             </div>
 
@@ -440,7 +353,7 @@ export default function PlatformLandingPage() {
               <div className="text-[#783bf0] font-serif text-3xl font-bold">03</div>
               <h3 className="font-serif text-xl font-bold text-stone-900">03. Add Your Business Details</h3>
               <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed">
-                Add your shop location, phone number, WhatsApp number, opening hours and other important information.
+                Add your showroom location, phone number, WhatsApp helpline and live gold rate updates.
               </p>
             </div>
 
@@ -449,7 +362,7 @@ export default function PlatformLandingPage() {
               <div className="text-[#783bf0] font-serif text-3xl font-bold">04</div>
               <h3 className="font-serif text-xl font-bold text-stone-900">04. Publish Your Website</h3>
               <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed">
-                Your jewellery shop website goes live with your own Aadagam subdomain.
+                Your jewellery shop website goes live instantly with your own Aadagam subdomain.
               </p>
             </div>
           </div>
@@ -460,317 +373,58 @@ export default function PlatformLandingPage() {
             </p>
 
             <a
-              href="#register"
-              className="inline-flex items-center justify-center gap-3 bg-[#783bf0] hover:bg-[#6828e8] text-white font-bold py-4 px-8 rounded-xl text-xs sm:text-sm tracking-wider uppercase shadow-xl shadow-[#783bf0]/25 transition-all hover:scale-105"
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2.5 bg-[#783bf0] hover:bg-[#6828e8] text-white font-bold py-4 px-8 rounded-xl text-xs sm:text-sm tracking-wider uppercase shadow-xl shadow-[#783bf0]/25 transition-all hover:scale-105"
             >
-              <span>Create Your Jewellery Website</span>
+              <span>Connect on WhatsApp to Get Started</span>
               <ArrowRight className="w-4 h-4" />
             </a>
           </div>
         </div>
       </section>
 
-      {/* SHOP OWNER REGISTRATION SECTION */}
-      <section id="register" className="py-14 sm:py-24 bg-white border-t border-stone-200">
+      {/* WHATSAPP ONBOARDING CTA SECTION */}
+      <section className="py-16 sm:py-24 bg-gradient-to-b from-stone-50 to-white border-t border-stone-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="mb-10 space-y-3">
-            <span className="text-xs font-semibold uppercase tracking-widest text-[#783bf0] bg-[#783bf0]/10 px-3.5 py-1 rounded-full inline-block border border-[#783bf0]/30">
-              Get Started
-            </span>
-            <h2 className="font-serif text-3xl sm:text-5xl font-bold text-stone-900">
-              Create Your Jewellery Website
-            </h2>
-            <p className="text-stone-600 text-xs sm:text-base font-light">
-              Enter your jewellery shop details below to get started.
-            </p>
+          <div className="bg-white border-2 border-[#783bf0]/20 rounded-3xl sm:rounded-[32px] p-8 sm:p-14 shadow-xl space-y-6">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto shadow-inner">
+              <MessageCircle className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-widest text-[#783bf0] bg-[#783bf0]/10 px-3.5 py-1 rounded-full inline-block border border-[#783bf0]/30">
+                Direct Onboarding
+              </span>
+              <h2 className="font-serif text-3xl sm:text-4xl font-bold text-stone-900">
+                Ready to Create Your Jewellery Website?
+              </h2>
+              <p className="text-stone-600 text-xs sm:text-base font-light max-w-lg mx-auto">
+                Connect directly with our team on WhatsApp to get verified and receive your dedicated registration link to set up your showroom.
+              </p>
+            </div>
+
+            <div className="pt-3 flex flex-col sm:flex-row justify-center gap-4">
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-8 rounded-2xl text-xs sm:text-sm uppercase tracking-wider transition-all shadow-lg shadow-emerald-600/20 hover:scale-105"
+              >
+                <MessageCircle className="w-5 h-5" />
+                <span>Chat on WhatsApp ({rawPhone})</span>
+              </a>
+
+              <a
+                href={`tel:${cleanPhone}`}
+                className="inline-flex items-center justify-center gap-2.5 bg-stone-900 hover:bg-stone-800 text-white font-semibold py-4 px-6 rounded-2xl text-xs sm:text-sm tracking-wider transition-all"
+              >
+                <Phone className="w-4 h-4 text-[#783bf0]" />
+                <span>Call Us: {callPhone}</span>
+              </a>
+            </div>
           </div>
-
-          {/* Registration Result Screen or Form */}
-          {registrationResult ? (
-            <div className="bg-stone-50 border-2 border-[#783bf0]/40 rounded-3xl p-6 sm:p-12 shadow-2xl space-y-6 animate-fade-in text-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
-                <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12" />
-              </div>
-
-              <div className="space-y-2">
-                <span className="inline-block bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full uppercase">
-                  Account Created
-                </span>
-                <h3 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
-                  {registrationResult.shopName}
-                </h3>
-                <p className="text-stone-600 text-xs sm:text-sm font-light">
-                  {registrationResult.message}
-                </p>
-              </div>
-
-              <div className="bg-white border border-stone-200 rounded-2xl p-5 max-w-sm mx-auto font-mono text-xs text-stone-700 space-y-2 text-left">
-                <div>Shop ID: <strong className="text-stone-900">{registrationResult.shopId}</strong></div>
-                <div>Registered: {new Date(registrationResult.registeredAt).toLocaleDateString()}</div>
-                <div className="border-t border-stone-100 pt-2 mt-2">
-                  <span className="block text-[10px] text-stone-400 font-sans uppercase font-bold tracking-wider mb-1">Your Store URL:</span>
-                  <a
-                    href={getStorefrontUrl(registrationResult.domain)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[#783bf0] hover:underline font-bold text-sm break-all"
-                  >
-                    {registrationResult.domain}
-                  </a>
-                </div>
-              </div>
-
-              <div className="pt-4 flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
-                <a
-                  href={getStorefrontUrl(registrationResult.domain)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 bg-[#783bf0] hover:bg-[#6828e8] text-white font-bold py-3.5 px-8 rounded-xl text-xs sm:text-sm tracking-wider uppercase transition-all shadow-lg shadow-[#783bf0]/20"
-                >
-                  <Store className="w-4 h-4 text-white" />
-                  <span>Launch Live Storefront</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-white" />
-                </a>
-
-                <button
-                  onClick={() => navigate("/admin")}
-                  className="bg-stone-900 hover:bg-stone-850 text-white border border-stone-800 font-semibold py-3.5 px-6 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer"
-                >
-                  Admin Sign In
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white border border-[#783bf0]/20 rounded-3xl sm:rounded-[32px] p-6 sm:p-12 shadow-2xl shadow-stone-900/5 text-left transition-all">
-              <form onSubmit={handleRegister} className="space-y-6">
-                {errors.submit && (
-                  <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs p-4 rounded-2xl flex items-center gap-2">
-                    <AlertCircle className="w-4.5 h-4.5 shrink-0 text-rose-500" />
-                    <span>{errors.submit}</span>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
-                  {/* Shop Name */}
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
-                      Jewellery Shop Name <span className="text-rose-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400">
-                        <Store className="w-4 h-4" />
-                      </div>
-                      <input
-                        type="text"
-                        maxLength={10}
-                        placeholder="e.g. royaljewel (max 10)"
-                        value={regData.shopName}
-                        onChange={(e) => {
-                          setRegData({ ...regData, shopName: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "") });
-                          if (errors.shopName) setErrors({ ...errors, shopName: null });
-                        }}
-                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-base sm:text-sm focus:outline-none focus:ring-2 transition-all ${
-                          errors.shopName
-                            ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
-                            : "border-stone-200 focus:border-[#783bf0] focus:ring-[#783bf0]/20 focus:bg-white"
-                        }`}
-                      />
-                    </div>
-                    <span className="text-[10px] text-stone-400 mt-1 block">Subdomain: {regData.shopName || "yourshop"}.{PLATFORM_DOMAIN} (max 10 chars)</span>
-                    {errors.shopName && (
-                      <span className="text-[11px] text-rose-500 font-medium mt-1 block">
-                        {errors.shopName}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Owner / Manager Name */}
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
-                      Owner / Manager Name <span className="text-rose-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400">
-                        <User className="w-4 h-4" />
-                      </div>
-                      <input
-                        type="text"
-                        maxLength={150}
-                        placeholder="e.g. Rajesh Kumar"
-                        value={regData.ownerName}
-                        onChange={(e) => {
-                          setRegData({ ...regData, ownerName: e.target.value });
-                          if (errors.ownerName) setErrors({ ...errors, ownerName: null });
-                        }}
-                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-base sm:text-sm focus:outline-none focus:ring-2 transition-all ${
-                          errors.ownerName
-                            ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
-                            : "border-stone-200 focus:border-[#783bf0] focus:ring-[#783bf0]/20 focus:bg-white"
-                        }`}
-                      />
-                    </div>
-                    {errors.ownerName && (
-                      <span className="text-[11px] text-rose-500 font-medium mt-1 block">
-                        {errors.ownerName}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Email Address */}
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
-                      Email Address <span className="text-rose-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400">
-                        <Mail className="w-4 h-4" />
-                      </div>
-                      <input
-                        type="email"
-                        maxLength={255}
-                        placeholder="e.g. owner@example.com"
-                        value={regData.email}
-                        onChange={(e) => {
-                          setRegData({ ...regData, email: e.target.value });
-                          if (errors.email) setErrors({ ...errors, email: null });
-                        }}
-                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-base sm:text-sm focus:outline-none focus:ring-2 transition-all ${
-                          errors.email
-                            ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
-                            : "border-stone-200 focus:border-[#783bf0] focus:ring-[#783bf0]/20 focus:bg-white"
-                        }`}
-                      />
-                    </div>
-                    {errors.email && (
-                      <span className="text-[11px] text-rose-500 font-medium mt-1 block">
-                        {errors.email}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Showroom City */}
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
-                      Showroom City <span className="text-rose-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400">
-                        <MapPin className="w-4 h-4" />
-                      </div>
-                      <input
-                        type="text"
-                        maxLength={12}
-                        placeholder="e.g. Mumbai (max 12 chars)"
-                        value={regData.city}
-                        onChange={(e) => {
-                          setRegData({ ...regData, city: e.target.value });
-                          if (errors.city) setErrors({ ...errors, city: null });
-                        }}
-                        className={`w-full pl-11 pr-4 py-3.5 bg-stone-50/50 border rounded-2xl text-base sm:text-sm focus:outline-none focus:ring-2 focus:bg-white transition-all ${
-                          errors.city
-                            ? "border-rose-400 focus:ring-rose-200"
-                            : "border-stone-200 focus:border-[#783bf0] focus:ring-[#783bf0]/20"
-                        }`}
-                      />
-                    </div>
-                    {errors.city && (
-                      <span className="text-[11px] text-rose-500 font-medium mt-1 block">
-                        {errors.city}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Password */}
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1.5">
-                    Account Secret Pin / Password <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400">
-                      <Lock className="w-4 h-4" />
-                    </div>
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      maxLength={8}
-                      placeholder="Enter exactly 8 characters"
-                      value={regData.password}
-                      onKeyDown={(e) => {
-                        if (e.key === " ") {
-                          e.preventDefault();
-                        }
-                      }}
-                      onChange={(e) => {
-                        const cleanPassword = e.target.value.replace(/\s/g, "");
-                        setRegData({ ...regData, password: cleanPassword });
-                        if (errors.password) setErrors({ ...errors, password: null });
-                      }}
-                      className={`w-full pl-11 pr-11 py-3.5 bg-stone-50/50 border rounded-2xl text-base sm:text-sm focus:outline-none focus:ring-2 transition-all ${
-                        errors.password
-                          ? "border-rose-400 focus:ring-rose-200 focus:bg-white"
-                          : "border-stone-200 focus:border-[#783bf0] focus:ring-[#783bf0]/20 focus:bg-white"
-                      }`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-stone-400 hover:text-stone-700 focus:outline-none cursor-pointer"
-                      tabIndex={-1}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {errors.password && (
-                    <span className="text-[11px] text-rose-500 font-medium mt-1 block">
-                      {errors.password}
-                    </span>
-                  )}
-
-                  {/* Password Checklist Signal Display */}
-                  <div className="mt-3.5 space-y-2 bg-stone-50 border border-stone-100 rounded-2xl p-4 text-xs text-stone-600 shadow-inner">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
-                      <div className={`flex items-center gap-2 transition-colors duration-250 ${checks.length ? "text-emerald-700 font-medium" : "text-stone-400"}`}>
-                        <CheckCircle2 className={`w-4 h-4 transition-all ${checks.length ? "text-emerald-500 fill-emerald-50" : "text-stone-300"}`} />
-                        <span>Exactly 8 characters</span>
-                      </div>
-                      <div className={`flex items-center gap-2 transition-colors duration-250 ${checks.uppercase ? "text-emerald-700 font-medium" : "text-stone-400"}`}>
-                        <CheckCircle2 className={`w-4 h-4 transition-all ${checks.uppercase ? "text-emerald-500 fill-emerald-50" : "text-stone-300"}`} />
-                        <span>At least 1 uppercase letter</span>
-                      </div>
-                      <div className={`flex items-center gap-2 transition-colors duration-250 ${checks.lowercase ? "text-emerald-700 font-medium" : "text-stone-400"}`}>
-                        <CheckCircle2 className={`w-4 h-4 transition-all ${checks.lowercase ? "text-emerald-500 fill-emerald-50" : "text-stone-300"}`} />
-                        <span>At least 1 lowercase letter</span>
-                      </div>
-                      <div className={`flex items-center gap-2 transition-colors duration-250 ${checks.number ? "text-emerald-700 font-medium" : "text-stone-400"}`}>
-                        <CheckCircle2 className={`w-4 h-4 transition-all ${checks.number ? "text-emerald-500 fill-emerald-50" : "text-stone-300"}`} />
-                        <span>At least 1 number</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Submit Register Button */}
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full flex items-center justify-center gap-2 bg-[#783bf0] hover:bg-[#6828e8] text-white font-bold py-4 px-6 rounded-2xl text-sm tracking-wider uppercase transition-all shadow-md shadow-[#783bf0]/20 hover:shadow-xl hover:shadow-[#783bf0]/30 hover:-translate-y-0.5 disabled:opacity-75 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin text-white" />
-                      <span>Registering Business...</span>
-                    </>
-                  ) : (
-                    <>
-                      <ShieldCheck className="w-5 h-5 text-white" />
-                      <span>Create Your Jewellery Website</span>
-                    </>
-                  )}
-                </button>
-              </form>
-            </div>
-          )}
         </div>
       </section>
 
@@ -796,20 +450,20 @@ export default function PlatformLandingPage() {
               </p>
               <div className="flex flex-wrap gap-4 pt-1">
                 <a
-                  href="tel:+919876543210"
+                  href={`tel:${cleanPhone}`}
                   className="inline-flex items-center gap-2 bg-stone-900 hover:bg-stone-800 text-white border border-stone-700 px-4 py-2.5 rounded-xl text-xs font-bold transition-all"
                 >
                   <Phone className="w-4 h-4 text-[#783bf0]" />
-                  <span className="text-white">Call Mobile Number</span>
+                  <span className="text-white">Call: {callPhone}</span>
                 </a>
                 <a
-                  href="https://wa.me/919876543210"
+                  href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/50 px-4 py-2.5 rounded-xl text-xs font-bold transition-all"
                 >
                   <MessageCircle className="w-4 h-4 text-emerald-400" />
-                  <span>WhatsApp</span>
+                  <span>WhatsApp: {rawPhone}</span>
                 </a>
               </div>
             </div>
@@ -821,7 +475,9 @@ export default function PlatformLandingPage() {
               &copy; {new Date().getFullYear()} Aadagam. All Rights Reserved.
             </p>
             <a
-              href="#register"
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-white hover:underline font-semibold"
             >
               Create Your Jewellery Website &rarr;

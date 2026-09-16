@@ -25,7 +25,13 @@ import {
   TrendingUp,
   Coins,
   Scale,
-  ShieldCheck
+  ShieldCheck,
+  Upload,
+  MessageCircle,
+  MapPin,
+  Phone,
+  Mail,
+  Building2,
 } from "lucide-react";
 import {
   adminAddCategory,
@@ -46,6 +52,9 @@ import {
   adminGetDashboardStats,
   adminUpdatePrice,
   getSiteInfo,
+  adminUpdateSiteInfo,
+  adminUploadImages,
+  adminActivateSubdomain,
   extractYoutubeId
 } from "../services/api";
 import { mockSlides, mockShopInfo } from "../services/mockData";
@@ -59,9 +68,17 @@ export default function AdminDashboard() {
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("success");
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
 
   // 0. Dashboard Stats & Live Metal Rates State
-  const [dashboardStats, setDashboardStats] = useState({ register_count: 0, priceData: [] });
+  const [dashboardStats, setDashboardStats] = useState({
+    category_count: 0,
+    gallery_count: 0,
+    videos_count: 0,
+    asked_question: 0,
+    priceData: [],
+  });
   const [priceForm, setPriceForm] = useState({
     material: "gold",
     purity: "22k",
@@ -104,8 +121,18 @@ export default function AdminDashboard() {
     badge: ""
   });
 
-  // 7. Contact Profile
-  const [contactInfo, setContactInfo] = useState({});
+  // 7. Contact Profile & Site Info
+  const [contactInfo, setContactInfo] = useState({
+    city: "",
+    address: "",
+    phone: "",
+    phonePrimary: "",
+    phoneSecondary: "",
+    contact_us: "",
+    email: "",
+    whatsapp_no: "",
+    whatsapp: "",
+  });
 
   // 8. Delete Confirmation Modal State
   const [deleteModal, setDeleteModal] = useState({
@@ -146,13 +173,17 @@ export default function AdminDashboard() {
     setSlides(localSlides ? JSON.parse(localSlides) : mockSlides);
 
     const localContact = localStorage.getItem(`aadagam_contact_info_${shopPrefix}`);
-    setContactInfo(localContact ? JSON.parse(localContact) : {
-      address: mockShopInfo.address,
-      phonePrimary: mockShopInfo.phonePrimary,
-      phoneSecondary: mockShopInfo.phoneSecondary,
-      email: adminUser.email,
-      whatsapp: mockShopInfo.whatsapp,
-      mapDirectionsUrl: mockShopInfo.mapDirectionsUrl
+    const parsedContact = localContact ? JSON.parse(localContact) : {};
+    setContactInfo({
+      city: parsedContact.city || "",
+      address: parsedContact.address || mockShopInfo.address,
+      phone: parsedContact.phone || parsedContact.phonePrimary || mockShopInfo.phonePrimary,
+      phonePrimary: parsedContact.phonePrimary || mockShopInfo.phonePrimary,
+      phoneSecondary: parsedContact.phoneSecondary || mockShopInfo.phoneSecondary,
+      contact_us: parsedContact.contact_us || adminUser.email,
+      email: parsedContact.email || adminUser.email,
+      whatsapp_no: parsedContact.whatsapp_no || parsedContact.whatsapp || mockShopInfo.whatsapp,
+      whatsapp: parsedContact.whatsapp || mockShopInfo.whatsapp,
     });
 
     // Backend APIs
@@ -162,29 +193,117 @@ export default function AdminDashboard() {
     loadVideos(0);
     loadEnquiries(0);
     loadStories(0);
+    loadShowroomSiteInfo();
   }, [adminUser]);
+
+  const loadShowroomSiteInfo = async () => {
+    try {
+      if (!adminUser) return;
+      const shopPrefix = getShopPrefix(adminUser.domain);
+      const res = await getSiteInfo(shopPrefix);
+      if (res && res.siteInfoData) {
+        const d = res.siteInfoData;
+        setContactInfo((prev) => ({
+          ...prev,
+          city: d.city || prev.city || "",
+          address: d.address || prev.address || "",
+          phone: d.phone || prev.phone || prev.phonePrimary || "",
+          phonePrimary: d.phone || prev.phonePrimary || "",
+          contact_us: d.contact_us || prev.contact_us || prev.email || "",
+          email: d.contact_us || prev.email || "",
+          whatsapp_no: d.whatsapp_no || prev.whatsapp_no || prev.whatsapp || "",
+          whatsapp: d.whatsapp_no || prev.whatsapp || "",
+        }));
+      }
+    } catch (err) {
+      console.warn("Could not load backend site info:", err);
+    }
+  };
+
+  // Direct multi-image/video upload handler (POST /opxXxolN7m6CU/upload)
+  const handleDirectImageUpload = async (e, target = "gallery") => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    if (files.length > 10) {
+      triggerToast("You can upload a maximum of 10 files at once.", "error");
+      return;
+    }
+
+    // Verify sizes (max 50MB each for videos / images)
+    for (let i = 0; i < files.length; i++) {
+      if (files[i].size > 50 * 1024 * 1024) {
+        triggerToast(`File "${files[i].name}" exceeds the 50MB size limit.`, "error");
+        return;
+      }
+    }
+
+    setIsUploading(true);
+    setUploadProgress(`Uploading ${files.length} file(s) to cloud storage...`);
+
+    try {
+      const res = await adminUploadImages(files);
+      setIsUploading(false);
+      setUploadProgress("");
+
+      // Backend returns images array of { originalName, fileName, url } or urls array
+      const uploadedList = res.images && Array.isArray(res.images)
+        ? res.images.map((img) => img.url).filter(Boolean)
+        : (res.urls || (res.data ? (Array.isArray(res.data) ? res.data : [res.data]) : []));
+
+      if ((res.success || res.status === 1) && uploadedList.length > 0) {
+        triggerToast(`Successfully uploaded ${uploadedList.length} file(s)!`);
+
+        if (target === "gallery") {
+          if (uploadedList.length === 1) {
+            setNewImage((prev) => ({ ...prev, imageUrl: uploadedList[0] }));
+          } else if (newImage.categoryId) {
+            for (const url of uploadedList) {
+              await adminAddGallery(newImage.categoryId, url);
+            }
+            loadGallery(galleryPage);
+            loadDashboardStats();
+            triggerToast(`Added ${uploadedList.length} images to category!`);
+          } else {
+            setNewImage((prev) => ({ ...prev, imageUrl: uploadedList[0] }));
+          }
+        } else if (target === "video") {
+          setNewVideoUrl(uploadedList[0]);
+          await adminAddVideo(uploadedList[0]);
+          loadVideos(videoPage);
+          loadDashboardStats();
+          triggerToast("Video uploaded and added to showcase!");
+        } else if (target === "slideshow") {
+          setNewSlide((prev) => ({ ...prev, desktopImg: uploadedList[0] }));
+        }
+      } else {
+        triggerToast(res?.message || "Upload completed with no file URLs returned.", "error");
+      }
+    } catch (err) {
+      console.error("Direct upload failed:", err);
+      setIsUploading(false);
+      setUploadProgress("");
+      triggerToast("File upload failed.", "error");
+    }
+  };
 
   /* ==========================================================================
    * 0. DASHBOARD STATS & PRICE UPDATE HANDLERS
    * ========================================================================== */
   const loadDashboardStats = async () => {
     try {
-      const res = await adminGetDashboardStats();
-      if (res && res.success === 1) {
-        setDashboardStats({
-          register_count: res.register_count || 0,
-          priceData: res.priceData || [],
-        });
-      } else {
-        // Fallback to public site info if dash_board returns empty
-        const siteRes = await getSiteInfo();
-        if (siteRes && siteRes.success === 1) {
-          setDashboardStats((prev) => ({
-            ...prev,
-            priceData: siteRes.priceData || [],
-          }));
-        }
-      }
+      const [res, siteRes] = await Promise.all([
+        adminGetDashboardStats(),
+        getSiteInfo(),
+      ]);
+
+      setDashboardStats({
+        category_count: res?.category_count ?? 0,
+        gallery_count: res?.gallery_count ?? 0,
+        videos_count: res?.videos_count ?? 0,
+        asked_question: res?.asked_question ?? 0,
+        priceData: siteRes?.priceData || res?.priceData || [],
+      });
     } catch (e) {
       console.error("Failed to load dashboard stats:", e);
     }
@@ -416,7 +535,7 @@ export default function AdminDashboard() {
     setIsLoading(true);
     let res;
     if (stories.length > 0) {
-      res = await adminUpdateOurStory(stories[0].id, storyContent.trim());
+      res = await adminUpdateOurStory(stories[0].id, storyContent.trim(), 1);
     } else {
       res = await adminAddOurStory(storyContent.trim());
     }
@@ -508,11 +627,60 @@ export default function AdminDashboard() {
     setDeleteModal({ isOpen: false, type: "", item: null });
   };
 
-  const handleSaveContactInfo = (e) => {
+  const handleSaveContactInfo = async (e) => {
     e.preventDefault();
-    const shopPrefix = getShopPrefix(adminUser.domain);
-    localStorage.setItem(`aadagam_contact_info_${shopPrefix}`, JSON.stringify(contactInfo));
-    triggerToast("Showroom contact profile saved!");
+    setIsLoading(true);
+
+    const city = (contactInfo.city || "").trim().slice(0, 30);
+    const address = (contactInfo.address || "").trim().slice(0, 1500);
+    const phone = (contactInfo.phone || contactInfo.phonePrimary || "").trim().slice(0, 15);
+    const contact_us = (contactInfo.contact_us || contactInfo.email || "").trim().slice(0, 30);
+    const whatsapp_no = (contactInfo.whatsapp_no || contactInfo.whatsapp || phone).trim().slice(0, 15);
+
+    try {
+      const res = await adminUpdateSiteInfo({
+        city,
+        address,
+        phone,
+        contact_us,
+        whatsapp_no,
+      });
+
+      setIsLoading(false);
+
+      if (res && (res.status === 1 || res.success === 1 || res.success === true)) {
+        const shopPrefix = getShopPrefix(adminUser.domain);
+        localStorage.setItem(`aadagam_contact_info_${shopPrefix}`, JSON.stringify(contactInfo));
+        triggerToast(res.message || "Showroom contact and site info updated successfully!");
+        loadShowroomSiteInfo();
+      } else {
+        triggerToast(res?.message || "Failed to update showroom site info.", "error");
+      }
+    } catch (err) {
+      console.error("Error saving site info:", err);
+      setIsLoading(false);
+      triggerToast("Failed to update showroom site info.", "error");
+    }
+  };
+
+  const handleActivateSite = async () => {
+    if (!adminUser?.id) {
+      triggerToast("Showroom account ID not detected.", "error");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const res = await adminActivateSubdomain(adminUser.id);
+      setIsLoading(false);
+      if (res && res.status === 1) {
+        triggerToast("Showroom site activated successfully!");
+      } else {
+        triggerToast(res?.message || "Site activation failed.", "error");
+      }
+    } catch (err) {
+      setIsLoading(false);
+      triggerToast("Failed to activate showroom site.", "error");
+    }
   };
 
   const handleLogout = () => {
@@ -639,6 +807,48 @@ export default function AdminDashboard() {
 
         {/* Right Main Content Pane */}
         <main className="lg:col-span-9 space-y-6 text-left">
+          {/* Live Overview Stats Counter Bar (GET /opxXxolN7m6CU/dash_board) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center shrink-0">
+                <Tag className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Categories</span>
+                <span className="font-serif text-xl font-bold text-stone-900">{dashboardStats.category_count || categories.length}</span>
+              </div>
+            </div>
+
+            <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-200 text-purple-700 flex items-center justify-center shrink-0">
+                <ImageIcon className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Catalogue</span>
+                <span className="font-serif text-xl font-bold text-stone-900">{dashboardStats.gallery_count || galleryImages.length}</span>
+              </div>
+            </div>
+
+            <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center shrink-0">
+                <Video className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Videos</span>
+                <span className="font-serif text-xl font-bold text-stone-900">{dashboardStats.videos_count || videos.length}</span>
+              </div>
+            </div>
+
+            <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shrink-0">
+                <MessageSquare className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Enquiries</span>
+                <span className="font-serif text-xl font-bold text-stone-900">{dashboardStats.asked_question || enquiries.length}</span>
+              </div>
+            </div>
+          </div>
           {/* ===================================================================
            * TAB 0: DAILY METAL RATES MANAGER (POST /opxXxolN7m6CU/price_update)
            * =================================================================== */}
@@ -877,14 +1087,14 @@ export default function AdminDashboard() {
            * =================================================================== */}
           {activeTab === "gallery" && (
             <div className="space-y-6 animate-fade-in">
-              <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+              <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-serif text-2xl font-bold text-stone-900">
                       Jewellery Catalogue Gallery
                     </h3>
                     <p className="text-xs text-stone-500 mt-1">
-                      Upload and map high-definition catalogue images to categories.
+                      Upload directly to Cloud Storage (up to 10 images, 5MB each) or enter image URLs.
                     </p>
                   </div>
                   <button
@@ -895,10 +1105,56 @@ export default function AdminDashboard() {
                   </button>
                 </div>
 
+                {/* Direct Cloudflare R2 / AWS S3 Multi-Image Uploader Dropzone */}
+                <div className="bg-stone-50/80 border-2 border-dashed border-[#D4AF37]/40 rounded-2xl p-4 sm:p-6 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-[#D4AF37]/15 text-[#B8860B] flex items-center justify-center mx-auto">
+                    <Upload className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-serif font-bold text-sm text-stone-900">
+                      Upload Images Directly to Cloud Storage
+                    </h4>
+                    <p className="text-[11px] text-stone-500 max-w-sm mx-auto mt-0.5">
+                      Select up to 10 image files (JPEG, PNG, WebP — max 5MB each).
+                    </p>
+                  </div>
+
+                  <div className="pt-1">
+                    <label
+                      htmlFor="gallery-file-upload"
+                      className={`inline-flex items-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-[#D4AF37] font-bold px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer shadow-sm ${
+                        isUploading ? "opacity-50 pointer-events-none" : ""
+                      }`}
+                    >
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />
+                          <span>{uploadProgress || "Uploading..."}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4" />
+                          <span>Select Files & Upload</span>
+                        </>
+                      )}
+                    </label>
+                    <input
+                      id="gallery-file-upload"
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => handleDirectImageUpload(e, "gallery")}
+                      className="hidden"
+                      disabled={isUploading}
+                    />
+                  </div>
+                </div>
+
+                {/* Manual Add Item Form */}
                 <form onSubmit={handleAddGalleryImage} className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-2">
                   <div className="sm:col-span-4">
                     <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1">
-                      Select Category
+                      Select Category <span className="text-rose-500">*</span>
                     </label>
                     <select
                       value={newImage.categoryId}
@@ -917,12 +1173,12 @@ export default function AdminDashboard() {
 
                   <div className="sm:col-span-6">
                     <label className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1">
-                      Image URL (HTTPS)
+                      Image URL (Uploaded URL or HTTPS Link) <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="url"
                       maxLength={100}
-                      placeholder="https://images.unsplash.com/..."
+                      placeholder="https://..."
                       value={newImage.imageUrl}
                       onChange={(e) => setNewImage({ ...newImage, imageUrl: e.target.value })}
                       className="w-full px-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
@@ -933,7 +1189,7 @@ export default function AdminDashboard() {
                   <div className="sm:col-span-2 flex items-end">
                     <button
                       type="submit"
-                      disabled={isLoading}
+                      disabled={isLoading || isUploading}
                       className="w-full inline-flex items-center justify-center gap-1.5 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-50"
                     >
                       {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" /> : <Plus className="w-4 h-4 text-[#D4AF37]" />}
@@ -1022,11 +1278,30 @@ export default function AdminDashboard() {
                   </button>
                 </div>
 
+                <div className="bg-[#FAF9F5] border border-stone-200 rounded-2xl p-4 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-stone-600">
+                      Upload Video File (MP4 / WebM to S3)
+                    </span>
+                    <label className="inline-flex items-center justify-center gap-2 bg-[#D4AF37] hover:bg-[#B8860B] text-stone-950 font-bold px-4 py-2 rounded-xl text-xs uppercase tracking-wider cursor-pointer shadow-sm transition-all">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{isUploading ? "Uploading..." : "Upload Video File"}</span>
+                      <input
+                        type="file"
+                        accept="video/mp4,video/webm,video/*"
+                        onChange={(e) => handleDirectImageUpload(e, "video")}
+                        className="hidden"
+                        disabled={isUploading}
+                      />
+                    </label>
+                  </div>
+                </div>
+
                 <form onSubmit={handleAddVideo} className="flex flex-col sm:flex-row gap-3 pt-2">
                   <input
                     type="url"
-                    maxLength={100}
-                    placeholder="https://www.youtube.com/watch?v=..."
+                    maxLength={500}
+                    placeholder="https://www.youtube.com/watch?v=... or S3 Video URL"
                     value={newVideoUrl}
                     onChange={(e) => setNewVideoUrl(e.target.value)}
                     className="flex-1 px-4 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-sm focus:outline-none focus:border-[#D4AF37]"
@@ -1275,9 +1550,26 @@ export default function AdminDashboard() {
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-1">
-                      High-Resolution Image URL (Desktop 1920x700 / Mobile 1024x600)
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider">
+                        Banner Image URL (or upload below)
+                      </label>
+                      <label
+                        htmlFor="slideshow-file-upload"
+                        className="text-[10px] font-bold text-[#B8860B] hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        <Upload className="w-3 h-3" />
+                        <span>Upload File</span>
+                      </label>
+                      <input
+                        id="slideshow-file-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleDirectImageUpload(e, "slideshow")}
+                        className="hidden"
+                        disabled={isUploading}
+                      />
+                    </div>
                     <input
                       type="url"
                       placeholder="https://images.unsplash.com/..."
@@ -1291,6 +1583,7 @@ export default function AdminDashboard() {
                   <div className="sm:col-span-2">
                     <button
                       type="submit"
+                      disabled={isUploading}
                       className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3 px-6 rounded-xl text-xs uppercase tracking-wider transition-all shadow-sm"
                     >
                       <Plus className="w-4 h-4 text-[#D4AF37]" />
@@ -1330,68 +1623,202 @@ export default function AdminDashboard() {
           )}
 
           {/* ===================================================================
-           * TAB 7: SHOWROOM CONTACT PROFILE
+           * TAB 7: SHOWROOM CONTACT & SITE INFO (POST /opxXxolN7m6CU/update_site_info)
            * =================================================================== */}
           {activeTab === "contact" && (
             <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fade-in">
-              <div>
-                <h3 className="font-serif text-2xl font-bold text-stone-900">
-                  Showroom Contact & Hours Profile
-                </h3>
-                <p className="text-xs text-stone-500 mt-1">
-                  Manage primary contact numbers, physical showroom address, and map directions.
-                </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-serif text-2xl font-bold text-stone-900">
+                    Showroom Contact & Site Info Profile
+                  </h3>
+                  <p className="text-xs text-stone-500 mt-1">
+                    Updates showroom address, contact numbers, email, and WhatsApp helpline in database.
+                  </p>
+                </div>
+                <button
+                  onClick={loadShowroomSiteInfo}
+                  className="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors"
+                  title="Reload Site Info from backend"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
               </div>
 
-              <form onSubmit={handleSaveContactInfo} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="sm:col-span-2">
-                  <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-1">
-                    Showroom Physical Address
-                  </label>
-                  <input
-                    type="text"
-                    value={contactInfo.address || ""}
-                    onChange={(e) => setContactInfo({ ...contactInfo, address: e.target.value })}
-                    className="w-full px-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
-                  />
+              <form onSubmit={handleSaveContactInfo} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* City */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider">
+                        City <span className="text-rose-500">*</span>
+                      </label>
+                      <span className="text-[10px] text-stone-400 font-mono">
+                        {(contactInfo.city || "").length}/30 max
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+                        <Building2 className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="text"
+                        maxLength={30}
+                        placeholder="e.g. Chennai"
+                        value={contactInfo.city || ""}
+                        onChange={(e) => setContactInfo({ ...contactInfo, city: e.target.value })}
+                        className="w-full pl-10 pr-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Primary Phone */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider">
+                        Showroom Phone Number <span className="text-rose-500">*</span>
+                      </label>
+                      <span className="text-[10px] text-stone-400 font-mono">
+                        {(contactInfo.phone || contactInfo.phonePrimary || "").length}/15 max
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+                        <Phone className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="tel"
+                        maxLength={15}
+                        placeholder="e.g. +91 9876543210"
+                        value={contactInfo.phone || contactInfo.phonePrimary || ""}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9+ \-]/g, "");
+                          setContactInfo({ ...contactInfo, phone: val, phonePrimary: val });
+                        }}
+                        className="w-full pl-10 pr-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* WhatsApp Number */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider">
+                        WhatsApp Helpline Number <span className="text-rose-500">*</span>
+                      </label>
+                      <span className="text-[10px] text-stone-400 font-mono">
+                        {(contactInfo.whatsapp_no || contactInfo.whatsapp || "").length}/15 max
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+                        <MessageCircle className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="tel"
+                        maxLength={15}
+                        placeholder="e.g. +91 9876543210"
+                        value={contactInfo.whatsapp_no || contactInfo.whatsapp || ""}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9+ \-]/g, "");
+                          setContactInfo({ ...contactInfo, whatsapp_no: val, whatsapp: val });
+                        }}
+                        className="w-full pl-10 pr-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Contact Us (Email / Info) */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider">
+                        Contact Us / Support Email <span className="text-rose-500">*</span>
+                      </label>
+                      <span className="text-[10px] text-stone-400 font-mono">
+                        {(contactInfo.contact_us || contactInfo.email || "").length}/30 max
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+                        <Mail className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="text"
+                        maxLength={30}
+                        placeholder="e.g. info@showroom.com"
+                        value={contactInfo.contact_us || contactInfo.email || ""}
+                        onChange={(e) => setContactInfo({ ...contactInfo, contact_us: e.target.value, email: e.target.value })}
+                        className="w-full pl-10 pr-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
+                        required
+                      />
+                    </div>
+                  </div>
                 </div>
 
+                {/* Showroom Physical Address */}
                 <div>
-                  <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-1">
-                    Primary Phone
-                  </label>
-                  <input
-                    type="tel"
-                    placeholder="e.g. +91 98765 43210"
-                    value={contactInfo.phonePrimary || ""}
-                    onChange={(e) => setContactInfo({ ...contactInfo, phonePrimary: e.target.value.replace(/[^0-9+ \-]/g, "") })}
-                    className="w-full px-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider">
+                      Showroom Physical Address <span className="text-rose-500">*</span>
+                    </label>
+                    <span className="text-[10px] text-stone-400 font-mono">
+                      {(contactInfo.address || "").length}/1500 max
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <textarea
+                      rows={3}
+                      maxLength={1500}
+                      value={contactInfo.address || ""}
+                      onChange={(e) => setContactInfo({ ...contactInfo, address: e.target.value })}
+                      placeholder="124, Gold Souk Street, Opp. Diamond Plaza, T. Nagar, Chennai - 600017"
+                      className="w-full p-3.5 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37] leading-relaxed"
+                      required
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-1">
-                    Secondary Phone
-                  </label>
-                  <input
-                    type="tel"
-                    placeholder="e.g. +91 98765 43211"
-                    value={contactInfo.phoneSecondary || ""}
-                    onChange={(e) => setContactInfo({ ...contactInfo, phoneSecondary: e.target.value.replace(/[^0-9+ \-]/g, "") })}
-                    className="w-full px-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
-                  />
-                </div>
-
-                <div className="sm:col-span-2 pt-2">
+                <div className="pt-2 flex flex-col sm:flex-row gap-3">
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3 px-8 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all"
+                    disabled={isLoading}
+                    className="inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3.5 px-8 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all disabled:opacity-50"
                   >
-                    <Save className="w-4 h-4 text-[#D4AF37]" />
-                    <span>Save Contact Profile</span>
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" /> : <Save className="w-4 h-4 text-[#D4AF37]" />}
+                    <span>Save Showroom Site Info</span>
                   </button>
                 </div>
               </form>
+
+              {/* Showroom Subdomain Activation Card (POST /opxXxolN7m6CU/activate_subdomain) */}
+              <div className="bg-[#FAF9F5] border-2 border-[#D4AF37]/30 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="inline-flex items-center gap-2 text-[#B8860B] text-xs font-semibold uppercase tracking-wider mb-1">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Subdomain & Subscription Status</span>
+                    </div>
+                    <h4 className="font-serif text-xl font-bold text-stone-900">
+                      Showroom Activation
+                    </h4>
+                    <p className="text-xs text-stone-600 font-light mt-0.5">
+                      Subdomain: <span className="font-mono font-bold text-[#B8860B]">{adminUser.domain}</span>
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleActivateSite}
+                    disabled={isLoading}
+                    className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Activate Showroom Site</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </main>

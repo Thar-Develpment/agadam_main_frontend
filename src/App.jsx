@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import PlatformLandingPage from "./pages/PlatformLandingPage";
+import RegisterPage from "./pages/RegisterPage";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import {
   getContactInfo,
+  getSiteInfo,
   getSlides,
   getGalleryImages,
   getVideos,
@@ -57,28 +59,34 @@ function ClientStorefrontPage() {
           return;
         }
 
-        const [info, slideData, videoData, aboutData, categoryData] = await Promise.all([
+        const subdomain = getTenantSubdomain();
+        const shopPrefix = getShopPrefix(subdomain);
+
+        const [info, siteInfoRes, slideData, videoData, aboutData, categoryData] = await Promise.all([
           getContactInfo(),
+          getSiteInfo(shopPrefix),
           getSlides(),
           getVideos(),
           getAboutContent(),
           getGalleryCategories(),
         ]);
 
-        const subdomain = getTenantSubdomain();
-        const shopPrefix = getShopPrefix(subdomain);
-
-        // 1. Contact Settings
+        // 1. Contact Settings & Site Info
         const localContact = localStorage.getItem(`aadagam_contact_info_${shopPrefix}`);
-        if (localContact) {
-          setShopInfo(JSON.parse(localContact));
-        } else {
-          setShopInfo({
-            ...info,
-            name: shopPrefix.toUpperCase() + " JEWELLERY",
-            email: `contact@${shopPrefix}jewellery.com`,
-          });
-        }
+        const baseContact = localContact ? JSON.parse(localContact) : info;
+        const liveSiteData = siteInfoRes?.siteInfoData || {};
+
+        setShopInfo({
+          ...baseContact,
+          name: shopPrefix.toUpperCase() + " JEWELLERY",
+          email: liveSiteData.contact_us || baseContact.email || `contact@${shopPrefix}jewellery.com`,
+          contact_us: liveSiteData.contact_us || baseContact.email || `contact@${shopPrefix}jewellery.com`,
+          city: liveSiteData.city || baseContact.city || "",
+          address: liveSiteData.address || baseContact.address || "",
+          phone: liveSiteData.phone || baseContact.phone || baseContact.phonePrimary || "+91 98765 43210",
+          phonePrimary: liveSiteData.phone || baseContact.phonePrimary || "+91 98765 43210",
+          whatsapp_no: liveSiteData.whatsapp_no || baseContact.whatsapp_no || baseContact.whatsapp || "",
+        });
 
         // 2. Slides
         const localSlides = localStorage.getItem(`aadagam_carousel_slides_${shopPrefix}`);
@@ -250,6 +258,9 @@ function MainLayout() {
         <Route path="/admin" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
+        {/* Standalone Onboarding Registration */}
+        <Route path="/register" element={<RegisterPage />} />
+
         {/* Fallback for subdomain routes */}
         <Route path="*" element={<ClientStorefrontPage />} />
       </Routes>
@@ -259,19 +270,22 @@ function MainLayout() {
   // Main SaaS Platform Domain Layout (localhost:5173 or aadagam.com)
   return (
     <Routes>
-      {/* Page 1: Platform Landing Page with Shop Registration */}
+      {/* Page 1: Platform Landing Page */}
       <Route path="/" element={<PlatformLandingPage />} />
 
-      {/* Page 2: Platform Demo Storefront Route */}
+      {/* Page 2: Platform Registration Page (Shared by owner via WhatsApp) */}
+      <Route path="/register" element={<RegisterPage />} />
+
+      {/* Page 3: Platform Demo Storefront Route */}
       <Route path="/demo" element={<ClientStorefrontPage />} />
 
-      {/* Page 3: Admin Sign In */}
+      {/* Page 4: Admin Sign In */}
       <Route path="/admin" element={<AdminLogin />} />
 
-      {/* Page 4: Admin Management Dashboard */}
+      {/* Page 5: Admin Management Dashboard */}
       <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
-      {/* Page 5: Super Admin Portal */}
+      {/* Page 6: Super Admin Portal */}
       <Route path="/superadmin" element={<SuperAdminDashboard />} />
 
       {/* Fallback route */}
