@@ -54,6 +54,7 @@ import {
   getSiteInfo,
   adminUpdateSiteInfo,
   adminUploadImages,
+  adminActivateSubdomain,
   extractYoutubeId
 } from "../services/api";
 import { mockSlides, mockShopInfo } from "../services/mockData";
@@ -71,7 +72,13 @@ export default function AdminDashboard() {
   const [uploadProgress, setUploadProgress] = useState("");
 
   // 0. Dashboard Stats & Live Metal Rates State
-  const [dashboardStats, setDashboardStats] = useState({ register_count: 0, priceData: [] });
+  const [dashboardStats, setDashboardStats] = useState({
+    category_count: 0,
+    gallery_count: 0,
+    videos_count: 0,
+    asked_question: 0,
+    priceData: [],
+  });
   const [priceForm, setPriceForm] = useState({
     material: "gold",
     purity: "22k",
@@ -213,50 +220,59 @@ export default function AdminDashboard() {
     }
   };
 
-  // Direct multi-image upload handler (POST /opxXxolN7m6CU/upload)
+  // Direct multi-image/video upload handler (POST /opxXxolN7m6CU/upload)
   const handleDirectImageUpload = async (e, target = "gallery") => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     if (files.length > 10) {
-      triggerToast("You can upload a maximum of 10 images at once.", "error");
+      triggerToast("You can upload a maximum of 10 files at once.", "error");
       return;
     }
 
-    // Verify sizes (max 5MB each)
+    // Verify sizes (max 50MB each for videos / images)
     for (let i = 0; i < files.length; i++) {
-      if (files[i].size > 5 * 1024 * 1024) {
-        triggerToast(`File "${files[i].name}" exceeds the 5MB size limit.`, "error");
+      if (files[i].size > 50 * 1024 * 1024) {
+        triggerToast(`File "${files[i].name}" exceeds the 50MB size limit.`, "error");
         return;
       }
     }
 
     setIsUploading(true);
-    setUploadProgress(`Uploading ${files.length} image(s) to cloud storage...`);
+    setUploadProgress(`Uploading ${files.length} file(s) to cloud storage...`);
 
     try {
       const res = await adminUploadImages(files);
       setIsUploading(false);
       setUploadProgress("");
 
-      // Backend returns urls array or single url in data / urls
-      const uploadedList = res.urls || (res.data ? (Array.isArray(res.data) ? res.data : [res.data]) : []);
+      // Backend returns images array of { originalName, fileName, url } or urls array
+      const uploadedList = res.images && Array.isArray(res.images)
+        ? res.images.map((img) => img.url).filter(Boolean)
+        : (res.urls || (res.data ? (Array.isArray(res.data) ? res.data : [res.data]) : []));
+
       if ((res.success || res.status === 1) && uploadedList.length > 0) {
-        triggerToast(`Successfully uploaded ${uploadedList.length} image(s)!`);
+        triggerToast(`Successfully uploaded ${uploadedList.length} file(s)!`);
 
         if (target === "gallery") {
           if (uploadedList.length === 1) {
             setNewImage((prev) => ({ ...prev, imageUrl: uploadedList[0] }));
           } else if (newImage.categoryId) {
-            // Auto-add all uploaded images to currently selected category
             for (const url of uploadedList) {
               await adminAddGallery(newImage.categoryId, url);
             }
             loadGallery(galleryPage);
+            loadDashboardStats();
             triggerToast(`Added ${uploadedList.length} images to category!`);
           } else {
             setNewImage((prev) => ({ ...prev, imageUrl: uploadedList[0] }));
           }
+        } else if (target === "video") {
+          setNewVideoUrl(uploadedList[0]);
+          await adminAddVideo(uploadedList[0]);
+          loadVideos(videoPage);
+          loadDashboardStats();
+          triggerToast("Video uploaded and added to showcase!");
         } else if (target === "slideshow") {
           setNewSlide((prev) => ({ ...prev, desktopImg: uploadedList[0] }));
         }
@@ -267,7 +283,7 @@ export default function AdminDashboard() {
       console.error("Direct upload failed:", err);
       setIsUploading(false);
       setUploadProgress("");
-      triggerToast("Image upload failed.", "error");
+      triggerToast("File upload failed.", "error");
     }
   };
 
@@ -276,22 +292,18 @@ export default function AdminDashboard() {
    * ========================================================================== */
   const loadDashboardStats = async () => {
     try {
-      const res = await adminGetDashboardStats();
-      if (res && res.success === 1) {
-        setDashboardStats({
-          register_count: res.register_count || 0,
-          priceData: res.priceData || [],
-        });
-      } else {
-        // Fallback to public site info if dash_board returns empty
-        const siteRes = await getSiteInfo();
-        if (siteRes && siteRes.success === 1) {
-          setDashboardStats((prev) => ({
-            ...prev,
-            priceData: siteRes.priceData || [],
-          }));
-        }
-      }
+      const [res, siteRes] = await Promise.all([
+        adminGetDashboardStats(),
+        getSiteInfo(),
+      ]);
+
+      setDashboardStats({
+        category_count: res?.category_count ?? 0,
+        gallery_count: res?.gallery_count ?? 0,
+        videos_count: res?.videos_count ?? 0,
+        asked_question: res?.asked_question ?? 0,
+        priceData: siteRes?.priceData || res?.priceData || [],
+      });
     } catch (e) {
       console.error("Failed to load dashboard stats:", e);
     }
@@ -523,7 +535,7 @@ export default function AdminDashboard() {
     setIsLoading(true);
     let res;
     if (stories.length > 0) {
-      res = await adminUpdateOurStory(stories[0].id, storyContent.trim());
+      res = await adminUpdateOurStory(stories[0].id, storyContent.trim(), 1);
     } else {
       res = await adminAddOurStory(storyContent.trim());
     }
@@ -651,6 +663,26 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleActivateSite = async () => {
+    if (!adminUser?.id) {
+      triggerToast("Showroom account ID not detected.", "error");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const res = await adminActivateSubdomain(adminUser.id);
+      setIsLoading(false);
+      if (res && res.status === 1) {
+        triggerToast("Showroom site activated successfully!");
+      } else {
+        triggerToast(res?.message || "Site activation failed.", "error");
+      }
+    } catch (err) {
+      setIsLoading(false);
+      triggerToast("Failed to activate showroom site.", "error");
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("aadagam_current_admin");
     localStorage.removeItem("aadagam_auth_token");
@@ -775,6 +807,48 @@ export default function AdminDashboard() {
 
         {/* Right Main Content Pane */}
         <main className="lg:col-span-9 space-y-6 text-left">
+          {/* Live Overview Stats Counter Bar (GET /opxXxolN7m6CU/dash_board) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center shrink-0">
+                <Tag className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Categories</span>
+                <span className="font-serif text-xl font-bold text-stone-900">{dashboardStats.category_count || categories.length}</span>
+              </div>
+            </div>
+
+            <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-200 text-purple-700 flex items-center justify-center shrink-0">
+                <ImageIcon className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Catalogue</span>
+                <span className="font-serif text-xl font-bold text-stone-900">{dashboardStats.gallery_count || galleryImages.length}</span>
+              </div>
+            </div>
+
+            <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center shrink-0">
+                <Video className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Videos</span>
+                <span className="font-serif text-xl font-bold text-stone-900">{dashboardStats.videos_count || videos.length}</span>
+              </div>
+            </div>
+
+            <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shrink-0">
+                <MessageSquare className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Enquiries</span>
+                <span className="font-serif text-xl font-bold text-stone-900">{dashboardStats.asked_question || enquiries.length}</span>
+              </div>
+            </div>
+          </div>
           {/* ===================================================================
            * TAB 0: DAILY METAL RATES MANAGER (POST /opxXxolN7m6CU/price_update)
            * =================================================================== */}
@@ -1204,11 +1278,30 @@ export default function AdminDashboard() {
                   </button>
                 </div>
 
+                <div className="bg-[#FAF9F5] border border-stone-200 rounded-2xl p-4 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-stone-600">
+                      Upload Video File (MP4 / WebM to S3)
+                    </span>
+                    <label className="inline-flex items-center justify-center gap-2 bg-[#D4AF37] hover:bg-[#B8860B] text-stone-950 font-bold px-4 py-2 rounded-xl text-xs uppercase tracking-wider cursor-pointer shadow-sm transition-all">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{isUploading ? "Uploading..." : "Upload Video File"}</span>
+                      <input
+                        type="file"
+                        accept="video/mp4,video/webm,video/*"
+                        onChange={(e) => handleDirectImageUpload(e, "video")}
+                        className="hidden"
+                        disabled={isUploading}
+                      />
+                    </label>
+                  </div>
+                </div>
+
                 <form onSubmit={handleAddVideo} className="flex flex-col sm:flex-row gap-3 pt-2">
                   <input
                     type="url"
-                    maxLength={100}
-                    placeholder="https://www.youtube.com/watch?v=..."
+                    maxLength={500}
+                    placeholder="https://www.youtube.com/watch?v=... or S3 Video URL"
                     value={newVideoUrl}
                     onChange={(e) => setNewVideoUrl(e.target.value)}
                     className="flex-1 px-4 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-sm focus:outline-none focus:border-[#D4AF37]"
@@ -1688,17 +1781,44 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="pt-2">
+                <div className="pt-2 flex flex-col sm:flex-row gap-3">
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3.5 px-8 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all disabled:opacity-50"
+                    className="inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3.5 px-8 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all disabled:opacity-50"
                   >
                     {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" /> : <Save className="w-4 h-4 text-[#D4AF37]" />}
                     <span>Save Showroom Site Info</span>
                   </button>
                 </div>
               </form>
+
+              {/* Showroom Subdomain Activation Card (POST /opxXxolN7m6CU/activate_subdomain) */}
+              <div className="bg-[#FAF9F5] border-2 border-[#D4AF37]/30 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="inline-flex items-center gap-2 text-[#B8860B] text-xs font-semibold uppercase tracking-wider mb-1">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Subdomain & Subscription Status</span>
+                    </div>
+                    <h4 className="font-serif text-xl font-bold text-stone-900">
+                      Showroom Activation
+                    </h4>
+                    <p className="text-xs text-stone-600 font-light mt-0.5">
+                      Subdomain: <span className="font-mono font-bold text-[#B8860B]">{adminUser.domain}</span>
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleActivateSite}
+                    disabled={isLoading}
+                    className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Activate Showroom Site</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </main>

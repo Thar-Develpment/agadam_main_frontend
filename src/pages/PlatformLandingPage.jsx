@@ -75,9 +75,8 @@ export default function PlatformLandingPage() {
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-[#783bf0] hover:bg-[#6828e8] text-white font-bold px-4 py-2 rounded-xl text-xs tracking-wider uppercase transition-all shadow-md shadow-[#783bf0]/20"
+              className="inline-flex items-center justify-center bg-[#783bf0] hover:bg-[#6828e8] text-white font-bold px-4 py-2 rounded-xl text-xs tracking-wider uppercase transition-all shadow-md shadow-[#783bf0]/20"
             >
-              <MessageCircle className="w-3.5 h-3.5 text-white" />
               <span>Create Your Jewellery Website</span>
             </a>
           </div>
@@ -127,9 +126,8 @@ export default function PlatformLandingPage() {
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-[#783bf0] hover:bg-[#6828e8] text-white font-bold py-3.5 sm:py-4 px-6 sm:px-8 rounded-xl text-xs sm:text-sm tracking-wider uppercase shadow-xl shadow-[#783bf0]/25 transition-all hover:scale-105"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-[#783bf0] hover:bg-[#6828e8] text-white font-bold py-3.5 sm:py-4 px-6 sm:px-8 rounded-xl text-xs sm:text-sm tracking-wider uppercase shadow-xl shadow-[#783bf0]/25 transition-all hover:scale-105"
               >
-                <MessageCircle className="w-4 h-4" />
                 <span>Create Your Jewellery Website</span>
                 <ArrowRight className="w-4 h-4" />
               </a>
@@ -378,9 +376,8 @@ export default function PlatformLandingPage() {
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-3 bg-[#783bf0] hover:bg-[#6828e8] text-white font-bold py-4 px-8 rounded-xl text-xs sm:text-sm tracking-wider uppercase shadow-xl shadow-[#783bf0]/25 transition-all hover:scale-105"
+              className="inline-flex items-center justify-center gap-2.5 bg-[#783bf0] hover:bg-[#6828e8] text-white font-bold py-4 px-8 rounded-xl text-xs sm:text-sm tracking-wider uppercase shadow-xl shadow-[#783bf0]/25 transition-all hover:scale-105"
             >
-              <MessageCircle className="w-4 h-4" />
               <span>Connect on WhatsApp to Get Started</span>
               <ArrowRight className="w-4 h-4" />
             </a>

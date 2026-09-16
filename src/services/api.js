@@ -157,11 +157,15 @@ export async function getVideos() {
     
     if (res.data && res.data.status === 1 && Array.isArray(res.data.data)) {
       return res.data.data.map((item) => {
-        const youtubeId = extractYoutubeId(item.video_url);
+        const rawUrl = item.video_url || "";
+        const youtubeId = extractYoutubeId(rawUrl);
+        const isDirectVideo = /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(rawUrl) || (!youtubeId && rawUrl.startsWith("http"));
         return {
           id: item.id?.toString() || Math.random().toString(),
           title: "Featured Showroom Showcase",
-          youtubeId: youtubeId,
+          videoUrl: rawUrl,
+          youtubeId: !isDirectVideo ? youtubeId : "",
+          isDirectVideo: isDirectVideo,
           thumbnail: youtubeId 
             ? `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg`
             : "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=800&q=80",
@@ -189,9 +193,23 @@ export async function getAboutContent() {
     
     if (res.data && res.data.status === 1 && Array.isArray(res.data.data) && res.data.data.length > 0) {
       const activeStory = res.data.data.find((story) => story.status === 1) || res.data.data[0];
+      let storyText = activeStory.content || activeStory.strContent || "";
+      let headingText = null;
+
+      if (typeof storyText === "string" && (storyText.startsWith("{") || storyText.startsWith("["))) {
+        try {
+          const parsed = JSON.parse(storyText);
+          storyText = parsed.body || parsed.content || parsed.text || storyText;
+          headingText = parsed.heading || parsed.title || null;
+        } catch (e) {
+          // Keep raw string if not JSON
+        }
+      }
+
       return {
         ...mockAboutContent,
-        historyParagraphs: [activeStory.content],
+        title: headingText || mockAboutContent.title,
+        historyParagraphs: [storyText],
       };
     }
     return mockAboutContent;
@@ -245,6 +263,28 @@ export async function getBasicInfo() {
   } catch (err) {
     console.error("Error in getBasicInfo:", err);
     return { status: 0, data: null, message: err.message };
+  }
+}
+
+/**
+ * Fetch default platform assets (images & videos) from backend `GET /basic/get_basic_assets`
+ * Used for WhatsApp status templates, video reels, and platform banners
+ * @returns {Promise<Object>} { status: number, image: { data: string[], count: number }, video: { data: string[], count: number } }
+ */
+export async function getBasicAssets() {
+  try {
+    const res = await apiClient.get("/basic/get_basic_assets");
+    if (res.data && res.data.status === 1) {
+      return {
+        status: 1,
+        image: res.data.image || { data: [], count: 0 },
+        video: res.data.video || { data: [], count: 0 },
+      };
+    }
+    return { status: 0, image: { data: [], count: 0 }, video: { data: [], count: 0 } };
+  } catch (err) {
+    console.error("Error in getBasicAssets:", err);
+    return { status: 0, image: { data: [], count: 0 }, video: { data: [], count: 0 } };
   }
 }
 
@@ -461,25 +501,29 @@ export async function adminLogin(email, password) {
 /**
  * Fetch Admin Dashboard overview statistics from `GET /opxXxolN7m6CU/dash_board`
  * @param {string} token Optional JWT token
- * @returns {Promise<Object>} { success: number, register_count: number, priceData: Array }
+ * @returns {Promise<Object>} { status: number, success: number, category_count: number, gallery_count: number, videos_count: number, asked_question: number }
  */
 export async function adminGetDashboardStats(token = null) {
   try {
     const res = await apiClient.get("/opxXxolN7m6CU/dash_board", {
       headers: getAuthHeader(token),
     });
-    if (res.data && (res.data.success === 1 || res.data.status === 1)) {
+    if (res.data && (res.data.status === 1 || res.data.success === 1)) {
       return {
+        status: 1,
         success: 1,
-        register_count: res.data.register_count || 0,
+        category_count: res.data.category_count ?? 0,
+        gallery_count: res.data.gallery_count ?? 0,
+        videos_count: res.data.videos_count ?? 0,
+        asked_question: res.data.asked_question ?? 0,
         priceData: res.data.priceData || [],
         message: res.data.message || "success",
       };
     }
-    return { success: 0, register_count: 0, priceData: [] };
+    return { status: 0, success: 0, category_count: 0, gallery_count: 0, videos_count: 0, asked_question: 0, priceData: [] };
   } catch (err) {
     console.error("Error in adminGetDashboardStats:", err);
-    return { success: 0, register_count: 0, priceData: [] };
+    return { status: 0, success: 0, category_count: 0, gallery_count: 0, videos_count: 0, asked_question: 0, priceData: [] };
   }
 }
 
@@ -577,7 +621,7 @@ export async function adminAddGallery(categoryId, imageUrl, token = null) {
       "/opxXxolN7m6CU/add_gallery",
       {
         category_id: Number(categoryId),
-        image_url: (imageUrl || "").trim().slice(0, 100),
+        image_url: (imageUrl || "").trim().slice(0, 500),
       },
       { headers: getAuthHeader(token) }
     );
@@ -623,7 +667,7 @@ export async function adminUpdateGallery(id, categoryId, imageUrl, status = 1, t
       {
         id: Number(id),
         category_id: Number(categoryId),
-        image_url: (imageUrl || "").trim().slice(0, 100),
+        image_url: (imageUrl || "").trim().slice(0, 500),
         status,
       },
       { headers: getAuthHeader(token) }
@@ -641,7 +685,7 @@ export async function adminAddVideo(videoUrl, token = null) {
   try {
     const res = await apiClient.post(
       "/opxXxolN7m6CU/add_video",
-      { video_url: (videoUrl || "").trim().slice(0, 100) },
+      { video_url: (videoUrl || "").trim().slice(0, 500) },
       { headers: getAuthHeader(token) }
     );
     return res.data;
@@ -683,7 +727,7 @@ export async function adminUpdateVideo(id, videoUrl, status = 1, token = null) {
   try {
     const res = await apiClient.post(
       "/opxXxolN7m6CU/update_video",
-      { id: Number(id), video_url: (videoUrl || "").trim().slice(0, 100), status },
+      { id: Number(id), video_url: (videoUrl || "").trim().slice(0, 500), status },
       { headers: getAuthHeader(token) }
     );
     return res.data;
@@ -785,11 +829,15 @@ export async function adminGetSingleOurStory(id, token = null) {
   }
 }
 
-export async function adminUpdateOurStory(id, content, token = null) {
+export async function adminUpdateOurStory(id, content, status = 1, token = null) {
   try {
     const res = await apiClient.post(
       "/opxXxolN7m6CU/update_our_story",
-      { id: Number(id), content: (content || "").trim() },
+      {
+        id: Number(id),
+        content: (content || "").trim(),
+        status: Number(status),
+      },
       { headers: getAuthHeader(token) }
     );
     return res.data;
@@ -826,6 +874,26 @@ export async function adminToggleTenantStatus(id, status, token = null) {
   } catch (err) {
     console.error("Error in adminToggleTenantStatus:", err);
     return { status: 0, message: err.response?.data?.message || "Failed to update tenant status." };
+  }
+}
+
+/**
+ * Activate showroom subdomain and record payment timestamp via `POST /opxXxolN7m6CU/activate_subdomain`
+ * @param {number|string} id Tenant Showroom ID
+ * @param {string} [token] Optional JWT token override
+ * @returns {Promise<Object>} Response object { status: number, message: string }
+ */
+export async function adminActivateSubdomain(id, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/activate_subdomain",
+      { id: Number(id) },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminActivateSubdomain:", err);
+    return { status: 0, message: err.response?.data?.message || "Failed to activate site" };
   }
 }
 

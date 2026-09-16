@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Download, Sparkles, Video, Image, CheckCircle2, Loader2, X } from "lucide-react";
-import { getSiteInfo } from "../services/api";
+import { getSiteInfo, getBasicAssets } from "../services/api";
 import { getTenantSubdomain, getShopPrefix } from "../services/apiClient";
 
 export default function WhatsAppStatusSection({ shopInfo }) {
   const [downloadingId, setDownloadingId] = useState(null);
   const [successInfo, setSuccessInfo] = useState(null);
+  const [basicAssets, setBasicAssets] = useState({ images: [], videos: [] });
 
   const [livePrices, setLivePrices] = useState({
     gold22k: "₹7,195",
@@ -13,13 +14,17 @@ export default function WhatsAppStatusSection({ shopInfo }) {
   });
 
   useEffect(() => {
-    async function fetchPrices() {
+    async function loadData() {
       try {
-        const res = await getSiteInfo();
-        if (res && res.success === 1 && Array.isArray(res.priceData)) {
+        const [siteRes, assetsRes] = await Promise.all([
+          getSiteInfo(),
+          getBasicAssets(),
+        ]);
+
+        if (siteRes && siteRes.success === 1 && Array.isArray(siteRes.priceData)) {
           let goldVal = "₹7,195";
           let silverVal = "₹94.50";
-          res.priceData.forEach((item) => {
+          siteRes.priceData.forEach((item) => {
             const mat = (item.material || "").toLowerCase();
             const purity = (item.purity || "").toLowerCase();
             const price = Number(item.price);
@@ -34,11 +39,18 @@ export default function WhatsAppStatusSection({ shopInfo }) {
           });
           setLivePrices({ gold22k: goldVal, silver999: silverVal });
         }
+
+        if (assetsRes && assetsRes.status === 1) {
+          setBasicAssets({
+            images: assetsRes.image?.data || [],
+            videos: assetsRes.video?.data || [],
+          });
+        }
       } catch (err) {
-        console.warn("Live prices for status card fallback:", err);
+        console.warn("Error loading WhatsApp status assets/prices:", err);
       }
     }
-    fetchPrices();
+    loadData();
   }, []);
 
   const statusButtons = [
@@ -364,9 +376,13 @@ export default function WhatsAppStatusSection({ shopInfo }) {
     setSuccessInfo(null);
 
     const randomImageNumber = Math.floor(Math.random() * 50) + 1;
+    let selectedAssetUrl = '';
+    if (basicAssets.images && basicAssets.images.length > 0) {
+      selectedAssetUrl = basicAssets.images[(buttonId - 1) % basicAssets.images.length];
+    }
 
     setTimeout(() => {
-      triggerImageDownloadNew(buttonLabel, randomImageNumber);
+      triggerImageDownloadNew(buttonLabel, randomImageNumber, selectedAssetUrl);
       setDownloadingId(null);
       setSuccessInfo({
         title: `${buttonLabel} Downloaded Successfully!`,
@@ -385,8 +401,19 @@ export default function WhatsAppStatusSection({ shopInfo }) {
     setSuccessInfo(null);
 
     const randomVideoNumber = Math.floor(Math.random() * 20) + 1;
+    const targetVideoUrl = basicAssets.videos && basicAssets.videos.length > 0 ? basicAssets.videos[0] : null;
 
     setTimeout(() => {
+      if (targetVideoUrl && targetVideoUrl.startsWith("http")) {
+        const link = document.createElement("a");
+        link.href = targetVideoUrl;
+        link.target = "_blank";
+        link.download = `whatsapp_status_reel_${randomVideoNumber}.mp4`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
       setDownloadingId(null);
       setSuccessInfo({
         title: "WhatsApp Video Ready!",
