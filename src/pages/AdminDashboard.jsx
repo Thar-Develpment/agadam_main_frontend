@@ -1690,7 +1690,7 @@ export default function AdminDashboard() {
                       <input
                         type="tel"
                         maxLength={15}
-                        placeholder="e.g. +91 9876543210"
+                        placeholder="e.g. +91 9952054493"
                         value={contactInfo.phone || contactInfo.phonePrimary || ""}
                         onChange={(e) => {
                           const val = e.target.value.replace(/[^0-9+ \-]/g, "");
@@ -1719,7 +1719,7 @@ export default function AdminDashboard() {
                       <input
                         type="tel"
                         maxLength={15}
-                        placeholder="e.g. +91 9876543210"
+                        placeholder="e.g. +91 9952054493"
                         value={contactInfo.whatsapp_no || contactInfo.whatsapp || ""}
                         onChange={(e) => {
                           const val = e.target.value.replace(/[^0-9+ \-]/g, "");

@@ -35,11 +35,11 @@ export default function PlatformLandingPage() {
     loadConfig();
   }, []);
 
-  const rawPhone = basicInfo?.whatsapp_no || basicInfo?.phone || "919876543210";
+  const rawPhone = basicInfo?.whatsapp_no || basicInfo?.phone || "919952054493";
   const cleanPhone = rawPhone.replace(/[^0-9]/g, "");
   const defaultMessage = "Hello Aadagam, I am interested in creating a jewellery website for my showroom. Please share the registration details.";
   const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(defaultMessage)}`;
-  const callPhone = basicInfo?.phone || "+91 9876543210";
+  const callPhone = basicInfo?.phone || "+91 9952054493";
 
   return (
     <div className="min-h-screen bg-white text-stone-800 font-sans selection:bg-[#783bf0] selection:text-white w-full max-w-full overflow-x-hidden">

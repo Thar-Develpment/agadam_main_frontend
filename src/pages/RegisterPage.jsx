@@ -57,8 +57,8 @@ export default function RegisterPage() {
     const shopName = regData.shopName.trim();
     if (!shopName) {
       newErrors.shopName = "Jewellery shop name is required.";
-    } else if (shopName.length > 10) {
-      newErrors.shopName = "Shop name must not exceed 10 characters (backend constraint).";
+    } else if (shopName.length > 50) {
+      newErrors.shopName = "Shop name must not exceed 50 characters (backend constraint).";
     }
 
     const ownerName = regData.ownerName.trim();
@@ -276,7 +276,7 @@ export default function RegisterPage() {
                       Jewellery Shop Name <span className="text-rose-500">*</span>
                     </label>
                     <span className="text-[10px] text-stone-400 font-mono">
-                      {regData.shopName.trim().length}/10 chars max
+                      {regData.shopName.trim().length}/50 chars max
                     </span>
                   </div>
                   <div className="relative">
@@ -286,7 +286,7 @@ export default function RegisterPage() {
                     <input
                       type="text"
                       maxLength={10}
-                      placeholder="e.g. Srilakshmi (max 10 chars)"
+                      placeholder="e.g. Srilakshmi (max 50 chars)"
                       value={regData.shopName}
                       onChange={(e) => {
                         const cleanVal = e.target.value.replace(/[^a-zA-Z0-9]/g, "");
