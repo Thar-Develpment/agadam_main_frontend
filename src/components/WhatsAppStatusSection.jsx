@@ -43,7 +43,18 @@ export default function WhatsAppStatusSection({ shopInfo }) {
         if (assetsRes && assetsRes.status === 1) {
           setBasicAssets({
             images: assetsRes.image?.data || [],
-            videos: assetsRes.video?.data || [],
+            videos: assetsRes.video?.data || [
+              'https://s3.in-west3.purestore.io/aadagam/images/aadagam1.mp4',
+              'https://s3.in-west3.purestore.io/aadagam/images/aadagam2.mp4',
+                'https://s3.in-west3.purestore.io/aadagam/images/aadagam3.mp4',
+              'https://s3.in-west3.purestore.io/aadagam/images/aadagam4.mp4',
+                'https://s3.in-west3.purestore.io/aadagam/images/aadagam5.mp4',
+              'https://s3.in-west3.purestore.io/aadagam/images/aadagam6.mp4',
+                'https://s3.in-west3.purestore.io/aadagam/images/aadagam7.mp4',
+              'https://s3.in-west3.purestore.io/aadagam/images/aadagam8.mp4',
+                'https://s3.in-west3.purestore.io/aadagam/images/aadagam9.mp4',
+              'https://s3.in-west3.purestore.io/aadagam/images/aadagam10.mp4',
+            ],
           });
         }
       } catch (err) {

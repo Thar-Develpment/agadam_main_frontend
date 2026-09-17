@@ -285,7 +285,7 @@ export default function RegisterPage() {
                     </div>
                     <input
                       type="text"
-                      maxLength={10}
+                      maxLength={50}
                       placeholder="e.g. Srilakshmi (max 50 chars)"
                       value={regData.shopName}
                       onChange={(e) => {
