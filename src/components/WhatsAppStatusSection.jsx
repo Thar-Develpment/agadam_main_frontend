@@ -6,7 +6,20 @@ import { getTenantSubdomain, getShopPrefix } from "../services/apiClient";
 export default function WhatsAppStatusSection({ shopInfo }) {
   const [downloadingId, setDownloadingId] = useState(null);
   const [successInfo, setSuccessInfo] = useState(null);
-  const [basicAssets, setBasicAssets] = useState({ images: [], videos: [] });
+  const [basicAssets, setBasicAssets] = useState({
+    images: [], videos: [
+      'https://s3.in-west3.purestore.io/aadagam/images/aadagam1.mp4',
+      'https://s3.in-west3.purestore.io/aadagam/images/aadagam2.mp4',
+      'https://s3.in-west3.purestore.io/aadagam/images/aadagam3.mp4',
+      'https://s3.in-west3.purestore.io/aadagam/images/aadagam4.mp4',
+      'https://s3.in-west3.purestore.io/aadagam/images/aadagam5.mp4',
+      'https://s3.in-west3.purestore.io/aadagam/images/aadagam6.mp4',
+      'https://s3.in-west3.purestore.io/aadagam/images/aadagam7.mp4',
+      'https://s3.in-west3.purestore.io/aadagam/images/aadagam8.mp4',
+      'https://s3.in-west3.purestore.io/aadagam/images/aadagam9.mp4',
+      'https://s3.in-west3.purestore.io/aadagam/images/aadagam10.mp4',
+    ]
+  });
 
   const [livePrices, setLivePrices] = useState({
     gold22k: "₹7,195",
@@ -43,18 +56,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
         if (assetsRes && assetsRes.status === 1) {
           setBasicAssets({
             images: assetsRes.image?.data || [],
-            videos: assetsRes.video?.data || [
-              'https://s3.in-west3.purestore.io/aadagam/images/aadagam1.mp4',
-              'https://s3.in-west3.purestore.io/aadagam/images/aadagam2.mp4',
-                'https://s3.in-west3.purestore.io/aadagam/images/aadagam3.mp4',
-              'https://s3.in-west3.purestore.io/aadagam/images/aadagam4.mp4',
-                'https://s3.in-west3.purestore.io/aadagam/images/aadagam5.mp4',
-              'https://s3.in-west3.purestore.io/aadagam/images/aadagam6.mp4',
-                'https://s3.in-west3.purestore.io/aadagam/images/aadagam7.mp4',
-              'https://s3.in-west3.purestore.io/aadagam/images/aadagam8.mp4',
-                'https://s3.in-west3.purestore.io/aadagam/images/aadagam9.mp4',
-              'https://s3.in-west3.purestore.io/aadagam/images/aadagam10.mp4',
-            ],
+            videos: assetsRes.video?.data || [],
           });
         }
       } catch (err) {
