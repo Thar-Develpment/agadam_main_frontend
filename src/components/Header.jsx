@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Menu, X, PhoneCall, Sparkles, Gem } from "lucide-react";
+import { formatIndianPhoneNumber } from "../services/apiClient";
 
 export default function Header({ shopInfo }) {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -68,10 +69,10 @@ export default function Header({ shopInfo }) {
           <>
             <span className="hidden md:inline text-stone-500">|</span>
             <a 
-              href={`tel:${shopInfo.phonePrimary.replace(/\s+/g, '')}`} 
+              href={`tel:${shopInfo.phonePrimary.replace(/[^0-9+]/g, '')}`} 
               className="hidden md:inline text-stone-300 hover:text-white transition-colors"
             >
-              Call Us: {shopInfo.phonePrimary}
+              Call Us: {formatIndianPhoneNumber(shopInfo.phonePrimary)}
             </a>
           </>
         )}

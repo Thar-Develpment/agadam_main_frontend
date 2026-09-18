@@ -5,10 +5,10 @@ export const mockShopInfo = {
   logoUrl: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=200&q=80",
   address: "104 Royal Heritage Plaza, MG Road, Jewellery Quarter, Mumbai, Maharashtra 400001",
   mapDirectionsUrl: "https://maps.google.com/?q=Mumbai+Jewellery+Quarter",
-  phonePrimary: "+91 98765 43210",
-  phoneSecondary: "+91 98765 43211",
+  phonePrimary: "+91 99520 54493",
+  phoneSecondary: "+91 99520 54493",
   email: "contact@aadagamjewellery.com",
-  whatsapp: "919876543210",
+  whatsapp: "919952054493",
   announcement: "100% BIS Hallmarked 22K Gold & Certified Solitaire Diamonds",
   socials: {
     facebook: "https://facebook.com/aadagamjewellery",

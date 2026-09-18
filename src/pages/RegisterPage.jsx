@@ -54,11 +54,11 @@ export default function RegisterPage() {
   const validate = () => {
     const newErrors = {};
 
-    const shopName = regData.shopName.trim();
-    if (!shopName) {
+    const cleanShopName = regData.shopName.replace(/\s+/g, "").toLowerCase();
+    if (!cleanShopName) {
       newErrors.shopName = "Jewellery shop name is required.";
-    } else if (shopName.length > 10) {
-      newErrors.shopName = "Shop name must not exceed 10 characters (backend constraint).";
+    } else if (cleanShopName.length > 50) {
+      newErrors.shopName = "Shop name must not exceed 50 characters (backend constraint).";
     }
 
     const ownerName = regData.ownerName.trim();
@@ -109,7 +109,12 @@ export default function RegisterPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await registerShop(regData);
+      const cleanSubdomain = regData.shopName.replace(/\s+/g, "").toLowerCase();
+      const response = await registerShop({
+        ...regData,
+        shopName: cleanSubdomain,
+        displayName: regData.shopName.trim(),
+      });
       setIsSubmitting(false);
 
       if (response.success) {
@@ -118,6 +123,8 @@ export default function RegisterPage() {
         );
         existingTenants.push({
           ...regData,
+          shopName: regData.shopName.trim(),
+          subdomain: cleanSubdomain,
           domain: response.domain,
           registeredAt: response.registeredAt,
         });
@@ -193,12 +200,12 @@ export default function RegisterPage() {
                     Your Showroom Subdomain Website:
                   </span>
                   <a
-                    href={getStorefrontUrl(regData.shopName.toLowerCase())}
+                    href={getStorefrontUrl(regData.shopName.replace(/\s+/g, "").toLowerCase())}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm sm:text-base font-bold text-[#783bf0] hover:underline flex items-center gap-1.5 mt-0.5 break-all"
                   >
-                    <span>{registrationResult.domain || `${regData.shopName.toLowerCase()}.${PLATFORM_DOMAIN}`}</span>
+                    <span>{registrationResult.domain || `${regData.shopName.replace(/\s+/g, "").toLowerCase()}.${PLATFORM_DOMAIN}`}</span>
                     <ExternalLink className="w-4 h-4 shrink-0" />
                   </a>
                 </div>
@@ -206,7 +213,7 @@ export default function RegisterPage() {
                 <div className="grid grid-cols-2 gap-3 pt-2 border-t border-stone-200 text-xs">
                   <div>
                     <span className="text-[10px] font-bold text-stone-400 uppercase block">Shop Name</span>
-                    <span className="font-semibold text-stone-800">{regData.shopName}</span>
+                    <span className="font-semibold text-stone-800">{regData.shopName.trim()}</span>
                   </div>
                   <div>
                     <span className="text-[10px] font-bold text-stone-400 uppercase block">City</span>
@@ -226,7 +233,7 @@ export default function RegisterPage() {
               {/* Navigation Action Buttons */}
               <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
                 <a
-                  href={getStorefrontUrl(regData.shopName.toLowerCase())}
+                  href={getStorefrontUrl(regData.shopName.replace(/\s+/g, "").toLowerCase())}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full inline-flex items-center justify-center gap-2 bg-[#783bf0] hover:bg-[#6828e8] text-white font-bold py-3.5 px-6 rounded-2xl text-xs uppercase tracking-wider shadow-md transition-all"
@@ -276,7 +283,7 @@ export default function RegisterPage() {
                       Jewellery Shop Name <span className="text-rose-500">*</span>
                     </label>
                     <span className="text-[10px] text-stone-400 font-mono">
-                      {regData.shopName.trim().length}/10 chars max
+                      {regData.shopName.replace(/\s+/g, "").length}/50 chars max
                     </span>
                   </div>
                   <div className="relative">
@@ -285,11 +292,11 @@ export default function RegisterPage() {
                     </div>
                     <input
                       type="text"
-                      maxLength={10}
-                      placeholder="e.g. Srilakshmi (max 10 chars)"
+                      maxLength={60}
+                      placeholder="e.g. Sri Krishna Jewellery"
                       value={regData.shopName}
                       onChange={(e) => {
-                        const cleanVal = e.target.value.replace(/[^a-zA-Z0-9]/g, "");
+                        const cleanVal = e.target.value.replace(/[^a-zA-Z0-9\s]/g, "");
                         setRegData({ ...regData, shopName: cleanVal });
                         if (errors.shopName) setErrors({ ...errors, shopName: null });
                       }}
@@ -300,9 +307,9 @@ export default function RegisterPage() {
                       }`}
                     />
                   </div>
-                  {regData.shopName && (
+                  {regData.shopName.replace(/\s+/g, "") && (
                     <span className="text-[11px] text-stone-500 mt-1 block">
-                      Subdomain: <strong className="text-[#783bf0]">{regData.shopName.toLowerCase()}.aadagam.com</strong>
+                      Subdomain: <strong className="text-[#783bf0]">{regData.shopName.replace(/\s+/g, "").toLowerCase()}.aadagam.com</strong>
                     </span>
                   )}
                   {errors.shopName && (
