@@ -927,14 +927,10 @@ export default function AdminDashboard() {
                       {priceForm.material === "gold" ? (
                         <>
                           <option value="22k">22K Gold</option>
-                          <option value="24k">24K Gold</option>
-                          <option value="18k">18K Gold</option>
                         </>
                       ) : (
                         <>
-                          <option value="22k">22K Silver</option>
-                          <option value="24k">24K Silver</option>
-                          <option value="18k">18K Silver</option>
+                          <option value="925">925 Silver</option>
                         </>
                       )}
                     </select>
