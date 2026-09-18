@@ -117,7 +117,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
               if (mat === "gold" && purity.includes("22")) {
                 goldVal = `₹${price.toLocaleString("en-IN")}`;
               }
-              if (mat === "silver" && (purity.includes("24") || purity.includes("999"))) {
+              if (mat === "silver" && (purity.includes("24") || purity.includes("925"))) {
                 silverVal = `₹${price.toLocaleString("en-IN")}`;
               }
             }
