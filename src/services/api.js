@@ -375,8 +375,9 @@ export async function submitEnquiry(formData) {
  */
 export async function registerShop(regData) {
   try {
+    const cleanShopName = (regData.shopName || "").replace(/\s+/g, "").toLowerCase().slice(0, 50);
     const payload = {
-      shop_name: (regData.shopName || "").trim().slice(0, 10),
+      shop_name: cleanShopName,
       owner_name: (regData.ownerName || "").trim().slice(0, 150),
       email: (regData.email || "").trim().slice(0, 255),
       password: regData.password,
