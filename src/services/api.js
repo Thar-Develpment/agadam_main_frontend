@@ -5,11 +5,13 @@ import {
   mockAboutContent,
 } from "./mockData";
 
+export const DEFAULT_GOLD_THUMBNAIL = "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=800&q=80";
+
 /**
- * Robust helper to extract YouTube ID from standard or shortened video URLs
- * Supports: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID, etc.
+ * Robust helper to extract YouTube ID from standard, Shorts, or shortened video URLs
+ * Supports: youtube.com/watch?v=ID, youtube.com/shorts/ID, youtu.be/ID, youtube.com/embed/ID, etc.
  * @param {string} url 
- * @returns {string} Clean 11-char YouTube ID or sanitized string
+ * @returns {string} Clean 11-char YouTube ID or empty string
  */
 export function extractYoutubeId(url = "") {
   if (!url || typeof url !== "string") return "";
@@ -20,9 +22,19 @@ export function extractYoutubeId(url = "") {
     return trimmed;
   }
 
-  const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+  const regExp = /(?:youtube\.com\/(?:watch\?.*v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i;
   const match = trimmed.match(regExp);
-  return match ? match[1] : trimmed;
+  if (match && match[1]) {
+    return match[1];
+  }
+
+  const fallback = /(?:[?&]v=|(?:\/|%2F)shorts(?:\/|%2F)|youtu\.be(?:\/|%2F))([a-zA-Z0-9_-]{11})/i;
+  const fbMatch = trimmed.match(fallback);
+  if (fbMatch && fbMatch[1]) {
+    return fbMatch[1];
+  }
+
+  return "";
 }
 
 /* ==========================================================================
@@ -601,15 +613,24 @@ export async function adminGetSingleCategory(id, token = null) {
 
 export async function adminUpdateCategory(id, categoryName, status = 1, token = null) {
   try {
+    const payload = {
+      id: Number(id),
+      category_name: String(categoryName || "").trim().slice(0, 30),
+      status: Number(status),
+    };
     const res = await apiClient.post(
       "/opxXxolN7m6CU/update_category",
-      { id: Number(id), category_name: (categoryName || "").trim().slice(0, 30), status },
+      payload,
       { headers: getAuthHeader(token) }
     );
     return res.data;
   } catch (err) {
     console.error("Error in adminUpdateCategory:", err);
-    return { status: 0, message: err.response?.data?.message || "Failed to update category." };
+    const errData = err.response?.data;
+    const msg = Array.isArray(errData?.errors)
+      ? errData.errors.map((e) => (typeof e === "string" ? e : e.message || JSON.stringify(e))).join(", ")
+      : (errData?.message || errData?.error || "Failed to update category.");
+    return { status: 0, message: msg };
   }
 }
 
@@ -662,20 +683,25 @@ export async function adminGetSingleGallery(id, token = null) {
 
 export async function adminUpdateGallery(id, categoryId, imageUrl, status = 1, token = null) {
   try {
+    const payload = {
+      id: Number(id),
+      category_id: Number(categoryId),
+      image_url: String(imageUrl || "").trim().slice(0, 500),
+      status: Number(status),
+    };
     const res = await apiClient.post(
       "/opxXxolN7m6CU/update_gallery",
-      {
-        id: Number(id),
-        category_id: Number(categoryId),
-        image_url: (imageUrl || "").trim().slice(0, 500),
-        status,
-      },
+      payload,
       { headers: getAuthHeader(token) }
     );
     return res.data;
   } catch (err) {
     console.error("Error in adminUpdateGallery:", err);
-    return { status: 0, message: err.response?.data?.message || "Failed to update gallery image." };
+    const errData = err.response?.data;
+    const msg = Array.isArray(errData?.errors)
+      ? errData.errors.map((e) => (typeof e === "string" ? e : e.message || JSON.stringify(e))).join(", ")
+      : (errData?.message || errData?.error || "Failed to update gallery image.");
+    return { status: 0, message: msg };
   }
 }
 
@@ -725,15 +751,24 @@ export async function adminGetSingleVideo(id, token = null) {
 
 export async function adminUpdateVideo(id, videoUrl, status = 1, token = null) {
   try {
+    const payload = {
+      id: Number(id),
+      video_url: String(videoUrl || "").trim().slice(0, 500),
+      status: Number(status),
+    };
     const res = await apiClient.post(
       "/opxXxolN7m6CU/update_video",
-      { id: Number(id), video_url: (videoUrl || "").trim().slice(0, 500), status },
+      payload,
       { headers: getAuthHeader(token) }
     );
     return res.data;
   } catch (err) {
     console.error("Error in adminUpdateVideo:", err);
-    return { status: 0, message: err.response?.data?.message || "Failed to update video." };
+    const errData = err.response?.data;
+    const msg = Array.isArray(errData?.errors)
+      ? errData.errors.map((e) => (typeof e === "string" ? e : e.message || JSON.stringify(e))).join(", ")
+      : (errData?.message || errData?.error || "Failed to update video.");
+    return { status: 0, message: msg };
   }
 }
 

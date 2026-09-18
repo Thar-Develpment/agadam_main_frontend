@@ -1,5 +1,6 @@
 import React from "react";
 import { Gem, ArrowUp } from "lucide-react";
+import { formatIndianPhoneNumber } from "../services/apiClient";
 
 export default function Footer({ shopInfo }) {
   const scrollToTop = () => {
@@ -73,7 +74,7 @@ export default function Footer({ shopInfo }) {
               {shopInfo?.address || (shopInfo?.city ? `Main Commercial Avenue, ${shopInfo.city}` : "Flagship Boutique, Jewellery Quarter")}
             </p>
             <div className="pt-2 text-xs text-stone-500 font-mono space-y-1">
-              <p>Primary: {shopInfo?.phonePrimary || "+91 98765 43210"}</p>
+              <p>Primary: {formatIndianPhoneNumber(shopInfo?.phonePrimary || shopInfo?.phone, "+91 98765 43210")}</p>
               <p>Email: {shopInfo?.email || "contact@jewellerystore.com"}</p>
             </div>
           </div>

@@ -55,7 +55,8 @@ import {
   adminUpdateSiteInfo,
   adminUploadImages,
   adminActivateSubdomain,
-  extractYoutubeId
+  extractYoutubeId,
+  DEFAULT_GOLD_THUMBNAIL
 } from "../services/api";
 import { mockSlides, mockShopInfo } from "../services/mockData";
 import { getShopPrefix, getStorefrontUrl } from "../services/apiClient";
@@ -227,6 +228,7 @@ export default function AdminDashboard() {
 
     if (files.length > 10) {
       triggerToast("You can upload a maximum of 10 files at once.", "error");
+      if (e.target) e.target.value = "";
       return;
     }
 
@@ -234,6 +236,7 @@ export default function AdminDashboard() {
     for (let i = 0; i < files.length; i++) {
       if (files[i].size > 50 * 1024 * 1024) {
         triggerToast(`File "${files[i].name}" exceeds the 50MB size limit.`, "error");
+        if (e.target) e.target.value = "";
         return;
       }
     }
@@ -245,6 +248,7 @@ export default function AdminDashboard() {
       const res = await adminUploadImages(files);
       setIsUploading(false);
       setUploadProgress("");
+      if (e.target) e.target.value = "";
 
       // Backend returns images array of { originalName, fileName, url } or urls array
       const uploadedList = res.images && Array.isArray(res.images)
@@ -283,6 +287,7 @@ export default function AdminDashboard() {
       console.error("Direct upload failed:", err);
       setIsUploading(false);
       setUploadProgress("");
+      if (e.target) e.target.value = "";
       triggerToast("File upload failed.", "error");
     }
   };
@@ -415,7 +420,9 @@ export default function AdminDashboard() {
 
   const handleToggleGalleryStatus = async (img) => {
     const nextStatus = img.status === 1 ? 0 : 1;
-    const res = await adminUpdateGallery(img.id, img.category_id, img.image_url, nextStatus);
+    const categoryId = img.category_id ?? img.categoryId ?? 1;
+    const imageUrl = img.image_url || img.imageUrl || img.url || "";
+    const res = await adminUpdateGallery(img.id, categoryId, imageUrl, nextStatus);
     if (res.status === 1) {
       triggerToast(`Gallery item ${nextStatus === 1 ? "Activated" : "Deactivated"}`);
       loadGallery(galleryPage);
@@ -459,7 +466,8 @@ export default function AdminDashboard() {
 
   const handleToggleVideoStatus = async (v) => {
     const nextStatus = v.status === 1 ? 0 : 1;
-    const res = await adminUpdateVideo(v.id, v.video_url, nextStatus);
+    const videoUrl = v.video_url || v.videoUrl || v.url || "";
+    const res = await adminUpdateVideo(v.id, videoUrl, nextStatus);
     if (res.status === 1) {
       triggerToast(`Video ${nextStatus === 1 ? "Activated" : "Deactivated"}`);
       loadVideos(videoPage);
@@ -554,17 +562,24 @@ export default function AdminDashboard() {
    * ========================================================================== */
   const handleAddSlide = (e) => {
     e.preventDefault();
-    if (!newSlide.title || !newSlide.desktopImg) {
-      triggerToast("Please provide title and image URL", "error");
+    if (!newSlide.title.trim()) {
+      triggerToast("Please provide a banner headline.", "error");
+      return;
+    }
+    if (!newSlide.desktopImg) {
+      triggerToast("Please upload a banner image file.", "error");
       return;
     }
     const updated = [
       ...slides,
       {
         id: Date.now(),
-        ...newSlide,
+        title: newSlide.title.trim(),
+        subtitle: newSlide.subtitle.trim(),
+        desktopImg: newSlide.desktopImg,
         mobileImg: newSlide.desktopImg,
-        ctaLink: "#gallery"
+        ctaLink: "#gallery",
+        ctaText: "Explore Collection"
       }
     ];
     setSlides(updated);
@@ -594,7 +609,8 @@ export default function AdminDashboard() {
       triggerToast("Hero slide removed.");
     } else if (type === "category") {
       setIsLoading(true);
-      const res = await adminUpdateCategory(item.id, item.category_name, 0);
+      const categoryName = item.category_name || item.categoryName || item.name || "";
+      const res = await adminUpdateCategory(item.id, categoryName, 0);
       setIsLoading(false);
       if (res.status === 1) {
         triggerToast("Category deleted successfully.");
@@ -604,7 +620,9 @@ export default function AdminDashboard() {
       }
     } else if (type === "gallery") {
       setIsLoading(true);
-      const res = await adminUpdateGallery(item.id, item.category_id, item.image_url, 0);
+      const categoryId = item.category_id ?? item.categoryId ?? 1;
+      const imageUrl = item.image_url || item.imageUrl || item.url || "";
+      const res = await adminUpdateGallery(item.id, categoryId, imageUrl, 0);
       setIsLoading(false);
       if (res.status === 1) {
         triggerToast("Gallery image deleted successfully.");
@@ -614,7 +632,8 @@ export default function AdminDashboard() {
       }
     } else if (type === "video") {
       setIsLoading(true);
-      const res = await adminUpdateVideo(item.id, item.video_url, 0);
+      const videoUrl = item.video_url || item.videoUrl || item.url || "";
+      const res = await adminUpdateVideo(item.id, videoUrl, 0);
       setIsLoading(false);
       if (res.status === 1) {
         triggerToast("Showcase video deleted successfully.");
@@ -1278,43 +1297,31 @@ export default function AdminDashboard() {
                   </button>
                 </div>
 
-                <div className="bg-[#FAF9F5] border border-stone-200 rounded-2xl p-4 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-stone-600">
-                      Upload Video File (MP4 / WebM to S3)
-                    </span>
-                    <label className="inline-flex items-center justify-center gap-2 bg-[#D4AF37] hover:bg-[#B8860B] text-stone-950 font-bold px-4 py-2 rounded-xl text-xs uppercase tracking-wider cursor-pointer shadow-sm transition-all">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>{isUploading ? "Uploading..." : "Upload Video File"}</span>
-                      <input
-                        type="file"
-                        accept="video/mp4,video/webm,video/*"
-                        onChange={(e) => handleDirectImageUpload(e, "video")}
-                        className="hidden"
-                        disabled={isUploading}
-                      />
+                <form onSubmit={handleAddVideo} className="space-y-3 pt-2">
+                  <div>
+                    <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-1.5">
+                      YouTube Video URL <span className="text-rose-500">*</span>
                     </label>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <input
+                        type="url"
+                        maxLength={500}
+                        placeholder="e.g. https://www.youtube.com/watch?v=... or https://youtu.be/..."
+                        value={newVideoUrl}
+                        onChange={(e) => setNewVideoUrl(e.target.value)}
+                        className="flex-1 px-4 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-[#D4AF37]"
+                        required
+                      />
+                      <button
+                        type="submit"
+                        disabled={isLoading || !newVideoUrl.trim()}
+                        className="inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3.5 px-6 rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-50"
+                      >
+                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" /> : <Plus className="w-4 h-4 text-[#D4AF37]" />}
+                        <span>Add Video</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-
-                <form onSubmit={handleAddVideo} className="flex flex-col sm:flex-row gap-3 pt-2">
-                  <input
-                    type="url"
-                    maxLength={500}
-                    placeholder="https://www.youtube.com/watch?v=... or S3 Video URL"
-                    value={newVideoUrl}
-                    onChange={(e) => setNewVideoUrl(e.target.value)}
-                    className="flex-1 px-4 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-sm focus:outline-none focus:border-[#D4AF37]"
-                    required
-                  />
-                  <button
-                    type="submit"
-                    disabled={isLoading || !newVideoUrl.trim()}
-                    className="inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3 px-6 rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-50"
-                  >
-                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" /> : <Plus className="w-4 h-4 text-[#D4AF37]" />}
-                    <span>Add Video</span>
-                  </button>
                 </form>
               </div>
 
@@ -1330,23 +1337,31 @@ export default function AdminDashboard() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {videos.map((v) => {
                       const ytId = extractYoutubeId(v.video_url);
+                      const initialThumb = ytId
+                        ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
+                        : DEFAULT_GOLD_THUMBNAIL;
+
                       return (
                         <div
                           key={v.id}
                           className="bg-[#FAF9F5] border border-stone-200 rounded-2xl overflow-hidden shadow-xs flex flex-col justify-between"
                         >
-                          <div className="aspect-video w-full bg-black relative">
-                            {ytId ? (
-                              <img
-                                src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`}
-                                alt="Video thumbnail"
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex items-center justify-center h-full text-stone-500 text-xs font-mono">
-                                Video #{v.id}
+                          <div className="aspect-video w-full bg-stone-900 relative overflow-hidden group">
+                            <img
+                              src={initialThumb}
+                              alt="Video thumbnail"
+                              onError={(e) => {
+                                if (e.currentTarget.src !== DEFAULT_GOLD_THUMBNAIL) {
+                                  e.currentTarget.src = DEFAULT_GOLD_THUMBNAIL;
+                                }
+                              }}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            <div className="absolute inset-0 bg-stone-950/20 flex items-center justify-center pointer-events-none">
+                              <div className="w-10 h-10 rounded-full bg-stone-900/80 backdrop-blur-xs text-[#D4AF37] border border-[#D4AF37]/40 flex items-center justify-center shadow-lg">
+                                <Video className="w-5 h-5 ml-0.5" />
                               </div>
-                            )}
+                            </div>
                           </div>
 
                           <div className="p-4 space-y-2">
@@ -1549,42 +1564,96 @@ export default function AdminDashboard() {
                       className="w-full px-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
                     />
                   </div>
-                  <div className="sm:col-span-2">
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider">
-                        Banner Image URL (or upload below)
-                      </label>
+                  {/* Banner Image Upload Area - Direct File Upload Only */}
+                  <div className="sm:col-span-2 space-y-2">
+                    <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider">
+                      Banner Image File <span className="text-rose-500">*</span>
+                    </label>
+
+                    {isUploading ? (
+                      <div className="flex flex-col items-center justify-center border-2 border-dashed border-[#D4AF37] bg-[#FAF9F5] rounded-2xl p-8 text-center space-y-3">
+                        <Loader2 className="w-8 h-8 text-[#D4AF37] animate-spin" />
+                        <div className="space-y-1">
+                          <p className="text-xs font-bold text-stone-800">
+                            Uploading image to cloud storage...
+                          </p>
+                          <p className="text-[11px] text-stone-500 font-light">
+                            Please wait while your high-resolution banner is processed.
+                          </p>
+                        </div>
+                      </div>
+                    ) : newSlide.desktopImg ? (
+                      /* Preview of Uploaded Banner Image */
+                      <div className="border border-stone-200 rounded-2xl p-3 sm:p-4 bg-[#FAF9F5] space-y-3">
+                        <div className="relative aspect-21/9 w-full bg-stone-900 rounded-xl overflow-hidden shadow-inner group">
+                          <img
+                            src={newSlide.desktopImg}
+                            alt="Uploaded Hero Banner Preview"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute top-3 left-3">
+                            <span className="inline-flex items-center gap-1.5 bg-emerald-600/90 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1 rounded-full shadow">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Image Uploaded Ready
+                            </span>
+                          </div>
+                          <div className="absolute top-3 right-3 flex items-center gap-2">
+                            <label
+                              htmlFor="slideshow-file-upload"
+                              className="inline-flex items-center gap-1.5 bg-stone-900/80 hover:bg-stone-900 text-white text-xs font-semibold px-3 py-1.5 rounded-lg backdrop-blur-md cursor-pointer transition-all shadow"
+                            >
+                              <Upload className="w-3.5 h-3.5 text-[#D4AF37]" />
+                              Change File
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => setNewSlide((prev) => ({ ...prev, desktopImg: "" }))}
+                              className="inline-flex items-center gap-1 bg-rose-600/90 hover:bg-rose-600 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg backdrop-blur-md transition-all shadow"
+                              title="Remove banner image"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-stone-500 font-mono truncate px-1">
+                          File: {newSlide.desktopImg}
+                        </p>
+                      </div>
+                    ) : (
+                      /* Upload Dropzone Box */
                       <label
                         htmlFor="slideshow-file-upload"
-                        className="text-[10px] font-bold text-[#B8860B] hover:underline cursor-pointer flex items-center gap-1"
+                        className="flex flex-col items-center justify-center border-2 border-dashed border-stone-300 hover:border-[#D4AF37] hover:bg-[#FAF9F5] rounded-2xl p-8 cursor-pointer transition-all group text-center space-y-3"
                       >
-                        <Upload className="w-3 h-3" />
-                        <span>Upload File</span>
+                        <div className="w-12 h-12 rounded-2xl bg-[#D4AF37]/10 group-hover:bg-[#D4AF37]/20 border border-[#D4AF37]/30 flex items-center justify-center text-[#B8860B] transition-colors">
+                          <Upload className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs sm:text-sm font-bold text-stone-800 group-hover:text-[#B8860B] transition-colors">
+                            Click or Drag & Drop to Upload Banner Image
+                          </p>
+                          <p className="text-[11px] text-stone-500 font-light">
+                            Supports PNG, JPG, WEBP or JPEG (Recommended size: 1920×800px, Max 50MB)
+                          </p>
+                        </div>
                       </label>
-                      <input
-                        id="slideshow-file-upload"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleDirectImageUpload(e, "slideshow")}
-                        className="hidden"
-                        disabled={isUploading}
-                      />
-                    </div>
+                    )}
+
                     <input
-                      type="url"
-                      placeholder="https://images.unsplash.com/..."
-                      value={newSlide.desktopImg}
-                      onChange={(e) => setNewSlide({ ...newSlide, desktopImg: e.target.value })}
-                      className="w-full px-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
-                      required
+                      id="slideshow-file-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleDirectImageUpload(e, "slideshow")}
+                      className="hidden"
+                      disabled={isUploading}
                     />
                   </div>
 
-                  <div className="sm:col-span-2">
+                  <div className="sm:col-span-2 pt-2">
                     <button
                       type="submit"
-                      disabled={isUploading}
-                      className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3 px-6 rounded-xl text-xs uppercase tracking-wider transition-all shadow-sm"
+                      disabled={isUploading || !newSlide.desktopImg}
+                      className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3.5 px-7 rounded-xl text-xs uppercase tracking-wider transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Plus className="w-4 h-4 text-[#D4AF37]" />
                       <span>Add Hero Slide</span>

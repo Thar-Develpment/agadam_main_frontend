@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getBasicInfo } from "../services/api";
-import { getStorefrontUrl, PLATFORM_DOMAIN } from "../services/apiClient";
+import { getStorefrontUrl, PLATFORM_DOMAIN, formatIndianPhoneNumber, getCleanWhatsAppNumber } from "../services/apiClient";
 import AadagamLogo from "../components/AadagamLogo";
 import {
   Sparkles,
@@ -35,11 +35,16 @@ export default function PlatformLandingPage() {
     loadConfig();
   }, []);
 
-  const rawPhone = basicInfo?.whatsapp_no || basicInfo?.phone || "919952054493";
-  const cleanPhone = rawPhone.replace(/[^0-9]/g, "");
+  const rawWhatsApp = basicInfo?.whatsapp_no || basicInfo?.phone || "919952054493";
+  const cleanWhatsApp = getCleanWhatsAppNumber(rawWhatsApp);
   const defaultMessage = "Hello Aadagam, I am interested in creating a jewellery website for my showroom. Please share the registration details.";
-  const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(defaultMessage)}`;
-  const callPhone = basicInfo?.phone || "+91 9952054493";
+  const whatsappUrl = `https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(defaultMessage)}`;
+
+  const rawPhone = basicInfo?.phone || basicInfo?.whatsapp_no || "919952054493";
+  const cleanPhone = rawPhone.replace(/[^0-9]/g, "");
+
+  const formattedWhatsApp = formatIndianPhoneNumber(rawWhatsApp);
+  const formattedCallPhone = formatIndianPhoneNumber(rawPhone);
 
   return (
     <div className="min-h-screen bg-white text-stone-800 font-sans selection:bg-[#783bf0] selection:text-white w-full max-w-full overflow-x-hidden">
@@ -413,7 +418,7 @@ export default function PlatformLandingPage() {
                 className="inline-flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-8 rounded-2xl text-xs sm:text-sm uppercase tracking-wider transition-all shadow-lg shadow-emerald-600/20 hover:scale-105"
               >
                 <MessageCircle className="w-5 h-5" />
-                <span>Chat on WhatsApp ({rawPhone})</span>
+                <span>Chat on WhatsApp ({formattedWhatsApp})</span>
               </a>
 
               <a
@@ -421,7 +426,7 @@ export default function PlatformLandingPage() {
                 className="inline-flex items-center justify-center gap-2.5 bg-stone-900 hover:bg-stone-800 text-white font-semibold py-4 px-6 rounded-2xl text-xs sm:text-sm tracking-wider transition-all"
               >
                 <Phone className="w-4 h-4 text-[#783bf0]" />
-                <span>Call Us: {callPhone}</span>
+                <span>Call Us: {formattedCallPhone}</span>
               </a>
             </div>
           </div>
@@ -454,7 +459,7 @@ export default function PlatformLandingPage() {
                   className="inline-flex items-center gap-2 bg-stone-900 hover:bg-stone-800 text-white border border-stone-700 px-4 py-2.5 rounded-xl text-xs font-bold transition-all"
                 >
                   <Phone className="w-4 h-4 text-[#783bf0]" />
-                  <span className="text-white">Call: {callPhone}</span>
+                  <span className="text-white">Call: {formattedCallPhone}</span>
                 </a>
                 <a
                   href={whatsappUrl}
@@ -463,7 +468,7 @@ export default function PlatformLandingPage() {
                   className="inline-flex items-center gap-2 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/50 px-4 py-2.5 rounded-xl text-xs font-bold transition-all"
                 >
                   <MessageCircle className="w-4 h-4 text-emerald-400" />
-                  <span>WhatsApp: {rawPhone}</span>
+                  <span>WhatsApp: {formattedWhatsApp}</span>
                 </a>
               </div>
             </div>

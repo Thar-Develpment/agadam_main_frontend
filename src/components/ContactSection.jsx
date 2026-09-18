@@ -1,5 +1,6 @@
 import React from "react";
 import EnquiryForm from "./EnquiryForm";
+import { formatIndianPhoneNumber, getCleanWhatsAppNumber } from "../services/apiClient";
 import {
   MapPin,
   Phone,
@@ -13,11 +14,12 @@ export default function ContactSection({ shopInfo }) {
   const address =
     shopInfo?.address ||
     (shopInfo?.city ? `Main Commercial Avenue, ${shopInfo.city}` : "Flagship Boutique, Jewellery Quarter");
-  const phonePrimary = shopInfo?.phone || shopInfo?.phonePrimary || "+91 98765 43210";
-  const phoneSecondary = shopInfo?.phoneSecondary || "";
+  const phonePrimary = formatIndianPhoneNumber(shopInfo?.phone || shopInfo?.phonePrimary, "+91 98765 43210");
+  const phoneSecondary = shopInfo?.phoneSecondary ? formatIndianPhoneNumber(shopInfo.phoneSecondary) : "";
   const email = shopInfo?.contact_us || shopInfo?.email || "contact@jewellerystore.com";
   const rawWhatsApp = shopInfo?.whatsapp_no || shopInfo?.whatsapp || phonePrimary;
-  const cleanWhatsApp = rawWhatsApp.replace(/[^0-9]/g, "");
+  const cleanWhatsApp = getCleanWhatsAppNumber(rawWhatsApp);
+  const formattedWhatsApp = formatIndianPhoneNumber(rawWhatsApp);
   const whatsappUrl = `https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(
     `Hello ${shopInfo?.name || "Showroom"}, I visited your website and would like to enquire about jewellery collections.`
   )}`;
@@ -121,7 +123,7 @@ export default function ContactSection({ shopInfo }) {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 hover:underline mt-1"
                         >
-                          <span>Chat on WhatsApp ({rawWhatsApp})</span>
+                          <span>Chat on WhatsApp ({formattedWhatsApp})</span>
                           <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                         </a>
                       </div>

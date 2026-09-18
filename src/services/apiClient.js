@@ -174,3 +174,68 @@ export function getStorefrontUrl(subdomainOrPrefix = "") {
   const baseDomain = parts.length >= 2 ? parts.slice(-2).join(".") : PLATFORM_DOMAIN;
   return `${protocol}//${prefix}.${baseDomain}/`;
 }
+
+/**
+ * Formats a phone or WhatsApp number to standard Indian format with country code prefix (+91).
+ * E.g., "919952054493" -> "+91 9952054493", "9952054493" -> "+91 9952054493", "+919952054493" -> "+91 9952054493"
+ * 
+ * @param {string|number} phone 
+ * @param {string} fallback 
+ * @returns {string}
+ */
+export function formatIndianPhoneNumber(phone, fallback = "+91 9952054493") {
+  if (!phone) return fallback;
+  const str = String(phone).trim();
+  if (!str) return fallback;
+
+  const digits = str.replace(/\D/g, "");
+
+  // If 12 digits starting with 91 (e.g. 919952054493)
+  if (digits.length === 12 && digits.startsWith("91")) {
+    const mainNum = digits.slice(2);
+    return `+91 ${mainNum}`;
+  }
+
+  // If 10 digits (e.g. 9952054493)
+  if (digits.length === 10) {
+    return `+91 ${digits}`;
+  }
+
+  // If already starts with +91
+  if (str.startsWith("+91")) {
+    const rest = str.replace(/^\+91[\s-]*/, "");
+    return `+91 ${rest}`;
+  }
+
+  // If starts with another international country code (+1, etc.)
+  if (str.startsWith("+")) {
+    return str;
+  }
+
+  // Default if digits exist
+  if (digits.length > 0) {
+    return `+91 ${digits}`;
+  }
+
+  return str || fallback;
+}
+
+/**
+ * Returns a clean numeric string suitable for WhatsApp direct URLs (wa.me/...).
+ * E.g. "9952054493" -> "919952054493", "+91 9952054493" -> "919952054493"
+ * 
+ * @param {string|number} phone 
+ * @param {string} fallback 
+ * @returns {string}
+ */
+export function getCleanWhatsAppNumber(phone, fallback = "919952054493") {
+  if (!phone) return fallback;
+  const digits = String(phone).replace(/\D/g, "");
+  if (digits.length === 10) {
+    return `91${digits}`;
+  }
+  if (digits.length === 12 && digits.startsWith("91")) {
+    return digits;
+  }
+  return digits || fallback;
+}
