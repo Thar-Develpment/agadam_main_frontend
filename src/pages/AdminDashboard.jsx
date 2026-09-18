@@ -1966,18 +1966,22 @@ export default function AdminDashboard() {
           onClick={() => setDeleteModal({ isOpen: false, type: "", item: null })}
         >
           <div
-            className="bg-white border border-stone-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5"
+            className="bg-white border border-stone-200 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
                 <Trash2 className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-serif text-xl font-bold text-stone-900">
-                  Confirm Deletion
+                <h3 className="font-serif text-lg font-bold text-stone-900">
+                  Delete {
+                    deleteModal.type === "slide" ? "Slide" :
+                    deleteModal.type === "category" ? "Category" :
+                    deleteModal.type === "gallery" ? "Image" : "Video"
+                  }
                 </h3>
-                <p className="text-xs text-stone-500 font-light">
+                <p className="text-xs text-stone-500 font-light mt-0.5">
                   Are you sure you want to delete this {
                     deleteModal.type === "slide" ? "hero slide" :
                     deleteModal.type === "category" ? "category" :
@@ -1987,22 +1991,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="bg-stone-50 border border-stone-100 rounded-2xl p-4 text-xs text-stone-700 space-y-1">
-              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
-                Item Details:
-              </span>
-              <p className="font-semibold text-stone-900 truncate">
-                {deleteModal.type === "slide" && (deleteModal.item?.title || "Untitled Slide")}
-                {deleteModal.type === "category" && (deleteModal.item?.category_name || `Category #${deleteModal.item?.id}`)}
-                {deleteModal.type === "gallery" && (deleteModal.item?.image_url || `Image #${deleteModal.item?.id}`)}
-                {deleteModal.type === "video" && (deleteModal.item?.video_url || `Video #${deleteModal.item?.id}`)}
-              </p>
-              <p className="text-[11px] text-rose-500 font-medium pt-1">
-                This action cannot be undone.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-1">
+            <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 onClick={() => setDeleteModal({ isOpen: false, type: "", item: null })}
                 className="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-700 hover:bg-stone-100 text-xs font-semibold transition-colors"
