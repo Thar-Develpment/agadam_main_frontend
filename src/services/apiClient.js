@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Determine the backend API URL. Reads from environment variables with fallback to production URL.
-const API_BASE_URL = "https://agadammainbackend-production.up.railway.app";
+const API_BASE_URL = "https://aadagamback.in";
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
