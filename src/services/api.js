@@ -58,7 +58,10 @@ export async function checkTenantStatus() {
     const subdomain = getTenantSubdomain();
     if (!subdomain) return { suspended: false };
 
-    const tenantsRes = await adminGetAllTenants();
+    const token = localStorage.getItem("aadagam_auth_token");
+    if (!token) return { suspended: false };
+
+    const tenantsRes = await adminGetAllTenants(token);
     if (tenantsRes && Array.isArray(tenantsRes.data) && tenantsRes.data.length > 0) {
       const shopPrefix = getShopPrefix(subdomain).toLowerCase();
       const match = tenantsRes.data.find(
@@ -77,7 +80,6 @@ export async function checkTenantStatus() {
     }
     return { suspended: false };
   } catch (err) {
-    console.error("Error checking tenant status:", err);
     return { suspended: false };
   }
 }
@@ -450,24 +452,6 @@ export async function adminLogin(email, password) {
   try {
     const cleanEmail = (email || "").trim();
 
-    // Verify if account status is inactive/suspended in am_register
-    try {
-      const tenantsRes = await adminGetAllTenants();
-      if (tenantsRes && Array.isArray(tenantsRes.data)) {
-        const match = tenantsRes.data.find(
-          (t) => t.email && t.email.toLowerCase().trim() === cleanEmail.toLowerCase()
-        );
-        if (match && match.status === 0) {
-          return {
-            status: 0,
-            message: "Your showroom account has been suspended by the platform administrator.",
-          };
-        }
-      }
-    } catch (checkErr) {
-      console.warn("Tenant status check during login skipped:", checkErr);
-    }
-
     const res = await apiClient.post("/opxXxolN7m6CU/login", {
       email: cleanEmail,
       password: password || "",
@@ -493,20 +477,34 @@ export async function adminLogin(email, password) {
       return {
         status: 1,
         authTkn: token,
-        message: res.data.message || "Login success",
+        message: res.data.message || "Login successful",
         user: userSession,
       };
     }
 
     return {
       status: 0,
-      message: res.data?.message || "Invalid credentials",
+      message: res.data?.message || "Invalid email or password. Please check your showroom credentials.",
     };
   } catch (err) {
     console.error("Error in adminLogin:", err);
+    let errMsg = "Invalid email or password. Please check your credentials.";
+    if (err.response?.data?.message) {
+      errMsg = err.response.data.message;
+    } else if (err.response?.data?.errors) {
+      if (Array.isArray(err.response.data.errors)) {
+        errMsg = err.response.data.errors.join("\n");
+      } else if (typeof err.response.data.errors === "object") {
+        errMsg = Object.values(err.response.data.errors)
+          .map((e) => (typeof e === "object" ? e.message || JSON.stringify(e) : e))
+          .join("\n");
+      }
+    } else if (err.message) {
+      errMsg = err.message;
+    }
     return {
       status: 0,
-      message: err.response?.data?.message || err.message || "Login failed",
+      message: errMsg,
     };
   }
 }
@@ -941,14 +939,15 @@ export async function adminActivateSubdomain(id, status = null, token = null) {
 /* ------------------ G. SITE INFO & S3 MULTI-IMAGE UPLOAD ------------------ */
 
 /**
- * Update showroom contact & physical address info via `POST /opxXxolN7m6CU/update_site_info`
- * @param {Object} siteInfo { city, address, phone, contact_us, whatsapp_no }
+ * Update showroom contact, physical address info, and logo via `POST /opxXxolN7m6CU/update_site_info`
+ * @param {Object} siteInfo { logo, city, address, phone, contact_us, whatsapp_no }
  * @param {string} [token] Optional JWT token override
  * @returns {Promise<Object>} Response object { status: number, message: string, errors?: Object }
  */
-export async function adminUpdateSiteInfo({ city, address, phone, contact_us, whatsapp_no }, token = null) {
+export async function adminUpdateSiteInfo({ logo, city, address, phone, contact_us, whatsapp_no }, token = null) {
   try {
     const payload = {
+      logo: (logo || "").trim().slice(0, 250),
       city: (city || "").trim().slice(0, 30),
       address: (address || "").trim().slice(0, 1500),
       phone: (phone || "").trim().slice(0, 15),

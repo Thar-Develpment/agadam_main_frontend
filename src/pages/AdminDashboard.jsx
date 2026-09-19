@@ -32,6 +32,8 @@ import {
   Phone,
   Mail,
   Building2,
+  X,
+  Sparkles,
 } from "lucide-react";
 import {
   adminAddCategory,
@@ -124,6 +126,7 @@ export default function AdminDashboard() {
 
   // 7. Contact Profile & Site Info
   const [contactInfo, setContactInfo] = useState({
+    logo: "",
     city: "",
     address: "",
     phone: "",
@@ -176,6 +179,7 @@ export default function AdminDashboard() {
     const localContact = localStorage.getItem(`aadagam_contact_info_${shopPrefix}`);
     const parsedContact = localContact ? JSON.parse(localContact) : {};
     setContactInfo({
+      logo: parsedContact.logo || "",
       city: parsedContact.city || "",
       address: parsedContact.address || mockShopInfo.address,
       phone: parsedContact.phone || parsedContact.phonePrimary || mockShopInfo.phonePrimary,
@@ -206,6 +210,7 @@ export default function AdminDashboard() {
         const d = res.siteInfoData;
         setContactInfo((prev) => ({
           ...prev,
+          logo: d.logo || prev.logo || "",
           city: d.city || prev.city || "",
           address: d.address || prev.address || "",
           phone: d.phone || prev.phone || prev.phonePrimary || "",
@@ -279,6 +284,9 @@ export default function AdminDashboard() {
           triggerToast("Video uploaded and added to showcase!");
         } else if (target === "slideshow") {
           setNewSlide((prev) => ({ ...prev, desktopImg: uploadedList[0] }));
+        } else if (target === "logo") {
+          setContactInfo((prev) => ({ ...prev, logo: uploadedList[0] }));
+          triggerToast("Showroom logo uploaded! Click 'Save Showroom Site Info' to apply changes.");
         }
       } else {
         triggerToast(res?.message || "Upload completed with no file URLs returned.", "error");
@@ -650,6 +658,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     setIsLoading(true);
 
+    const logo = (contactInfo.logo || "").trim().slice(0, 250);
     const city = (contactInfo.city || "").trim().slice(0, 30);
     const address = (contactInfo.address || "").trim().slice(0, 1500);
     const phone = (contactInfo.phone || contactInfo.phonePrimary || "").trim().slice(0, 15);
@@ -658,6 +667,7 @@ export default function AdminDashboard() {
 
     try {
       const res = await adminUpdateSiteInfo({
+        logo: logo || "https://s3.in-west3.purestore.io/aadagam/images/logo.png",
         city,
         address,
         phone,
@@ -669,7 +679,7 @@ export default function AdminDashboard() {
 
       if (res && (res.status === 1 || res.success === 1 || res.success === true)) {
         const shopPrefix = getShopPrefix(adminUser.domain);
-        localStorage.setItem(`aadagam_contact_info_${shopPrefix}`, JSON.stringify(contactInfo));
+        localStorage.setItem(`aadagam_contact_info_${shopPrefix}`, JSON.stringify({ ...contactInfo, logo }));
         triggerToast(res.message || "Showroom contact and site info updated successfully!");
         loadShowroomSiteInfo();
       } else {
@@ -764,16 +774,38 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Sidebar Menu */}
         <aside className="lg:col-span-3 bg-white border border-stone-200 rounded-3xl p-4 shadow-sm space-y-1.5 sticky top-24">
-          <div className="px-4 py-3 mb-2 bg-[#FAF9F5] border border-stone-200 rounded-2xl">
-            <span className="text-[10px] text-stone-400 font-bold uppercase tracking-wider block">
-              Active Showroom
-            </span>
-            <span className="font-serif font-bold text-stone-900 text-sm truncate block mt-0.5">
-              {adminUser.shopName || shopPrefix.toUpperCase()}
-            </span>
-            <span className="text-[11px] text-stone-500 font-mono truncate block">
-              {adminUser.email}
-            </span>
+          <div className="px-4 py-3 mb-2 bg-[#FAF9F5] border border-stone-200 rounded-2xl flex items-center gap-3">
+            {contactInfo.logo ? (
+              <div className="w-10 h-10 rounded-xl bg-white border border-[#D4AF37]/50 p-1 flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
+                <img
+                  src={contactInfo.logo}
+                  alt="Showroom Logo"
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    e.target.style.display = "none";
+                    if (e.target.nextSibling) e.target.nextSibling.style.display = "flex";
+                  }}
+                />
+                <div className="hidden w-full h-full rounded-xl bg-stone-900 items-center justify-center">
+                  <Store className="w-4 h-4 text-[#D4AF37]" />
+                </div>
+              </div>
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/15 border border-[#D4AF37]/30 flex items-center justify-center shrink-0">
+                <Store className="w-5 h-5 text-[#B8860B]" />
+              </div>
+            )}
+            <div className="overflow-hidden flex-1">
+              <span className="text-[9px] text-stone-400 font-bold uppercase tracking-wider block">
+                Active Showroom
+              </span>
+              <span className="font-serif font-bold text-stone-900 text-sm truncate block -mt-0.5">
+                {adminUser.shopName || shopPrefix.toUpperCase()}
+              </span>
+              <span className="text-[10px] text-stone-500 font-mono truncate block">
+                {adminUser.email}
+              </span>
+            </div>
           </div>
 
           {[
@@ -1710,7 +1742,102 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              <form onSubmit={handleSaveContactInfo} className="space-y-4">
+              <form onSubmit={handleSaveContactInfo} className="space-y-5">
+                {/* Showroom Brand Logo Upload Section */}
+                <div className="p-5 bg-[#FAF9F5] border border-stone-200 rounded-2xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-[#D4AF37]" />
+                        <span>Showroom Brand Logo</span>
+                      </h4>
+                      <p className="text-xs text-stone-500 mt-0.5">
+                        Upload your official showroom logo image. Displayed across your storefront header, footer, and brand profile.
+                      </p>
+                    </div>
+                    {contactInfo.logo && (
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                        Logo Active
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-5 pt-2">
+                    {/* Current Logo Preview */}
+                    <div className="relative group shrink-0">
+                      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white border-2 border-dashed border-stone-300 p-2 flex items-center justify-center shadow-inner overflow-hidden">
+                        {contactInfo.logo ? (
+                          <img
+                            src={contactInfo.logo}
+                            alt="Showroom Logo Preview"
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = "/logo_without_backround.png";
+                            }}
+                          />
+                        ) : (
+                          <div className="text-center p-2 text-stone-400">
+                            <ImageIcon className="w-8 h-8 mx-auto mb-1 opacity-50 text-stone-400" />
+                            <span className="text-[10px] block leading-tight">No logo uploaded</span>
+                          </div>
+                        )}
+                      </div>
+                      {contactInfo.logo && (
+                        <button
+                          type="button"
+                          onClick={() => setContactInfo((prev) => ({ ...prev, logo: "" }))}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-rose-600 hover:bg-rose-700 text-white rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-110 cursor-pointer"
+                          title="Remove Logo"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* File Dropzone / Upload button */}
+                    <div className="flex-1 w-full space-y-2">
+                      <label className="flex flex-col items-center justify-center border-2 border-dashed border-stone-300 hover:border-[#D4AF37] rounded-2xl p-4 sm:p-5 bg-white hover:bg-amber-50/20 cursor-pointer transition-all text-center group">
+                        <Upload className="w-6 h-6 text-[#D4AF37] mb-1 group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-bold text-stone-800">
+                          {isUploading ? "Uploading Logo..." : "Click to select or drop showroom logo image"}
+                        </span>
+                        <span className="text-[10px] text-stone-400 mt-0.5">
+                          PNG, JPG, SVG, WebP (Max 5MB • Recommended transparent PNG)
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isUploading}
+                          onChange={(e) => handleDirectImageUpload(e, "logo")}
+                        />
+                      </label>
+
+                      {/* Manual URL Input */}
+                      <div className="relative">
+                        <input
+                          type="url"
+                          placeholder="Or paste public logo image URL (https://...)"
+                          value={contactInfo.logo || ""}
+                          onChange={(e) => setContactInfo({ ...contactInfo, logo: e.target.value })}
+                          className="w-full pl-3.5 pr-8 py-2 bg-white border border-stone-300 rounded-xl text-xs text-stone-700 focus:outline-none focus:border-[#D4AF37]"
+                        />
+                        {contactInfo.logo && (
+                          <button
+                            type="button"
+                            onClick={() => setContactInfo({ ...contactInfo, logo: "" })}
+                            className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-stone-400 hover:text-stone-600"
+                            title="Clear URL"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* City */}
                   <div>

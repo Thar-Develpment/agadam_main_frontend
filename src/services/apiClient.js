@@ -1,7 +1,10 @@
 import axios from "axios";
 
-// Determine the backend API URL. Reads from environment variables with fallback to production URL.
-const API_BASE_URL = "https://aadagamback.in";
+// Determine the backend API URL. Reads from environment variables (e.g. VITE_API_URL=http://localhost:5000 in .env) with fallback to production URL.
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://aadagamback.in";
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

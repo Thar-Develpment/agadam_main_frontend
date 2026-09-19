@@ -78,7 +78,8 @@ function ClientStorefrontPage() {
 
         setShopInfo({
           ...baseContact,
-          name: shopPrefix.toUpperCase() + " JEWELLERY",
+          name: liveSiteData.shop_name ? (liveSiteData.shop_name.toUpperCase() + " JEWELLERY") : (shopPrefix.toUpperCase() + " JEWELLERY"),
+          logo: liveSiteData.logo || baseContact.logo || "",
           email: liveSiteData.contact_us || baseContact.email || `contact@${shopPrefix}jewellery.com`,
           contact_us: liveSiteData.contact_us || baseContact.email || `contact@${shopPrefix}jewellery.com`,
           city: liveSiteData.city || baseContact.city || "",
