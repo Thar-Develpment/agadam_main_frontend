@@ -1,10 +1,32 @@
 import axios from "axios";
 
-// Determine the backend API URL. Reads from environment variables (e.g. VITE_API_URL=http://localhost:5000 in .env) with fallback to production URL.
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  import.meta.env.VITE_API_BASE_URL ||
-  "https://aadagamback.in";
+// Determine the backend API URL.
+function resolveApiBaseUrl() {
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
+
+  // If in local development and envUrl is provided (e.g. VITE_API_URL=http://localhost:5000 in .env)
+  if (import.meta.env.DEV && envUrl) {
+    let clean = envUrl.trim();
+    if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
+      clean = `http://${clean}`;
+    }
+    return clean.replace(/\/+$/, "");
+  }
+
+  // If envUrl is provided in production and is NOT the deprecated railway domain
+  if (envUrl && typeof envUrl === "string" && !envUrl.includes("railway.app")) {
+    let clean = envUrl.trim();
+    if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
+      clean = `https://${clean}`;
+    }
+    return clean.replace(/\/+$/, "");
+  }
+
+  // Production default
+  return "https://aadagamback.in";
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
