@@ -11,7 +11,7 @@ export default function Header({ shopInfo }) {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
 
-      const sections = ["home", "gallery", "rates", "about", "status", "contact"];
+      const sections = ["home", "gallery", "status", "rates", "about", "contact"];
       const scrollPosition = window.scrollY + 120;
 
       for (const section of sections) {
@@ -34,9 +34,9 @@ export default function Header({ shopInfo }) {
   const navLinks = [
     { name: "Home", href: "#home", id: "home" },
     { name: "Gallery", href: "#gallery", id: "gallery" },
+    { name: "Status", href: "#status", id: "status" },
     { name: "Gold Rates", href: "#rates", id: "rates" },
     { name: "About Us", href: "#about", id: "about" },
-    { name: "Status", href: "#status", id: "status" },
     { name: "Contact", href: "#contact", id: "contact" },
   ];
 

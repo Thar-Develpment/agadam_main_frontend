@@ -4,9 +4,7 @@ export const mockShopInfo = {
   subTagline: "Crafting exquisite gold, diamond, & antique polki treasures since 1988",
   logoUrl: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=200&q=80",
   address: "104 Royal Heritage Plaza, MG Road, Jewellery Quarter, Mumbai, Maharashtra 400001",
-  mapDirectionsUrl: "https://maps.google.com/?q=Mumbai+Jewellery+Quarter",
   phonePrimary: "+91 99520 54493",
-  phoneSecondary: "+91 99520 54493",
   email: "contact@aadagamjewellery.com",
   whatsapp: "919952054493",
   announcement: "100% BIS Hallmarked 22K Gold & Certified Solitaire Diamonds",
@@ -219,23 +217,9 @@ export const mockVideos = [
 
 export const mockAboutContent = {
   title: "Our Heritage & Passion for Perfection",
-  subtitle: "Blending Traditional Indian Artistry with Contemporary Refinement Since 1988",
   historyParagraphs: [
-    "Founded in 1988 by master goldsmith Rajeshwar Aadagam, Aadagam Jewellery began as a humble boutique studio with a single vision: to create authentic, heirloom-quality gold and diamond jewellery that celebrates life's most precious milestones.",
-    "Over three decades later, Aadagam Jewellery has grown into a trusted hallmark of purity and artistic excellence. Every piece in our showroom is meticulously designed, ethically sourced, and handcrafted by seasoned artisans whose skills have been refined over generations.",
+    "Founded with a single vision: to create authentic, heirloom-quality gold and diamond jewellery that celebrates life's most precious milestones.",
+    "Over three decades later, our boutique has grown into a trusted hallmark of purity and artistic excellence. Every piece in our showroom is meticulously designed, ethically sourced, and handcrafted by seasoned artisans whose skills have been refined over generations.",
     "Whether it is an ornate Kundan bridal ensemble, a timeless solitaire engagement ring, or lightweight daily wear, our commitment to 100% BIS hallmarked gold and certified diamonds remains unwavering.",
-  ],
-  founder: {
-    name: "Rajeshwar Aadagam",
-    role: "Founder & Master Craftsman",
-    quote: "Jewellery is not merely an ornament; it is a sacred record of love, heritage, and emotion passed from one generation to the next.",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80",
-  },
-  specialization: [
-    "Certified 22K & 24K Handcrafted Gold Jewellery",
-    "Uncut Syndicate Polki & Kundan Bridal Sets",
-    "GIA & IGI Certified Solitaire Diamonds",
-    "Temple Nakshi & Antique Heritage Collections",
-    "Custom Bespoke Jewellery Design Service",
   ],
 };

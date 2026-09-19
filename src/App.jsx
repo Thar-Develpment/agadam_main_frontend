@@ -167,13 +167,43 @@ function ClientStorefrontPage() {
 
   // Render Luxury Loading State while fetching components
   if (isLoading) {
+    const subdomain = getTenantSubdomain();
+    const shopPrefix = getShopPrefix(subdomain);
+    const cachedContact = typeof window !== "undefined"
+      ? (() => {
+          try {
+            return JSON.parse(localStorage.getItem(`aadagam_contact_info_${shopPrefix}`) || "{}");
+          } catch (e) {
+            return {};
+          }
+        })()
+      : {};
+    const activeLogo = shopInfo?.logo || cachedContact?.logo || "";
+
     return (
       <div className="min-h-screen bg-[#FAF9F5] flex flex-col items-center justify-center p-6 text-center select-none animate-fade-in">
-        {/* Animated Luxury Gemstone Badge */}
+        {/* Animated Luxury Brand Logo Badge */}
         <div className="relative mb-6">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-stone-950 via-stone-900 to-stone-950 border-2 border-[#D4AF37] flex items-center justify-center shadow-2xl shadow-stone-950/20">
-            <Gem className="w-9 h-9 text-[#D4AF37] animate-pulse" />
-          </div>
+          {activeLogo ? (
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white border-2 border-[#D4AF37] p-2 flex items-center justify-center shadow-2xl shadow-stone-950/20 overflow-hidden">
+              <img
+                src={activeLogo}
+                alt="Showroom Logo"
+                className="w-full h-full object-contain animate-pulse"
+                onError={(e) => {
+                  e.target.style.display = "none";
+                  if (e.target.nextSibling) e.target.nextSibling.style.display = "flex";
+                }}
+              />
+              <div className="hidden w-full h-full rounded-full bg-gradient-to-tr from-stone-950 via-stone-900 to-stone-950 items-center justify-center">
+                <Gem className="w-9 h-9 sm:w-10 sm:h-10 text-[#D4AF37] animate-pulse" />
+              </div>
+            </div>
+          ) : (
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-stone-950 via-stone-900 to-stone-950 border-2 border-[#D4AF37] flex items-center justify-center shadow-2xl shadow-stone-950/20">
+              <Gem className="w-9 h-9 sm:w-10 sm:h-10 text-[#D4AF37] animate-pulse" />
+            </div>
+          )}
           <div className="absolute -inset-2 rounded-full border border-[#D4AF37]/30 animate-ping pointer-events-none" />
         </div>
 
@@ -181,7 +211,7 @@ function ClientStorefrontPage() {
         <div className="max-w-md space-y-3">
           <div className="inline-flex items-center gap-2 bg-[#D4AF37]/15 text-[#B8860B] border border-[#D4AF37]/30 px-3.5 py-1 rounded-full text-xs font-semibold uppercase tracking-widest">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Curating Fine Masterpieces</span>
+            <span>{shopInfo?.name || (shopPrefix && shopPrefix !== "mycompany" ? `${shopPrefix.toUpperCase()} JEWELLERY` : "Curating Fine Masterpieces")}</span>
           </div>
 
           <h2 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 tracking-wide">
@@ -223,14 +253,14 @@ function ClientStorefrontPage() {
           shopInfo={shopInfo}
         />
 
-        {/* 3. Live Gold & Silver Market Rates */}
+        {/* 3. WhatsApp Status & Video Downloads */}
+        <WhatsAppStatusSection shopInfo={shopInfo} />
+
+        {/* 4. Live Gold & Silver Market Rates */}
         <GoldRateSection shopInfo={shopInfo} />
 
-        {/* 4. About Us / Our Story Section */}
+        {/* 5. About Us / Our Story Section */}
         <AboutSection aboutContent={aboutContent} galleryImages={galleryImages} shopInfo={shopInfo} />
-
-        {/* 5. WhatsApp Status & Video Downloads */}
-        <WhatsAppStatusSection shopInfo={shopInfo} />
 
         {/* 6. Showcase Videos Section */}
         <VideoGallery videos={videos} />

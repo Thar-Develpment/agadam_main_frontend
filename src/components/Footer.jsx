@@ -60,6 +60,11 @@ export default function Footer({ shopInfo }) {
                 </a>
               </li>
               <li>
+                <a href="#status" className="hover:text-[#D4AF37] transition-colors">
+                  WhatsApp Daily Status
+                </a>
+              </li>
+              <li>
                 <a href="#rates" className="hover:text-[#D4AF37] transition-colors">
                   Live Gold & Silver Rates
                 </a>
@@ -70,13 +75,8 @@ export default function Footer({ shopInfo }) {
                 </a>
               </li>
               <li>
-                <a href="#status" className="hover:text-[#D4AF37] transition-colors">
-                  WhatsApp Daily Status
-                </a>
-              </li>
-              <li>
                 <a href="#contact" className="hover:text-[#D4AF37] transition-colors">
-                  Showroom Directions & Enquiry
+                  Showroom Contact & Enquiry
                 </a>
               </li>
             </ul>

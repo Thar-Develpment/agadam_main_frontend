@@ -14,10 +14,9 @@ export default function ContactSection({ shopInfo }) {
   const address =
     shopInfo?.address ||
     (shopInfo?.city ? `Main Commercial Avenue, ${shopInfo.city}` : "Flagship Boutique, Jewellery Quarter");
-  const phonePrimary = formatIndianPhoneNumber(shopInfo?.phone || shopInfo?.phonePrimary, "+91 98765 43210");
-  const phoneSecondary = shopInfo?.phoneSecondary ? formatIndianPhoneNumber(shopInfo.phoneSecondary) : "";
-  const email = shopInfo?.contact_us || shopInfo?.email || "contact@jewellerystore.com";
-  const rawWhatsApp = shopInfo?.whatsapp_no || shopInfo?.whatsapp || phonePrimary;
+  const phone = formatIndianPhoneNumber(shopInfo?.phone || shopInfo?.phonePrimary, "+91 99520 54493");
+  const email = shopInfo?.contact_us || shopInfo?.email || "contact@aadagam.com";
+  const rawWhatsApp = shopInfo?.whatsapp_no || shopInfo?.whatsapp || shopInfo?.phone || phone;
   const cleanWhatsApp = getCleanWhatsAppNumber(rawWhatsApp);
   const formattedWhatsApp = formatIndianPhoneNumber(rawWhatsApp);
   const whatsappUrl = `https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(
@@ -64,19 +63,10 @@ export default function ContactSection({ shopInfo }) {
                       <p className="text-sm text-stone-800 font-medium leading-relaxed mt-1 whitespace-pre-line">
                         {address}
                       </p>
-                      <a
-                        href={shopInfo?.mapDirectionsUrl || `https://maps.google.com/?q=${encodeURIComponent(address)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs text-[#B8860B] font-semibold hover:underline mt-2"
-                      >
-                        <span>Get Directions on Google Maps</span>
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
                     </div>
                   </div>
 
-                  {/* Phone Numbers */}
+                  {/* Phone Number */}
                   <div className="flex items-start gap-4">
                     <div className="w-11 h-11 rounded-2xl bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#B8860B] flex items-center justify-center shrink-0 mt-0.5">
                       <Phone className="w-5 h-5" />
@@ -85,24 +75,13 @@ export default function ContactSection({ shopInfo }) {
                       <span className="block font-bold text-xs uppercase text-stone-400 tracking-wider">
                         Phone & Helpline
                       </span>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-semibold text-stone-900 mt-1">
+                      <div className="text-sm font-semibold text-stone-900 mt-1">
                         <a
-                          href={`tel:${phonePrimary.replace(/[^0-9+]/g, "")}`}
+                          href={`tel:${phone.replace(/[^0-9+]/g, "")}`}
                           className="hover:text-[#B8860B] transition-colors"
                         >
-                          {phonePrimary}
+                          {phone}
                         </a>
-                        {phoneSecondary && (
-                          <>
-                            <span className="text-stone-300">•</span>
-                            <a
-                              href={`tel:${phoneSecondary.replace(/[^0-9+]/g, "")}`}
-                              className="hover:text-[#B8860B] transition-colors"
-                            >
-                              {phoneSecondary}
-                            </a>
-                          </>
-                        )}
                       </div>
                     </div>
                   </div>

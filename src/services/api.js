@@ -220,10 +220,14 @@ export async function getAboutContent() {
         }
       }
 
+      // If user provided custom content, split into paragraphs if multiple lines
+      const userParagraphs = typeof storyText === "string" && storyText.trim()
+        ? storyText.split(/\r?\n\r?\n/).map(s => s.trim()).filter(Boolean)
+        : [storyText];
+
       return {
-        ...mockAboutContent,
-        title: headingText || mockAboutContent.title,
-        historyParagraphs: [storyText],
+        title: headingText || "Our Heritage & Passion for Perfection",
+        historyParagraphs: userParagraphs.length > 0 ? userParagraphs : [storyText],
       };
     }
     return mockAboutContent;

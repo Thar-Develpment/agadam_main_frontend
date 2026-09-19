@@ -139,10 +139,58 @@ export default function WhatsAppStatusSection({ shopInfo }) {
   }, []);
 
   const statusButtons = [
-    { id: 1, label: "Status Design - 1", desc: "Bridal Jewellery" },
-    { id: 2, label: "Status Design - 2", desc: "Gold Chokers" },
-    { id: 3, label: "Status Design - 3", desc: "Diamond Solitaires" },
-    { id: 4, label: "Status Design - 4", desc: "Temple Bangles" },
+    {
+      id: 1,
+      label: "Status Design - 1",
+      theme: {
+        bg: "bg-[#111111] hover:bg-black",
+        border: "border-stone-800 hover:border-[#D4AF37]",
+        shadow: "shadow-md shadow-black/25 hover:shadow-xl hover:shadow-black/40",
+        iconWrapper: "bg-stone-900 border border-stone-700 text-[#25D366]",
+        titleColor: "text-white font-serif",
+        actionColor: "text-[#D4AF37] group-hover:text-[#F3E5AB]",
+        accentDot: "bg-[#25D366]",
+      },
+    },
+    {
+      id: 2,
+      label: "Status Design - 2",
+      theme: {
+        bg: "bg-[#B91C1C] hover:bg-[#991B1B]",
+        border: "border-red-400/40 hover:border-white/80",
+        shadow: "shadow-md shadow-red-950/25 hover:shadow-xl hover:shadow-red-900/40",
+        iconWrapper: "bg-white/20 backdrop-blur-xs border border-white/40 text-white",
+        titleColor: "text-white font-serif",
+        actionColor: "text-rose-100 group-hover:text-white",
+        accentDot: "bg-rose-200",
+      },
+    },
+    {
+      id: 3,
+      label: "Status Design - 3",
+      theme: {
+        bg: "bg-[#3B49DF] hover:bg-[#2A37B8]",
+        border: "border-blue-400/40 hover:border-white/80",
+        shadow: "shadow-md shadow-blue-950/25 hover:shadow-xl hover:shadow-blue-900/40",
+        iconWrapper: "bg-white/20 backdrop-blur-xs border border-white/40 text-white",
+        titleColor: "text-white font-serif",
+        actionColor: "text-blue-100 group-hover:text-white",
+        accentDot: "bg-blue-200",
+      },
+    },
+    {
+      id: 4,
+      label: "Status Design - 4",
+      theme: {
+        bg: "bg-[#6B21A8] hover:bg-[#581C87]",
+        border: "border-purple-400/40 hover:border-white/80",
+        shadow: "shadow-md shadow-purple-950/25 hover:shadow-xl hover:shadow-purple-900/40",
+        iconWrapper: "bg-white/20 backdrop-blur-xs border border-white/40 text-white",
+        titleColor: "text-white font-serif",
+        actionColor: "text-purple-100 group-hover:text-white",
+        accentDot: "bg-purple-200",
+      },
+    },
   ];
 
   const [previewData, setPreviewData] = useState(null);
@@ -204,7 +252,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
       setPreviewData({
         type: "image",
         title: btn.label,
-        subtitle: btn.desc,
+        subtitle: "Daily Live Rates Card",
         previewUrl: result.dataUrl,
         cardNum: randomImageNumber,
         shopName: result.shopName,
@@ -225,7 +273,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
     setPreviewData({
       type: "video",
       title: vid.label,
-      subtitle: vid.title,
+      subtitle: "WhatsApp Status Video",
       previewUrl: `/status_videos/${randomFile}`,
       fileName: randomFile,
       videoNumber: randomVideoNumber,
@@ -264,10 +312,58 @@ export default function WhatsAppStatusSection({ shopInfo }) {
   };
 
   const statusVideos = [
-    { id: 1, label: "Status Video - 1", title: "Bridal Jewellery" },
-    { id: 2, label: "Status Video - 2", title: "Gold Choker Reel" },
-    { id: 3, label: "Status Video - 3", title: "Diamond Solitaires" },
-    { id: 4, label: "Status Video - 4", title: "Temple Bangles" },
+    {
+      id: 1,
+      label: "Status Video - 1",
+      theme: {
+        bg: "bg-gradient-to-r from-[#D97706] via-[#FBBF24] to-[#D97706] hover:from-[#B45309] hover:via-[#F59E0B] hover:to-[#B45309]",
+        border: "border-amber-300/80 hover:border-white",
+        shadow: "shadow-md shadow-amber-950/25 hover:shadow-xl hover:shadow-amber-900/40",
+        iconWrapper: "bg-stone-950/80 border border-stone-800 text-[#FCD34D]",
+        titleColor: "text-stone-950 font-black",
+        actionColor: "text-stone-900 font-bold group-hover:text-stone-950",
+        accentDot: "bg-stone-950",
+      },
+    },
+    {
+      id: 2,
+      label: "Status Video - 2",
+      theme: {
+        bg: "bg-[#BE123C] hover:bg-[#9F1239]",
+        border: "border-pink-400/40 hover:border-white/80",
+        shadow: "shadow-md shadow-pink-950/25 hover:shadow-xl hover:shadow-pink-900/40",
+        iconWrapper: "bg-white/20 backdrop-blur-xs border border-white/40 text-white",
+        titleColor: "text-white font-serif",
+        actionColor: "text-pink-100 group-hover:text-white",
+        accentDot: "bg-pink-200",
+      },
+    },
+    {
+      id: 3,
+      label: "Status Video - 3",
+      theme: {
+        bg: "bg-[#C2410C] hover:bg-[#9A3412]",
+        border: "border-orange-400/40 hover:border-white/80",
+        shadow: "shadow-md shadow-orange-950/25 hover:shadow-xl hover:shadow-orange-900/40",
+        iconWrapper: "bg-white/20 backdrop-blur-xs border border-white/40 text-white",
+        titleColor: "text-white font-serif",
+        actionColor: "text-orange-100 group-hover:text-white",
+        accentDot: "bg-orange-200",
+      },
+    },
+    {
+      id: 4,
+      label: "Status Video - 4",
+      theme: {
+        bg: "bg-[#EA580C] hover:bg-[#C2410C]",
+        border: "border-amber-300/50 hover:border-white/80",
+        shadow: "shadow-md shadow-amber-950/25 hover:shadow-xl hover:shadow-amber-900/40",
+        iconWrapper: "bg-white/20 backdrop-blur-xs border border-white/40 text-white",
+        titleColor: "text-white font-serif",
+        actionColor: "text-amber-100 group-hover:text-white",
+        accentDot: "bg-amber-200",
+      },
+    },
   ];
 
   const drawVideoBrandingOverlay = (ctx, canvasWidth, canvasHeight, shopName) => {
@@ -545,32 +641,43 @@ export default function WhatsAppStatusSection({ shopInfo }) {
         <div className="bg-white border border-[#D4AF37]/30 rounded-3xl p-6 sm:p-10 shadow-xl max-w-4xl mx-auto space-y-8 relative">
           {/* Row 1: 4 Flex Buttons for Status Images */}
           <div>
-            <span className="block text-[11px] font-bold text-stone-400 uppercase tracking-widest mb-4">
-              Daily WhatsApp Status Images (With Live Rates)
-            </span>
+            <div className="flex items-center justify-between mb-4">
+              <span className="block text-[11px] font-bold text-stone-500 uppercase tracking-widest text-left">
+                Daily WhatsApp Status Images (With Live Rates)
+              </span>
+              <span className="text-[10px] font-mono text-[#B8860B] bg-[#D4AF37]/10 px-2 py-0.5 rounded-full border border-[#D4AF37]/20">
+                4 Unique Designs
+              </span>
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
               {statusButtons.map((btn) => {
                 const isLoading = isPreviewLoading && previewData === null;
+                const { theme } = btn;
                 return (
                   <button
                     key={btn.id}
                     onClick={() => handleOpenImagePreview(btn)}
                     disabled={isPreviewLoading}
-                    className="group relative flex flex-col items-center justify-center gap-2 bg-[#FAF9F5] hover:bg-stone-900 text-stone-800 hover:text-white border border-stone-200 hover:border-[#D4AF37] p-4 sm:p-5 rounded-2xl transition-all duration-300 shadow-xs hover:shadow-lg hover:-translate-y-1 disabled:opacity-60 cursor-pointer"
+                    className={`group relative flex flex-col items-center justify-center gap-2.5 sm:gap-3 ${theme.bg} border ${theme.border} ${theme.shadow} p-4 sm:p-5 rounded-2xl sm:rounded-3xl transition-all duration-300 hover:-translate-y-1.5 disabled:opacity-60 cursor-pointer overflow-hidden text-center`}
                   >
-                    <div className="w-10 h-10 rounded-full bg-white group-hover:bg-[#1C1917] border border-stone-200 group-hover:border-[#D4AF37] flex items-center justify-center transition-colors shadow-xs">
+                    {/* Top Right Decorative Corner Accent */}
+                    <span className={`absolute top-2.5 right-2.5 w-2 h-2 rounded-full ${theme.accentDot} opacity-70 group-hover:opacity-100 group-hover:scale-125 transition-all`} />
+
+                    <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl ${theme.iconWrapper} flex items-center justify-center transition-transform group-hover:scale-110 group-hover:rotate-3 duration-300 shadow-sm`}>
                       {isLoading ? (
-                        <Loader2 className="w-5 h-5 animate-spin text-[#B8860B]" />
+                        <Loader2 className="w-5 h-5 animate-spin text-current" />
                       ) : (
-                        <Image className="w-5 h-5 text-[#B8860B] group-hover:text-[#D4AF37]" />
+                        <Image className="w-5 h-5 sm:w-6 sm:h-6" />
                       )}
                     </div>
-                    <span className="font-semibold text-xs sm:text-sm tracking-wide">
+
+                    <span className={`font-serif font-bold text-xs sm:text-sm tracking-wide block truncate ${theme.titleColor}`}>
                       {btn.label}
                     </span>
-                    <span className="inline-flex items-center gap-1 text-[10px] text-stone-400 group-hover:text-stone-300 font-mono">
-                      <Sparkles className="w-3 h-3" />
-                      Preview & Save
+
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold font-mono transition-colors ${theme.actionColor}`}>
+                      <Sparkles className="w-3 h-3 animate-pulse" />
+                      <span>Preview & Save</span>
                     </span>
                   </button>
                 );
@@ -590,24 +697,27 @@ export default function WhatsAppStatusSection({ shopInfo }) {
           <div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
               {statusVideos.map((vid) => {
+                const { theme } = vid;
                 return (
                   <button
                     key={vid.id}
                     onClick={() => handleOpenVideoPreview(vid)}
-                    className="group relative flex flex-col items-center justify-center gap-1.5 bg-[#F0FDF4] hover:bg-emerald-900 text-stone-800 hover:text-white border border-emerald-200 hover:border-emerald-500 p-3.5 rounded-2xl transition-all duration-300 shadow-xs hover:shadow-lg hover:-translate-y-0.5 cursor-pointer"
+                    className={`group relative flex flex-col items-center justify-center gap-2.5 sm:gap-3 ${theme.bg} border ${theme.border} ${theme.shadow} p-4 sm:p-5 rounded-2xl sm:rounded-3xl transition-all duration-300 hover:-translate-y-1.5 cursor-pointer overflow-hidden text-center`}
                   >
-                    <div className="w-9 h-9 rounded-full bg-white group-hover:bg-emerald-950 border border-emerald-300 group-hover:border-emerald-400 flex items-center justify-center transition-colors shadow-xs">
-                      <Video className="w-4 h-4 text-emerald-600 group-hover:text-emerald-300" />
+                    {/* Top Right Decorative Corner Accent */}
+                    <span className={`absolute top-2.5 right-2.5 w-2 h-2 rounded-full ${theme.accentDot} opacity-70 group-hover:opacity-100 group-hover:scale-125 transition-all`} />
+
+                    <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl ${theme.iconWrapper} flex items-center justify-center transition-transform group-hover:scale-110 group-hover:-rotate-3 duration-300 shadow-sm`}>
+                      <Video className="w-5 h-5" />
                     </div>
-                    <span className="font-bold text-xs tracking-tight text-emerald-950 group-hover:text-white">
+
+                    <span className={`font-serif font-bold text-xs sm:text-sm tracking-wide block truncate ${theme.titleColor}`}>
                       {vid.label}
                     </span>
-                    <span className="text-[10px] text-stone-500 group-hover:text-emerald-200 truncate max-w-full">
-                      {vid.title}
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 group-hover:text-emerald-300 font-mono mt-0.5">
-                      <Sparkles className="w-3 h-3" />
-                      Preview MP4
+
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold font-mono transition-colors ${theme.actionColor}`}>
+                      <Sparkles className="w-3 h-3 animate-pulse" />
+                      <span>Preview MP4</span>
                     </span>
                   </button>
                 );

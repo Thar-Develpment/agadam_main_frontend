@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  Menu,
   Gem,
   Store,
   LogOut,
@@ -67,6 +68,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [adminUser, setAdminUser] = useState(null);
   const [activeTab, setActiveTab] = useState("rates");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("success");
@@ -131,7 +133,6 @@ export default function AdminDashboard() {
     address: "",
     phone: "",
     phonePrimary: "",
-    phoneSecondary: "",
     contact_us: "",
     email: "",
     whatsapp_no: "",
@@ -184,7 +185,6 @@ export default function AdminDashboard() {
       address: parsedContact.address || mockShopInfo.address,
       phone: parsedContact.phone || parsedContact.phonePrimary || mockShopInfo.phonePrimary,
       phonePrimary: parsedContact.phonePrimary || mockShopInfo.phonePrimary,
-      phoneSecondary: parsedContact.phoneSecondary || mockShopInfo.phoneSecondary,
       contact_us: parsedContact.contact_us || adminUser.email,
       email: parsedContact.email || adminUser.email,
       whatsapp_no: parsedContact.whatsapp_no || parsedContact.whatsapp || mockShopInfo.whatsapp,
@@ -728,26 +728,47 @@ export default function AdminDashboard() {
     return found ? found.category_name : `Category #${catId}`;
   };
 
+  const navTabs = [
+    { id: "rates", label: "Daily Metal Rates", shortLabel: "Rates", icon: Coins, count: dashboardStats.priceData.length },
+    { id: "categories", label: "Categories", shortLabel: "Categories", icon: Tag, count: categories.length },
+    { id: "gallery", label: "Jewellery Gallery", shortLabel: "Gallery", icon: ImageIcon, count: galleryImages.length },
+    { id: "videos", label: "Showcase Videos", shortLabel: "Videos", icon: Video, count: videos.length },
+    { id: "enquiries", label: "Customer Enquiries", shortLabel: "Enquiries", icon: MessageSquare, count: enquiries.length },
+    { id: "story", label: "Our Story Narrative", shortLabel: "Our Story", icon: BookOpen },
+    { id: "carousel", label: "Hero Slideshow", shortLabel: "Slideshow", icon: Layers, count: slides.length },
+    { id: "contact", label: "Showroom Contact", shortLabel: "Contact", icon: Settings },
+  ];
+
   return (
     <div className="min-h-screen bg-[#FAF9F5] text-stone-800 flex flex-col font-sans selection:bg-[#D4AF37] selection:text-stone-950">
       {/* Top Header Dashboard Navbar */}
-      <header className="bg-stone-950 text-white border-b border-stone-850 py-3.5 px-6 sticky top-0 z-30 shadow-md">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37] flex items-center justify-center">
-              <Gem className="w-5 h-5 text-[#D4AF37]" />
+      <header className="bg-stone-950 text-white border-b border-stone-850 py-3 px-4 sm:px-6 sticky top-0 z-40 shadow-md">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+          {/* Mobile Drawer Trigger & Logo */}
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 rounded-xl bg-stone-900 border border-stone-800 text-stone-300 hover:text-[#D4AF37] hover:border-[#D4AF37]/50 transition-colors shrink-0 cursor-pointer"
+              aria-label="Toggle navigation drawer"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5 text-[#D4AF37]" /> : <Menu className="w-5 h-5" />}
+            </button>
+
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37] flex items-center justify-center shrink-0">
+              <Gem className="w-4 h-4 sm:w-5 sm:h-5 text-[#D4AF37]" />
             </div>
-            <div>
-              <span className="font-serif text-lg sm:text-xl font-bold tracking-wide block">
+            <div className="min-w-0">
+              <span className="font-serif text-sm sm:text-lg font-bold tracking-wide block truncate">
                 AADAGAM CONTROL CENTER
               </span>
-              <span className="text-[9px] text-[#B8860B] font-bold tracking-widest uppercase block -mt-1">
+              <span className="text-[9px] text-[#B8860B] font-bold tracking-widest uppercase block -mt-1 truncate">
                 Showroom Management & APIs
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             {dashboardStats.register_count > 0 && (
               <div className="hidden md:flex items-center gap-2 bg-stone-900 border border-stone-800 px-3 py-1.5 rounded-xl text-xs text-stone-300 font-mono">
                 <Store className="w-3.5 h-3.5 text-[#D4AF37]" />
@@ -759,21 +780,180 @@ export default function AdminDashboard() {
               href={publicStorefrontUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 bg-[#D4AF37]/15 hover:bg-[#D4AF37]/25 text-[#F3E5AB] border border-[#D4AF37]/40 px-3.5 py-1.5 rounded-xl text-xs font-semibold tracking-wider transition-all"
+              className="inline-flex items-center gap-1.5 bg-[#D4AF37]/15 hover:bg-[#D4AF37]/25 text-[#F3E5AB] border border-[#D4AF37]/40 px-2.5 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold tracking-wider transition-all"
             >
-              <Globe className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <Globe className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
               <span className="hidden sm:inline">Live Storefront:</span>
-              <span className="font-mono text-[#D4AF37] underline">{adminUser.domain}</span>
-              <ExternalLink className="w-3 h-3 ml-0.5" />
+              <span className="font-mono text-[#D4AF37] underline truncate max-w-[110px] sm:max-w-none">{adminUser.domain}</span>
+              <ExternalLink className="w-3 h-3 ml-0.5 shrink-0" />
             </a>
           </div>
         </div>
       </header>
 
+      {/* Mobile Horizontal Quick-Navigation Bar (Sticky underneath header on mobile) */}
+      <div className="lg:hidden bg-white/95 backdrop-blur-md border-b border-stone-200 px-3 py-2 sticky top-[57px] z-30 overflow-x-auto shadow-xs">
+        <div className="flex items-center gap-1.5 min-w-max">
+          {navTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap uppercase tracking-wider ${
+                  isActive
+                    ? "bg-[#1C1917] text-[#FAF9F5] shadow-xs"
+                    : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#D4AF37]" : "text-stone-500"}`} />
+                <span>{tab.shortLabel}</span>
+                {tab.count !== undefined && (
+                  <span
+                    className={`text-[9px] font-mono px-1.5 py-0.2 rounded-full ${
+                      isActive ? "bg-[#D4AF37] text-stone-950 font-bold" : "bg-white text-stone-600"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Mobile Navigation Drawer / Slide-Over Sheet */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div
+            className="fixed inset-0 bg-stone-950/70 backdrop-blur-xs transition-opacity"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+
+          <div className="fixed inset-y-0 left-0 w-[85%] max-w-xs bg-white shadow-2xl p-5 flex flex-col justify-between overflow-y-auto z-50 animate-fade-in">
+            <div className="space-y-4">
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-stone-950 flex items-center justify-center">
+                    <Gem className="w-4 h-4 text-[#D4AF37]" />
+                  </div>
+                  <span className="font-serif font-bold text-stone-900 text-sm">Navigation Menu</span>
+                </div>
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Showroom Profile Summary Card */}
+              <div className="p-3 bg-[#FAF9F5] border border-stone-200 rounded-2xl flex items-center gap-3">
+                {contactInfo.logo ? (
+                  <div className="w-10 h-10 rounded-xl bg-white border border-[#D4AF37]/50 p-1 flex items-center justify-center shrink-0 shadow-xs overflow-hidden">
+                    <img
+                      src={contactInfo.logo}
+                      alt="Showroom Logo"
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        e.target.style.display = "none";
+                        if (e.target.nextSibling) e.target.nextSibling.style.display = "flex";
+                      }}
+                    />
+                    <div className="hidden w-full h-full rounded-xl bg-stone-900 items-center justify-center">
+                      <Store className="w-4 h-4 text-[#D4AF37]" />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/15 border border-[#D4AF37]/30 flex items-center justify-center shrink-0">
+                    <Store className="w-5 h-5 text-[#B8860B]" />
+                  </div>
+                )}
+                <div className="overflow-hidden flex-1">
+                  <span className="text-[9px] text-stone-400 font-bold uppercase tracking-wider block">
+                    Active Showroom
+                  </span>
+                  <span className="font-serif font-bold text-stone-900 text-xs truncate block -mt-0.5">
+                    {adminUser.shopName || shopPrefix.toUpperCase()}
+                  </span>
+                  <span className="text-[10px] text-stone-500 font-mono truncate block">
+                    {adminUser.email}
+                  </span>
+                </div>
+              </div>
+
+              {/* Navigation Tabs List */}
+              <div className="space-y-1 pt-1">
+                {navTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        setMobileMenuOpen(false);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all ${
+                        isActive
+                          ? "bg-[#1C1917] text-[#FAF9F5] shadow-xs"
+                          : "text-stone-600 hover:bg-stone-100/70 hover:text-stone-900"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon className={`w-4 h-4 ${isActive ? "text-[#D4AF37]" : "text-stone-400"}`} />
+                        <span>{tab.label}</span>
+                      </div>
+                      {tab.count !== undefined && (
+                        <span
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                            isActive ? "bg-[#D4AF37] text-stone-950 font-bold" : "bg-stone-100 text-stone-500"
+                          }`}
+                        >
+                          {tab.count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Bottom Actions in Drawer */}
+            <div className="pt-4 border-t border-stone-100 space-y-2 mt-4">
+              <a
+                href={publicStorefrontUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-1.5 bg-[#FAF9F5] border border-stone-200 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-stone-700 hover:text-[#B8860B]"
+              >
+                <Globe className="w-3.5 h-3.5 text-[#B8860B]" />
+                <span>Open Live Storefront</span>
+                <ExternalLink className="w-3 h-3 ml-0.5" />
+              </a>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 uppercase tracking-wider transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Container Layout */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Sidebar Menu */}
-        <aside className="lg:col-span-3 bg-white border border-stone-200 rounded-3xl p-4 shadow-sm space-y-1.5 sticky top-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+        {/* Left Sidebar Menu (Desktop Only) */}
+        <aside className="hidden lg:block lg:col-span-3 bg-white border border-stone-200 rounded-3xl p-4 shadow-sm space-y-1.5 sticky top-24">
           <div className="px-4 py-3 mb-2 bg-[#FAF9F5] border border-stone-200 rounded-2xl flex items-center gap-3">
             {contactInfo.logo ? (
               <div className="w-10 h-10 rounded-xl bg-white border border-[#D4AF37]/50 p-1 flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
@@ -808,16 +988,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {[
-            { id: "rates", label: "Daily Metal Rates", icon: Coins, count: dashboardStats.priceData.length },
-            { id: "categories", label: "Categories", icon: Tag, count: categories.length },
-            { id: "gallery", label: "Jewellery Gallery", icon: ImageIcon, count: galleryImages.length },
-            { id: "videos", label: "Showcase Videos", icon: Video, count: videos.length },
-            { id: "enquiries", label: "Customer Enquiries", icon: MessageSquare, count: enquiries.length },
-            { id: "story", label: "Our Story Narrative", icon: BookOpen },
-            { id: "carousel", label: "Hero Slideshow", icon: Layers, count: slides.length },
-            { id: "contact", label: "Showroom Contact", icon: Settings },
-          ].map((tab) => {
+          {navTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
@@ -857,7 +1028,7 @@ export default function AdminDashboard() {
         </aside>
 
         {/* Right Main Content Pane */}
-        <main className="lg:col-span-9 space-y-6 text-left">
+        <main className="lg:col-span-9 w-full min-w-0 space-y-6 text-left">
           {/* Live Overview Stats Counter Bar (GET /opxXxolN7m6CU/dash_board) */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
             <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs flex items-center gap-3">
@@ -906,10 +1077,10 @@ export default function AdminDashboard() {
           {activeTab === "rates" && (
             <div className="space-y-6 animate-fade-in">
               {/* Price Update Form */}
-              <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm">
-                <div className="mb-6 flex items-center justify-between">
+              <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm">
+                <div className="mb-6 flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="font-serif text-2xl font-bold text-stone-900">
+                    <h3 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
                       Daily Bullion Rates Manager
                     </h3>
                     <p className="text-xs text-stone-500 mt-1">
@@ -918,7 +1089,7 @@ export default function AdminDashboard() {
                   </div>
                   <button
                     onClick={loadDashboardStats}
-                    className="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors"
+                    className="p-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors shrink-0"
                     title="Refresh price data"
                   >
                     <RefreshCw className="w-4 h-4" />
@@ -987,7 +1158,7 @@ export default function AdminDashboard() {
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="w-full inline-flex items-center justify-center gap-1.5 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-50"
+                      className="w-full inline-flex items-center justify-center gap-1.5 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-50 min-h-[44px]"
                     >
                       {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" /> : <TrendingUp className="w-4 h-4 text-[#D4AF37]" />}
                       <span>Update</span>
@@ -997,17 +1168,17 @@ export default function AdminDashboard() {
               </div>
 
               {/* Current Active Metal Rates Cards */}
-              <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+              <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm space-y-4">
                 <span className="text-xs font-bold uppercase tracking-wider text-stone-400 block">
                   Current Live Showroom Rates
                 </span>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {dashboardStats.priceData.length > 0 ? (
                     dashboardStats.priceData.map((p, idx) => (
                       <div
                         key={p.id || idx}
-                        className="bg-[#FAF9F5] border border-[#D4AF37]/30 rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-3"
+                        className="bg-[#FAF9F5] border border-[#D4AF37]/30 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between space-y-3"
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-bold uppercase tracking-wider text-[#B8860B]">
@@ -1019,7 +1190,7 @@ export default function AdminDashboard() {
                           <span className="text-[10px] text-stone-400 uppercase font-bold tracking-wider block">
                             Rate Per Gram
                           </span>
-                          <span className="font-serif text-3xl font-bold text-stone-900 tracking-tight block mt-0.5">
+                          <span className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight block mt-0.5">
                             ₹{Number(p.price).toLocaleString("en-IN")}
                           </span>
                         </div>
@@ -1043,10 +1214,10 @@ export default function AdminDashboard() {
            * =================================================================== */}
           {activeTab === "categories" && (
             <div className="space-y-6 animate-fade-in">
-              <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm">
-                <div className="mb-6 flex items-center justify-between">
+              <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm">
+                <div className="mb-6 flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="font-serif text-2xl font-bold text-stone-900">
+                    <h3 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
                       Category Management
                     </h3>
                     <p className="text-xs text-stone-500 mt-1">
@@ -1055,7 +1226,7 @@ export default function AdminDashboard() {
                   </div>
                   <button
                     onClick={() => loadCategories(categoryPage)}
-                    className="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors"
+                    className="p-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors shrink-0"
                   >
                     <RefreshCw className="w-4 h-4" />
                   </button>
@@ -1074,7 +1245,7 @@ export default function AdminDashboard() {
                   <button
                     type="submit"
                     disabled={isLoading || !newCategoryName.trim()}
-                    className="inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3 px-6 rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-50"
+                    className="inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3 px-6 rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-50 min-h-[44px]"
                   >
                     {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" /> : <Plus className="w-4 h-4 text-[#D4AF37]" />}
                     <span>Add Category</span>
@@ -1083,7 +1254,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Categories Table */}
-              <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+              <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm space-y-4">
                 <span className="text-xs font-bold uppercase tracking-wider text-stone-400 block">
                   Active Categories ({categories.length})
                 </span>
@@ -1095,18 +1266,18 @@ export default function AdminDashboard() {
                     {categories.map((cat) => (
                       <div
                         key={cat.id}
-                        className="bg-[#FAF9F5] border border-stone-200 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-xs"
+                        className="bg-[#FAF9F5] border border-stone-200 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-xs"
                       >
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <span className="text-[10px] font-mono text-stone-400">ID #{cat.id}</span>
-                          <h4 className="font-semibold text-sm text-stone-900 mt-0.5">
+                          <h4 className="font-semibold text-sm text-stone-900 mt-0.5 truncate">
                             {cat.category_name}
                           </h4>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                           <button
                             onClick={() => handleToggleCategoryStatus(cat)}
-                            className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-colors ${cat.status === 1
+                            className={`px-2.5 sm:px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-colors ${cat.status === 1
                               ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
                               : "bg-stone-200 text-stone-600 hover:bg-stone-300"
                               }`}
@@ -1134,10 +1305,10 @@ export default function AdminDashboard() {
            * =================================================================== */}
           {activeTab === "gallery" && (
             <div className="space-y-6 animate-fade-in">
-              <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
-                <div className="flex items-center justify-between">
+              <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm space-y-5">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="font-serif text-2xl font-bold text-stone-900">
+                    <h3 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
                       Jewellery Catalogue Gallery
                     </h3>
                     <p className="text-xs text-stone-500 mt-1">
@@ -1146,7 +1317,7 @@ export default function AdminDashboard() {
                   </div>
                   <button
                     onClick={() => loadGallery(galleryPage)}
-                    className="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors"
+                    className="p-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors shrink-0"
                   >
                     <RefreshCw className="w-4 h-4" />
                   </button>
@@ -1169,7 +1340,7 @@ export default function AdminDashboard() {
                   <div className="pt-1">
                     <label
                       htmlFor="gallery-file-upload"
-                      className={`inline-flex items-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-[#D4AF37] font-bold px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer shadow-sm ${
+                      className={`inline-flex items-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-[#D4AF37] font-bold px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer shadow-sm min-h-[44px] ${
                         isUploading ? "opacity-50 pointer-events-none" : ""
                       }`}
                     >
@@ -1237,7 +1408,7 @@ export default function AdminDashboard() {
                     <button
                       type="submit"
                       disabled={isLoading || isUploading}
-                      className="w-full inline-flex items-center justify-center gap-1.5 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-50"
+                      className="w-full inline-flex items-center justify-center gap-1.5 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-50 min-h-[44px]"
                     >
                       {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" /> : <Plus className="w-4 h-4 text-[#D4AF37]" />}
                       <span>Add</span>
@@ -1247,7 +1418,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Gallery Grid */}
-              <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+              <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm space-y-4">
                 <span className="text-xs font-bold uppercase tracking-wider text-stone-400 block">
                   Catalogue Items ({galleryImages.length})
                 </span>
@@ -1255,7 +1426,7 @@ export default function AdminDashboard() {
                 {galleryImages.length === 0 ? (
                   <p className="text-xs text-stone-400 italic py-4">No gallery items registered yet.</p>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                     {galleryImages.map((img) => (
                       <div
                         key={img.id}
@@ -1275,8 +1446,8 @@ export default function AdminDashboard() {
                           </span>
                         </div>
 
-                        <div className="p-3 flex items-center justify-between">
-                          <span className="text-[10px] font-mono text-stone-400">ID #{img.id}</span>
+                        <div className="p-3 flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-mono text-stone-400 shrink-0">ID #{img.id}</span>
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => handleToggleGalleryStatus(img)}
@@ -1307,10 +1478,10 @@ export default function AdminDashboard() {
            * =================================================================== */}
           {activeTab === "videos" && (
             <div className="space-y-6 animate-fade-in">
-              <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
+              <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm space-y-4">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="font-serif text-2xl font-bold text-stone-900">
+                    <h3 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
                       Showcase Videos
                     </h3>
                     <p className="text-xs text-stone-500 mt-1">
@@ -1319,7 +1490,7 @@ export default function AdminDashboard() {
                   </div>
                   <button
                     onClick={() => loadVideos(videoPage)}
-                    className="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors"
+                    className="p-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors shrink-0"
                   >
                     <RefreshCw className="w-4 h-4" />
                   </button>
@@ -1343,7 +1514,7 @@ export default function AdminDashboard() {
                       <button
                         type="submit"
                         disabled={isLoading || !newVideoUrl.trim()}
-                        className="inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3.5 px-6 rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-50"
+                        className="inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3.5 px-6 rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-50 min-h-[44px]"
                       >
                         {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" /> : <Plus className="w-4 h-4 text-[#D4AF37]" />}
                         <span>Add Video</span>
@@ -1354,7 +1525,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Videos List */}
-              <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+              <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm space-y-4">
                 <span className="text-xs font-bold uppercase tracking-wider text-stone-400 block">
                   Showcase Videos ({videos.length})
                 </span>
@@ -1362,7 +1533,7 @@ export default function AdminDashboard() {
                 {videos.length === 0 ? (
                   <p className="text-xs text-stone-400 italic py-4">No videos found.</p>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {videos.map((v) => {
                       const ytId = extractYoutubeId(v.video_url);
                       const initialThumb = ytId
@@ -1430,10 +1601,10 @@ export default function AdminDashboard() {
            * =================================================================== */}
           {activeTab === "enquiries" && (
             <div className="space-y-6 animate-fade-in">
-              <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
+              <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm space-y-4">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="font-serif text-2xl font-bold text-stone-900">
+                    <h3 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
                       Customer Enquiries Inbox
                     </h3>
                     <p className="text-xs text-stone-500 mt-1">
@@ -1442,7 +1613,7 @@ export default function AdminDashboard() {
                   </div>
                   <button
                     onClick={() => loadEnquiries(enquiryPage)}
-                    className="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors"
+                    className="p-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors shrink-0"
                   >
                     <RefreshCw className="w-4 h-4" />
                   </button>
@@ -1457,9 +1628,9 @@ export default function AdminDashboard() {
                     {enquiries.map((enq) => (
                       <div
                         key={enq.id}
-                        className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-stone-50/60 rounded-2xl px-3 transition-colors"
+                        className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 hover:bg-stone-50/60 rounded-2xl px-3 transition-colors"
                       >
-                        <div className="space-y-1">
+                        <div className="space-y-1 min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-serif font-bold text-stone-900 text-sm">
                               {enq.customer_name}
@@ -1468,7 +1639,7 @@ export default function AdminDashboard() {
                               {enq.created_at ? new Date(enq.created_at).toLocaleDateString() : ""}
                             </span>
                           </div>
-                          <div className="text-xs text-stone-500 font-mono">
+                          <div className="text-xs text-stone-500 font-mono truncate">
                             <span>{enq.email}</span>
                           </div>
                           <p className="text-xs text-stone-700 line-clamp-2 max-w-xl font-light">
@@ -1476,17 +1647,17 @@ export default function AdminDashboard() {
                           </p>
                         </div>
 
-                        <div className="flex items-center gap-2 self-end sm:self-center">
+                        <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
                           <button
                             onClick={() => handleViewEnquiryDetail(enq.id)}
-                            className="inline-flex items-center gap-1 bg-stone-100 hover:bg-stone-200 text-stone-800 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
+                            className="inline-flex items-center gap-1 bg-stone-100 hover:bg-stone-200 text-stone-800 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors min-h-[36px]"
                           >
                             <Eye className="w-3.5 h-3.5 text-[#B8860B]" />
                             <span>View</span>
                           </button>
                           <button
                             onClick={() => handleToggleEnquiryStatus(enq)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${enq.status === 1
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors min-h-[36px] ${enq.status === 1
                               ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
                               : "bg-amber-100 text-amber-800 hover:bg-amber-200"
                               }`}
@@ -1507,10 +1678,10 @@ export default function AdminDashboard() {
            * =================================================================== */}
           {activeTab === "story" && (
             <div className="space-y-6 animate-fade-in">
-              <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
+              <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm space-y-4">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="font-serif text-2xl font-bold text-stone-900">
+                    <h3 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
                       Our Story & Heritage Narrative
                     </h3>
                     <p className="text-xs text-stone-500 mt-1">
@@ -1519,7 +1690,7 @@ export default function AdminDashboard() {
                   </div>
                   <button
                     onClick={() => loadStories(storyPage)}
-                    className="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors"
+                    className="p-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors shrink-0"
                   >
                     <RefreshCw className="w-4 h-4" />
                   </button>
@@ -1543,7 +1714,7 @@ export default function AdminDashboard() {
                   <button
                     type="submit"
                     disabled={isLoading || !storyContent.trim()}
-                    className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3 px-8 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all disabled:opacity-50"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3 px-8 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all disabled:opacity-50 min-h-[44px]"
                   >
                     {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" /> : <Save className="w-4 h-4 text-[#D4AF37]" />}
                     <span>Save Story Narrative</span>
@@ -1558,8 +1729,8 @@ export default function AdminDashboard() {
            * =================================================================== */}
           {activeTab === "carousel" && (
             <div className="space-y-6 animate-fade-in">
-              <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
-                <h3 className="font-serif text-2xl font-bold text-stone-900">
+              <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm space-y-4">
+                <h3 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
                   Hero Banner Slideshow
                 </h3>
                 <p className="text-xs text-stone-500">
@@ -1599,7 +1770,7 @@ export default function AdminDashboard() {
                     </label>
 
                     {isUploading ? (
-                      <div className="flex flex-col items-center justify-center border-2 border-dashed border-[#D4AF37] bg-[#FAF9F5] rounded-2xl p-8 text-center space-y-3">
+                      <div className="flex flex-col items-center justify-center border-2 border-dashed border-[#D4AF37] bg-[#FAF9F5] rounded-2xl p-6 sm:p-8 text-center space-y-3">
                         <Loader2 className="w-8 h-8 text-[#D4AF37] animate-spin" />
                         <div className="space-y-1">
                           <p className="text-xs font-bold text-stone-800">
@@ -1620,18 +1791,18 @@ export default function AdminDashboard() {
                             className="w-full h-full object-cover"
                           />
                           <div className="absolute top-3 left-3">
-                            <span className="inline-flex items-center gap-1.5 bg-emerald-600/90 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1 rounded-full shadow">
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              Image Uploaded Ready
+                            <span className="inline-flex items-center gap-1.5 bg-emerald-600/90 backdrop-blur-md text-white text-[10px] sm:text-[11px] font-bold px-2.5 sm:px-3 py-1 rounded-full shadow">
+                              <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                              Ready
                             </span>
                           </div>
                           <div className="absolute top-3 right-3 flex items-center gap-2">
                             <label
                               htmlFor="slideshow-file-upload"
-                              className="inline-flex items-center gap-1.5 bg-stone-900/80 hover:bg-stone-900 text-white text-xs font-semibold px-3 py-1.5 rounded-lg backdrop-blur-md cursor-pointer transition-all shadow"
+                              className="inline-flex items-center gap-1.5 bg-stone-900/80 hover:bg-stone-900 text-white text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-lg backdrop-blur-md cursor-pointer transition-all shadow"
                             >
                               <Upload className="w-3.5 h-3.5 text-[#D4AF37]" />
-                              Change File
+                              Change
                             </label>
                             <button
                               type="button"
@@ -1651,7 +1822,7 @@ export default function AdminDashboard() {
                       /* Upload Dropzone Box */
                       <label
                         htmlFor="slideshow-file-upload"
-                        className="flex flex-col items-center justify-center border-2 border-dashed border-stone-300 hover:border-[#D4AF37] hover:bg-[#FAF9F5] rounded-2xl p-8 cursor-pointer transition-all group text-center space-y-3"
+                        className="flex flex-col items-center justify-center border-2 border-dashed border-stone-300 hover:border-[#D4AF37] hover:bg-[#FAF9F5] rounded-2xl p-6 sm:p-8 cursor-pointer transition-all group text-center space-y-3"
                       >
                         <div className="w-12 h-12 rounded-2xl bg-[#D4AF37]/10 group-hover:bg-[#D4AF37]/20 border border-[#D4AF37]/30 flex items-center justify-center text-[#B8860B] transition-colors">
                           <Upload className="w-6 h-6 group-hover:scale-110 transition-transform" />
@@ -1661,7 +1832,7 @@ export default function AdminDashboard() {
                             Click or Drag & Drop to Upload Banner Image
                           </p>
                           <p className="text-[11px] text-stone-500 font-light">
-                            Supports PNG, JPG, WEBP or JPEG (Recommended size: 1920×800px, Max 50MB)
+                            Supports PNG, JPG, WEBP (Recommended size: 1920×800px, Max 50MB)
                           </p>
                         </div>
                       </label>
@@ -1681,7 +1852,7 @@ export default function AdminDashboard() {
                     <button
                       type="submit"
                       disabled={isUploading || !newSlide.desktopImg}
-                      className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3.5 px-7 rounded-xl text-xs uppercase tracking-wider transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3.5 px-7 rounded-xl text-xs uppercase tracking-wider transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
                     >
                       <Plus className="w-4 h-4 text-[#D4AF37]" />
                       <span>Add Hero Slide</span>
@@ -1700,14 +1871,14 @@ export default function AdminDashboard() {
                     <div className="aspect-21/9 w-full bg-stone-900 relative">
                       <img src={s.desktopImg} alt={s.title} className="w-full h-full object-cover" />
                     </div>
-                    <div className="p-4 flex items-center justify-between">
-                      <div>
-                        <h4 className="font-serif font-bold text-stone-900 text-sm">{s.title}</h4>
+                    <div className="p-4 flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-serif font-bold text-stone-900 text-sm truncate">{s.title}</h4>
                         <p className="text-[11px] text-stone-500 font-light truncate max-w-xs">{s.subtitle}</p>
                       </div>
                       <button
                         onClick={() => openDeleteModal("slide", s)}
-                        className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors"
+                        className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors shrink-0"
                         title="Delete slide"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1723,10 +1894,10 @@ export default function AdminDashboard() {
            * TAB 7: SHOWROOM CONTACT & SITE INFO (POST /opxXxolN7m6CU/update_site_info)
            * =================================================================== */}
           {activeTab === "contact" && (
-            <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fade-in">
-              <div className="flex items-center justify-between">
+            <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm space-y-6 animate-fade-in">
+              <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="font-serif text-2xl font-bold text-stone-900">
+                  <h3 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
                     Showroom Contact & Site Info Profile
                   </h3>
                   <p className="text-xs text-stone-500 mt-1">
@@ -1735,7 +1906,7 @@ export default function AdminDashboard() {
                 </div>
                 <button
                   onClick={loadShowroomSiteInfo}
-                  className="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors"
+                  className="p-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors shrink-0"
                   title="Reload Site Info from backend"
                 >
                   <RefreshCw className="w-4 h-4" />
@@ -1744,8 +1915,8 @@ export default function AdminDashboard() {
 
               <form onSubmit={handleSaveContactInfo} className="space-y-5">
                 {/* Showroom Brand Logo Upload Section */}
-                <div className="p-5 bg-[#FAF9F5] border border-stone-200 rounded-2xl space-y-4">
-                  <div className="flex items-center justify-between">
+                <div className="p-4 sm:p-5 bg-[#FAF9F5] border border-stone-200 rounded-2xl space-y-4">
+                  <div className="flex items-center justify-between gap-2">
                     <div>
                       <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-[#D4AF37]" />
@@ -1756,13 +1927,13 @@ export default function AdminDashboard() {
                       </p>
                     </div>
                     {contactInfo.logo && (
-                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shrink-0">
                         Logo Active
                       </span>
                     )}
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-center gap-5 pt-2">
+                  <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-5 pt-2">
                     {/* Current Logo Preview */}
                     <div className="relative group shrink-0">
                       <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white border-2 border-dashed border-stone-300 p-2 flex items-center justify-center shadow-inner overflow-hidden">
@@ -1796,13 +1967,13 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* File Dropzone / Upload button */}
-                    <div className="flex-1 w-full space-y-2">
-                      <label className="flex flex-col items-center justify-center border-2 border-dashed border-stone-300 hover:border-[#D4AF37] rounded-2xl p-4 sm:p-5 bg-white hover:bg-amber-50/20 cursor-pointer transition-all text-center group">
-                        <Upload className="w-6 h-6 text-[#D4AF37] mb-1 group-hover:scale-110 transition-transform" />
+                    <div className="flex-1 w-full">
+                      <label className="flex flex-col items-center justify-center border-2 border-dashed border-stone-300 hover:border-[#D4AF37] rounded-2xl p-4 sm:p-6 bg-white hover:bg-amber-50/20 cursor-pointer transition-all text-center group">
+                        <Upload className="w-6 h-6 text-[#D4AF37] mb-1.5 group-hover:scale-110 transition-transform" />
                         <span className="text-xs font-bold text-stone-800">
                           {isUploading ? "Uploading Logo..." : "Click to select or drop showroom logo image"}
                         </span>
-                        <span className="text-[10px] text-stone-400 mt-0.5">
+                        <span className="text-[10px] text-stone-400 mt-1">
                           PNG, JPG, SVG, WebP (Max 5MB • Recommended transparent PNG)
                         </span>
                         <input
@@ -1813,27 +1984,6 @@ export default function AdminDashboard() {
                           onChange={(e) => handleDirectImageUpload(e, "logo")}
                         />
                       </label>
-
-                      {/* Manual URL Input */}
-                      <div className="relative">
-                        <input
-                          type="url"
-                          placeholder="Or paste public logo image URL (https://...)"
-                          value={contactInfo.logo || ""}
-                          onChange={(e) => setContactInfo({ ...contactInfo, logo: e.target.value })}
-                          className="w-full pl-3.5 pr-8 py-2 bg-white border border-stone-300 rounded-xl text-xs text-stone-700 focus:outline-none focus:border-[#D4AF37]"
-                        />
-                        {contactInfo.logo && (
-                          <button
-                            type="button"
-                            onClick={() => setContactInfo({ ...contactInfo, logo: "" })}
-                            className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-stone-400 hover:text-stone-600"
-                            title="Clear URL"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -1977,7 +2127,7 @@ export default function AdminDashboard() {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3.5 px-8 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all disabled:opacity-50"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3.5 px-8 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all disabled:opacity-50 min-h-[44px]"
                   >
                     {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" /> : <Save className="w-4 h-4 text-[#D4AF37]" />}
                     <span>Save Showroom Site Info</span>
@@ -1986,14 +2136,14 @@ export default function AdminDashboard() {
               </form>
 
               {/* Showroom Subdomain Activation Card (POST /opxXxolN7m6CU/activate_subdomain) */}
-              <div className="bg-[#FAF9F5] border-2 border-[#D4AF37]/30 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+              <div className="bg-[#FAF9F5] border-2 border-[#D4AF37]/30 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <div className="inline-flex items-center gap-2 text-[#B8860B] text-xs font-semibold uppercase tracking-wider mb-1">
                       <ShieldCheck className="w-4 h-4" />
                       <span>Subdomain & Subscription Status</span>
                     </div>
-                    <h4 className="font-serif text-xl font-bold text-stone-900">
+                    <h4 className="font-serif text-lg sm:text-xl font-bold text-stone-900">
                       Showroom Activation
                     </h4>
                     <p className="text-xs text-stone-600 font-light mt-0.5">
@@ -2004,7 +2154,7 @@ export default function AdminDashboard() {
                     type="button"
                     onClick={handleActivateSite}
                     disabled={isLoading}
-                    className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all disabled:opacity-50"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all disabled:opacity-50 min-h-[44px]"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Activate Showroom Site</span>
@@ -2019,17 +2169,17 @@ export default function AdminDashboard() {
       {/* SINGLE ENQUIRY DETAIL MODAL */}
       {selectedEnquiry && (
         <div
-          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in"
           onClick={() => setSelectedEnquiry(null)}
         >
           <div
-            className="bg-white border border-[#D4AF37]/30 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 relative shadow-2xl text-left"
+            className="bg-white border border-[#D4AF37]/30 rounded-2xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-8 space-y-5 sm:space-y-6 relative shadow-2xl text-left max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between border-b border-stone-100 pb-4">
               <div>
                 <span className="text-[10px] font-mono text-stone-400">Enquiry #{selectedEnquiry.id}</span>
-                <h3 className="font-serif text-2xl font-bold text-stone-900 mt-0.5">
+                <h3 className="font-serif text-xl sm:text-2xl font-bold text-stone-900 mt-0.5">
                   {selectedEnquiry.customer_name}
                 </h3>
               </div>
@@ -2061,10 +2211,10 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="pt-2 flex items-center justify-between">
+            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <button
                 onClick={() => handleToggleEnquiryStatus(selectedEnquiry)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold ${selectedEnquiry.status === 1
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-colors ${selectedEnquiry.status === 1
                   ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
                   : "bg-amber-100 text-amber-800 hover:bg-amber-200"
                   }`}
@@ -2073,7 +2223,7 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => setSelectedEnquiry(null)}
-                className="bg-stone-900 hover:bg-stone-800 text-white px-5 py-2 rounded-xl text-xs font-semibold"
+                className="bg-stone-900 hover:bg-stone-800 text-white px-5 py-2.5 rounded-xl text-xs font-semibold"
               >
                 Close
               </button>
@@ -2085,11 +2235,11 @@ export default function AdminDashboard() {
       {/* Delete Confirmation Alert Modal */}
       {deleteModal.isOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in"
           onClick={() => setDeleteModal({ isOpen: false, type: "", item: null })}
         >
           <div
-            className="bg-white border border-stone-200 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-5"
+            className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-2xl space-y-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3.5">
@@ -2117,14 +2267,14 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 onClick={() => setDeleteModal({ isOpen: false, type: "", item: null })}
-                className="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-700 hover:bg-stone-100 text-xs font-semibold transition-colors"
+                className="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-700 hover:bg-stone-100 text-xs font-semibold transition-colors min-h-[40px]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmDelete}
                 disabled={isLoading}
-                className="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-rose-600/20 disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-rose-600/20 disabled:opacity-50 cursor-pointer min-h-[40px]"
               >
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin text-white" />
