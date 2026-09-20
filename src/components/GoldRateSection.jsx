@@ -17,13 +17,13 @@ export default function GoldRateSection({ shopInfo }) {
       material: "gold",
     },
     silver: {
-      purity: "Fine Silver (999)",
-      name: "Pure 999 Fine Silver",
+      purity: "Fine Silver (925)",
+      name: "Pure 925 Fine Silver",
       desc: "Minted Silver Coins & Bullion Bars",
       pricePerGram: 94.5,
       change: "+ ₹0.50",
       isUp: true,
-      hallmark: "99.9% Pure Silver",
+      hallmark: "92.5% Pure Silver",
       material: "silver",
     },
   });
@@ -51,7 +51,7 @@ export default function GoldRateSection({ shopInfo }) {
                     };
                   }
                 } else if (mat === "silver") {
-                  if (purity.includes("999") || purity.includes("925") || !updated.silver.pricePerGram) {
+                  if (purity.includes("925") || purity.includes("999") || !updated.silver.pricePerGram) {
                     updated.silver = {
                       ...updated.silver,
                       pricePerGram: priceNum,
@@ -198,7 +198,7 @@ export default function GoldRateSection({ shopInfo }) {
                 <div className="w-full h-full rounded-xl bg-gradient-to-tr from-[#334155] via-[#E2E8F0] to-[#FFFFFF] border border-[#F8FAFC] flex flex-col items-center justify-center shadow-[inset_0_2px_6px_rgba(0,0,0,0.3)]">
                   <Coins className="w-5 h-5 text-slate-800 filter drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]" />
                   <span className="font-serif text-[10px] sm:text-[11px] font-black text-slate-900 tracking-tight filter drop-shadow-[0_1px_0_rgba(255,255,255,0.9)] mt-0.5">
-                    999 SILVER
+                    925 SILVER
                   </span>
                 </div>
               </div>
