@@ -67,7 +67,7 @@ import { getShopPrefix, getStorefrontUrl } from "../services/apiClient";
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [adminUser, setAdminUser] = useState(null);
-  const [activeTab, setActiveTab] = useState("rates");
+  const [activeTab, setActiveTab] = useState("carousel");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -729,13 +729,13 @@ export default function AdminDashboard() {
   };
 
   const navTabs = [
-    { id: "rates", label: "Daily Metal Rates", shortLabel: "Rates", icon: Coins, count: dashboardStats.priceData.length },
+    { id: "carousel", label: "Hero Slideshow", shortLabel: "Slideshow", icon: Layers, count: slides.length },
     { id: "categories", label: "Categories", shortLabel: "Categories", icon: Tag, count: categories.length },
     { id: "gallery", label: "Jewellery Gallery", shortLabel: "Gallery", icon: ImageIcon, count: galleryImages.length },
+    { id: "rates", label: "Daily Metal Rates", shortLabel: "Metal Rates", icon: Coins, count: dashboardStats.priceData.length },
+    { id: "story", label: "Our Story Narrative", shortLabel: "Our Story", icon: BookOpen },
     { id: "videos", label: "Showcase Videos", shortLabel: "Videos", icon: Video, count: videos.length },
     { id: "enquiries", label: "Customer Enquiries", shortLabel: "Enquiries", icon: MessageSquare, count: enquiries.length },
-    { id: "story", label: "Our Story Narrative", shortLabel: "Our Story", icon: BookOpen },
-    { id: "carousel", label: "Hero Slideshow", shortLabel: "Slideshow", icon: Layers, count: slides.length },
     { id: "contact", label: "Showroom Contact", shortLabel: "Contact", icon: Settings },
   ];
 

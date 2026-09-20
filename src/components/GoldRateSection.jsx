@@ -1,24 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { TrendingUp, Sparkles, ShieldCheck, Scale, Coins } from "lucide-react";
+import { TrendingUp, Sparkles, ShieldCheck, Scale, Coins, Award, CheckCircle2 } from "lucide-react";
 import { getSiteInfo } from "../services/api";
 
 export default function GoldRateSection({ shopInfo }) {
-  const [activeUnit, setActiveUnit] = useState("1g"); // "1g" | "8g" | "10g"
-  const [activeCategory, setActiveCategory] = useState("all"); // "all" | "gold" | "silver"
-
   // Base rates per 1 gram (initialized with benchmark rates, updated via backend /user/site_info)
   const [rates, setRates] = useState({
-    gold24k: {
-      purity: "24K (999 Pure)",
-      name: "24 Karat Pure Gold",
-      desc: "Minted Gold Coins & Bullion Bars",
-      pricePerGram: 7850,
-      change: "+ ₹25",
-      isUp: true,
-      hallmark: "99.9% Purity Certified",
-      material: "gold",
-    },
-    gold22k: {
+    gold: {
       purity: "22K (916 BIS)",
       name: "22 Karat Standard Gold",
       desc: "Traditional & Bridal Jewellery",
@@ -29,17 +16,7 @@ export default function GoldRateSection({ shopInfo }) {
       isFeatured: true,
       material: "gold",
     },
-    gold18k: {
-      purity: "18K (750 Purity)",
-      name: "18 Karat Diamond Gold",
-      desc: "Solitaire & Modern Fine Jewellery",
-      pricePerGram: 5890,
-      change: "+ ₹15",
-      isUp: true,
-      hallmark: "750 Hallmarked",
-      material: "gold",
-    },
-    silver999: {
+    silver: {
       purity: "Fine Silver (999)",
       name: "Pure 999 Fine Silver",
       desc: "Minted Silver Coins & Bullion Bars",
@@ -47,26 +24,6 @@ export default function GoldRateSection({ shopInfo }) {
       change: "+ ₹0.50",
       isUp: true,
       hallmark: "99.9% Pure Silver",
-      material: "silver",
-    },
-    silver925: {
-      purity: "Sterling Silver (925)",
-      name: "925 Sterling Silver",
-      desc: "Designer Silver Jewellery & Ornaments",
-      pricePerGram: 88.0,
-      change: "+ ₹0.40",
-      isUp: true,
-      hallmark: "925 BIS Hallmarked",
-      material: "silver",
-    },
-    silver800: {
-      purity: "Standard Silver (800)",
-      name: "Traditional Silverware",
-      desc: "Pooja Articles, Lamps & Utensils",
-      pricePerGram: 76.5,
-      change: "+ ₹0.30",
-      isUp: true,
-      hallmark: "800 Purity Silverware",
       material: "silver",
     },
   });
@@ -85,20 +42,22 @@ export default function GoldRateSection({ shopInfo }) {
 
               if (!isNaN(priceNum) && priceNum > 0) {
                 if (mat === "gold") {
-                  if (purity.includes("24")) {
-                    updated.gold24k = { ...updated.gold24k, pricePerGram: priceNum };
-                  } else if (purity.includes("22")) {
-                    updated.gold22k = { ...updated.gold22k, pricePerGram: priceNum };
-                  } else if (purity.includes("18")) {
-                    updated.gold18k = { ...updated.gold18k, pricePerGram: priceNum };
+                  if (purity.includes("22") || purity.includes("916") || !updated.gold.pricePerGram) {
+                    updated.gold = {
+                      ...updated.gold,
+                      pricePerGram: priceNum,
+                      purity: item.purity || updated.gold.purity,
+                      change: item.change || updated.gold.change,
+                    };
                   }
                 } else if (mat === "silver") {
-                  if (purity.includes("24") || purity.includes("999") || purity.includes("fine")) {
-                    updated.silver999 = { ...updated.silver999, pricePerGram: priceNum };
-                  } else if (purity.includes("22") || purity.includes("925") || purity.includes("sterling")) {
-                    updated.silver925 = { ...updated.silver925, pricePerGram: priceNum };
-                  } else if (purity.includes("18") || purity.includes("800") || purity.includes("standard")) {
-                    updated.silver800 = { ...updated.silver800, pricePerGram: priceNum };
+                  if (purity.includes("999") || purity.includes("fine") || !updated.silver.pricePerGram) {
+                    updated.silver = {
+                      ...updated.silver,
+                      pricePerGram: priceNum,
+                      purity: item.purity || updated.silver.purity,
+                      change: item.change || updated.silver.change,
+                    };
                   }
                 }
               }
@@ -113,27 +72,12 @@ export default function GoldRateSection({ shopInfo }) {
     fetchLivePrices();
   }, []);
 
-  const getMultiplier = (unit) => {
-    if (unit === "8g") return 8;
-    if (unit === "10g") return 10;
-    return 1;
-  };
-
-  const getUnitLabel = (unit) => {
-    if (unit === "8g") return "Per 8 Grams (1 Sovereign / Pavan)";
-    if (unit === "10g") return "Per 10 Grams";
-    return "Per 1 Gram";
-  };
-
-  const multiplier = getMultiplier(activeUnit);
-
   const formatPrice = (pricePerGram) => {
-    const total = pricePerGram * multiplier;
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "INR",
-      maximumFractionDigits: total % 1 === 0 ? 0 : 2,
-    }).format(total);
+      maximumFractionDigits: pricePerGram % 1 === 0 ? 0 : 2,
+    }).format(pricePerGram);
   };
 
   const todayStr = new Date().toLocaleDateString("en-IN", {
@@ -142,15 +86,13 @@ export default function GoldRateSection({ shopInfo }) {
     year: "numeric",
   });
 
-  const goldList = [rates.gold22k, rates.gold24k, rates.gold18k];
-  const silverList = [rates.silver999, rates.silver925, rates.silver800];
-
   return (
     <section id="rates" className="py-16 sm:py-20 bg-[#FAF9F5] text-stone-800 border-t border-stone-200 relative overflow-hidden text-left">
-      {/* Background Accent */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-[#D4AF37]/5 rounded-full blur-3xl pointer-events-none" />
+      {/* Background Ambient Accents */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-[#D4AF37]/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-slate-300/20 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-10">
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-stone-200 pb-8">
           <div>
@@ -166,195 +108,159 @@ export default function GoldRateSection({ shopInfo }) {
             </p>
           </div>
 
-          {/* Controls: Material Filter & Unit Switcher */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Category Filter */}
-            <div className="flex items-center gap-1 bg-stone-200/80 p-1 rounded-2xl border border-stone-300/60 text-xs font-semibold">
-              <button
-                onClick={() => setActiveCategory("all")}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                  activeCategory === "all" ? "bg-stone-900 text-white shadow-xs" : "text-stone-600 hover:text-stone-900"
-                }`}
-              >
-                All Variants (6)
-              </button>
-              <button
-                onClick={() => setActiveCategory("gold")}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                  activeCategory === "gold" ? "bg-[#B8860B] text-white shadow-xs" : "text-stone-600 hover:text-stone-900"
-                }`}
-              >
-                Gold (3)
-              </button>
-              <button
-                onClick={() => setActiveCategory("silver")}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                  activeCategory === "silver" ? "bg-stone-700 text-white shadow-xs" : "text-stone-600 hover:text-stone-900"
-                }`}
-              >
-                Silver (3)
-              </button>
-            </div>
-
-            {/* Unit Switcher Tabs */}
-            <div className="flex items-center gap-1 bg-stone-200/80 p-1 rounded-2xl border border-stone-300/60 text-xs font-bold">
-              {[
-                { id: "1g", label: "1 Gram" },
-                { id: "8g", label: "8g (1 Pavan)" },
-                { id: "10g", label: "10 Grams" },
-              ].map((unit) => (
-                <button
-                  key={unit.id}
-                  onClick={() => setActiveUnit(unit.id)}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                    activeUnit === unit.id
-                      ? "bg-stone-900 text-[#D4AF37] shadow-xs"
-                      : "text-stone-600 hover:text-stone-900"
-                  }`}
-                >
-                  {unit.label}
-                </button>
-              ))}
-            </div>
+          <div className="hidden md:flex items-center gap-2 text-xs font-mono text-stone-700 bg-stone-100/90 px-4 py-2 rounded-2xl border border-stone-200 shadow-xs">
+            <Award className="w-4 h-4 text-[#B8860B]" />
+            <span>100% Certified Purity Guaranteed</span>
           </div>
         </div>
 
-        {/* 1. Gold Bullion Rates (3 Karat Variants) */}
-        {(activeCategory === "all" || activeCategory === "gold") && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[#D4AF37]/15 border border-[#D4AF37]/40 flex items-center justify-center text-[#B8860B]">
-                <Sparkles className="w-4 h-4" />
+        {/* Two Realistic Metallic Bullion Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          
+          {/* 1. REALISTIC GOLD BULLION CARD (GOLD COLOR BACKGROUND) */}
+          <div className="group relative rounded-3xl p-7 sm:p-8 bg-gradient-to-br from-[#FFF9E6] via-[#FCE49C] via-[#E6B325] to-[#B8860B] text-[#361302] border-2 border-[#D4AF37] shadow-[0_20px_45px_rgba(212,175,55,0.35)] hover:shadow-[0_25px_55px_rgba(212,175,55,0.45)] hover:border-[#FFF1BD] transition-all duration-500 transform hover:-translate-y-1 flex flex-col justify-between overflow-hidden">
+            {/* Specular Radial Gold Glow */}
+            <div className="absolute top-0 right-0 w-72 h-72 bg-[radial-gradient(circle_at_70%_20%,_rgba(255,255,255,0.5),_transparent_65%)] pointer-events-none" />
+
+            {/* Custom 3D CSS Gold Bullion Medallion */}
+            <div className="absolute top-6 right-6 pointer-events-none z-10">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-[#78590F] via-[#D4AF37] to-[#FFF6D4] p-1 shadow-[0_10px_20px_rgba(69,45,3,0.5),_inset_0_2px_4px_rgba(255,255,255,0.9)] flex items-center justify-center transform group-hover:rotate-6 group-hover:scale-105 transition-all duration-500">
+                <div className="w-full h-full rounded-full bg-gradient-to-tr from-[#523C07] via-[#D4AF37] to-[#FFF9E6] border border-[#FFECA6] flex flex-col items-center justify-center shadow-[inset_0_2px_6px_rgba(0,0,0,0.4)]">
+                  <Sparkles className="w-5 h-5 text-[#302303] filter drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]" />
+                  <span className="font-serif text-[10px] sm:text-[11px] font-black text-[#261B02] tracking-tight filter drop-shadow-[0_1px_0_rgba(255,245,210,0.9)] mt-0.5">
+                    22K GOLD
+                  </span>
+                </div>
               </div>
-              <h3 className="font-serif text-xl font-bold text-stone-900">
-                Gold Bullion Rates (3 Karat Variants)
-              </h3>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              {goldList.map((item, idx) => (
-                <div
-                  key={idx}
-                  className={`relative rounded-3xl p-6 sm:p-7 shadow-sm transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-between ${
-                    item.isFeatured
-                      ? "bg-gradient-to-b from-[#1C1917] via-stone-900 to-stone-950 text-white border-2 border-[#D4AF37] shadow-xl"
-                      : "bg-white border border-stone-200 hover:border-[#D4AF37]/50 hover:shadow-xl"
-                  }`}
-                >
-                  {item.isFeatured && (
-                    <span className="absolute -top-3 right-6 bg-gradient-to-r from-[#C5A059] to-[#D4AF37] text-stone-950 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-md">
-                      Most Popular
-                    </span>
-                  )}
+            <div className="space-y-6 relative z-10 pr-24 sm:pr-28">
+              {/* Header Badge & Purity */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider text-[#FEF3C7] bg-[#78350F] border border-[#92400E] shadow-sm">
+                  <Sparkles className="w-3.5 h-3.5 text-[#FDE68A]" />
+                  {rates.gold.purity}
+                </span>
 
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className={`text-xs font-bold uppercase tracking-wider ${item.isFeatured ? "text-[#D4AF37]" : "text-[#B8860B]"}`}>
-                        {item.purity}
-                      </span>
-                      <span className={`inline-flex items-center gap-1 text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md ${
-                        item.isFeatured
-                          ? "text-emerald-400 bg-emerald-950/60 border border-emerald-500/30"
-                          : "text-emerald-700 bg-emerald-50 border border-emerald-200"
-                      }`}>
-                        <TrendingUp className="w-3 h-3" />
-                        {item.change}
-                      </span>
-                    </div>
+                <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-md text-emerald-100 bg-emerald-900 border border-emerald-700 shadow-sm">
+                  <TrendingUp className="w-3 h-3 text-emerald-300" />
+                  {rates.gold.change}
+                </span>
+              </div>
 
-                    <div>
-                      <h4 className={`font-serif text-xl font-bold ${item.isFeatured ? "text-white" : "text-stone-900"}`}>
-                        {item.name}
-                      </h4>
-                      <p className={`text-xs font-light mt-0.5 ${item.isFeatured ? "text-stone-400" : "text-stone-500"}`}>
-                        {item.desc}
-                      </p>
-                    </div>
+              {/* Title & Description */}
+              <div className="pt-1">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#78350F] block mb-1">
+                  FINE GOLD BULLION
+                </span>
+                <h3 className="font-serif text-2xl sm:text-3xl font-black text-[#361302] tracking-tight filter drop-shadow-xs">
+                  {rates.gold.name}
+                </h3>
+                <p className="text-xs text-[#573A07] font-semibold mt-1">
+                  {rates.gold.desc}
+                </p>
+              </div>
 
-                    <div className={`pt-3 border-t ${item.isFeatured ? "border-stone-800" : "border-stone-100"}`}>
-                      <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider block">
-                        {getUnitLabel(activeUnit)}
-                      </span>
-                      <span className={`font-serif text-3xl font-bold tracking-tight block mt-1 ${item.isFeatured ? "text-[#F3E5AB]" : "text-stone-900"}`}>
-                        {formatPrice(item.pricePerGram)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className={`pt-4 mt-4 border-t flex items-center justify-between text-[11px] font-mono ${
-                    item.isFeatured ? "border-stone-800/80 text-[#D4AF37]" : "border-stone-100 text-[#B8860B]"
-                  }`}>
-                    <span className="flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      {item.hallmark}
-                    </span>
-                  </div>
+              {/* Price Display */}
+              <div className="pt-4 border-t border-[#78350F]/20">
+                <span className="text-[11px] uppercase font-mono font-extrabold text-[#78350F] tracking-widest block">
+                  PER 1 GRAM RATE
+                </span>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <span className="font-serif text-4xl sm:text-5xl font-black text-[#2B0E01] tracking-tight filter drop-shadow-[0_1px_2px_rgba(255,255,255,0.4)]">
+                    {formatPrice(rates.gold.pricePerGram)}
+                  </span>
                 </div>
-              ))}
+              </div>
+            </div>
+
+            {/* Card Footer Hallmark Certification */}
+            <div className="pt-4 mt-6 border-t border-[#78350F]/20 flex items-center justify-between text-xs font-mono font-bold text-[#361302] relative z-10">
+              <span className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-[#78350F]" />
+                <span>{rates.gold.hallmark}</span>
+              </span>
+              <span className="inline-flex items-center gap-1 text-[10px] font-sans text-[#FEF3C7] bg-[#522409] px-2.5 py-1 rounded-md border border-[#78350F] font-semibold shadow-xs">
+                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                Showroom Benchmark
+              </span>
             </div>
           </div>
-        )}
 
-        {/* 2. Silver Bullion Rates (3 Purity Variants) */}
-        {(activeCategory === "all" || activeCategory === "silver") && (
-          <div className="space-y-4 pt-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-stone-200 border border-stone-300 flex items-center justify-center text-stone-700">
-                <Coins className="w-4 h-4" />
+          {/* 2. REALISTIC SILVER BULLION CARD (SILVER COLOR BACKGROUND) */}
+          <div className="group relative rounded-3xl p-7 sm:p-8 bg-gradient-to-br from-[#FFFFFF] via-[#F1F5F9] via-[#CBD5E1] to-[#64748B] text-[#0F172A] border-2 border-[#94A3B8] shadow-[0_20px_45px_rgba(148,163,184,0.3)] hover:shadow-[0_25px_55px_rgba(148,163,184,0.4)] hover:border-[#FFFFFF] transition-all duration-500 transform hover:-translate-y-1 flex flex-col justify-between overflow-hidden">
+            {/* Specular Radial Silver Glow */}
+            <div className="absolute top-0 right-0 w-72 h-72 bg-[radial-gradient(circle_at_70%_20%,_rgba(255,255,255,0.8),_transparent_65%)] pointer-events-none" />
+
+            {/* Custom 3D CSS Silver Ingot Medallion */}
+            <div className="absolute top-6 right-6 pointer-events-none z-10">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-[#475569] via-[#CBD5E1] to-[#FFFFFF] p-1 shadow-[0_10px_20px_rgba(15,23,42,0.4),_inset_0_2px_4px_rgba(255,255,255,0.9)] flex items-center justify-center transform group-hover:-rotate-6 group-hover:scale-105 transition-all duration-500">
+                <div className="w-full h-full rounded-xl bg-gradient-to-tr from-[#334155] via-[#E2E8F0] to-[#FFFFFF] border border-[#F8FAFC] flex flex-col items-center justify-center shadow-[inset_0_2px_6px_rgba(0,0,0,0.3)]">
+                  <Coins className="w-5 h-5 text-slate-800 filter drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]" />
+                  <span className="font-serif text-[10px] sm:text-[11px] font-black text-slate-900 tracking-tight filter drop-shadow-[0_1px_0_rgba(255,255,255,0.9)] mt-0.5">
+                    999 SILVER
+                  </span>
+                </div>
               </div>
-              <h3 className="font-serif text-xl font-bold text-stone-900">
-                Silver Bullion Rates (3 Purity Variants)
-              </h3>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              {silverList.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-7 shadow-sm hover:shadow-xl hover:border-stone-400 flex flex-col justify-between transform hover:-translate-y-1 transition-all duration-300"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-stone-600 uppercase tracking-wider">
-                        {item.purity}
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                        <TrendingUp className="w-3 h-3" />
-                        {item.change}
-                      </span>
-                    </div>
+            <div className="space-y-6 relative z-10 pr-24 sm:pr-28">
+              {/* Header Badge & Purity */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider text-[#F8FAFC] bg-[#1E293B] border border-[#334155] shadow-sm">
+                  <Coins className="w-3.5 h-3.5 text-slate-300" />
+                  {rates.silver.purity}
+                </span>
 
-                    <div>
-                      <h4 className="font-serif text-xl font-bold text-stone-900">
-                        {item.name}
-                      </h4>
-                      <p className="text-xs text-stone-500 font-light mt-0.5">
-                        {item.desc}
-                      </p>
-                    </div>
+                <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-md text-emerald-100 bg-emerald-900 border border-emerald-700 shadow-sm">
+                  <TrendingUp className="w-3 h-3 text-emerald-300" />
+                  {rates.silver.change}
+                </span>
+              </div>
 
-                    <div className="pt-3 border-t border-stone-100">
-                      <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider block">
-                        {getUnitLabel(activeUnit)}
-                      </span>
-                      <span className="font-serif text-3xl font-bold text-stone-900 tracking-tight block mt-1">
-                        {formatPrice(item.pricePerGram)}
-                      </span>
-                    </div>
-                  </div>
+              {/* Title & Description */}
+              <div className="pt-1">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#334155] block mb-1">
+                  PURE SILVER BULLION
+                </span>
+                <h3 className="font-serif text-2xl sm:text-3xl font-black text-[#0F172A] tracking-tight filter drop-shadow-xs">
+                  {rates.silver.name}
+                </h3>
+                <p className="text-xs text-[#334155] font-semibold mt-1">
+                  {rates.silver.desc}
+                </p>
+              </div>
 
-                  <div className="pt-4 mt-4 border-t border-stone-100 flex items-center justify-between text-[11px] text-stone-600 font-mono">
-                    <span className="flex items-center gap-1">
-                      <Scale className="w-3.5 h-3.5" />
-                      {item.hallmark}
-                    </span>
-                  </div>
+              {/* Price Display */}
+              <div className="pt-4 border-t border-[#334155]/20">
+                <span className="text-[11px] uppercase font-mono font-extrabold text-[#334155] tracking-widest block">
+                  PER 1 GRAM RATE
+                </span>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <span className="font-serif text-4xl sm:text-5xl font-black text-[#090D16] tracking-tight filter drop-shadow-[0_1px_2px_rgba(255,255,255,0.6)]">
+                    {formatPrice(rates.silver.pricePerGram)}
+                  </span>
                 </div>
-              ))}
+              </div>
+            </div>
+
+            {/* Card Footer Hallmark Certification */}
+            <div className="pt-4 mt-6 border-t border-[#334155]/20 flex items-center justify-between text-xs font-mono font-bold text-[#0F172A] relative z-10">
+              <span className="flex items-center gap-2">
+                <Scale className="w-4 h-4 text-[#334155]" />
+                <span>{rates.silver.hallmark}</span>
+              </span>
+              <span className="inline-flex items-center gap-1 text-[10px] font-sans text-[#F8FAFC] bg-[#1E293B] px-2.5 py-1 rounded-md border border-[#334155] font-semibold shadow-xs">
+                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                Showroom Benchmark
+              </span>
             </div>
           </div>
-        )}
+
+        </div>
       </div>
     </section>
   );
 }
+
+
