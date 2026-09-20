@@ -51,7 +51,7 @@ export default function GoldRateSection({ shopInfo }) {
                     };
                   }
                 } else if (mat === "silver") {
-                  if (purity.includes("999") || purity.includes("fine") || !updated.silver.pricePerGram) {
+                  if (purity.includes("999") || purity.includes("925") || !updated.silver.pricePerGram) {
                     updated.silver = {
                       ...updated.silver,
                       pricePerGram: priceNum,
