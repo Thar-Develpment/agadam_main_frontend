@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Menu, X, PhoneCall, Sparkles, Gem } from "lucide-react";
-import { formatIndianPhoneNumber } from "../services/apiClient";
+import { formatIndianPhoneNumber, resolveFullImageUrl } from "../services/apiClient";
 
 export default function Header({ shopInfo }) {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -96,7 +96,7 @@ export default function Header({ shopInfo }) {
             {shopInfo?.logo ? (
               <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white border border-[#D4AF37] p-1 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform shrink-0 overflow-hidden">
                 <img
-                  src={shopInfo.logo}
+                  src={resolveFullImageUrl(shopInfo.logo)}
                   alt={shopInfo?.name || "Logo"}
                   className="w-full h-full object-contain"
                   onError={(e) => {

@@ -1,6 +1,6 @@
 import React from "react";
 import { Gem, ArrowUp } from "lucide-react";
-import { formatIndianPhoneNumber } from "../services/apiClient";
+import { formatIndianPhoneNumber, resolveFullImageUrl } from "../services/apiClient";
 
 export default function Footer({ shopInfo }) {
   const scrollToTop = () => {
@@ -17,7 +17,7 @@ export default function Footer({ shopInfo }) {
               {shopInfo?.logo ? (
                 <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/10 border border-[#D4AF37] p-1 flex items-center justify-center shrink-0 overflow-hidden">
                   <img
-                    src={shopInfo.logo}
+                    src={resolveFullImageUrl(shopInfo.logo)}
                     alt={shopInfo?.name || "Logo"}
                     className="w-full h-full object-contain"
                     onError={(e) => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Download, Sparkles, Video, Image, CheckCircle2, Loader2, X, Play } from "lucide-react";
 import { getSiteInfo, getBasicAssets } from "../services/api";
-import { getTenantSubdomain, getShopPrefix } from "../services/apiClient";
+import { getTenantSubdomain, getShopPrefix, resolveFullImageUrl } from "../services/apiClient";
 
 // ==========================================
 // CANVAS VECTOR EMBLEM & OVERLAY DRAWING HELPERS
@@ -84,11 +84,18 @@ const drawShopLogoBadge = (ctx, centerX, centerY, radius, shopLogoImg, shopName,
 const loadSingleImage = (url) => {
   return new Promise((resolve) => {
     if (!url) return resolve(null);
+    const fullUrl = resolveFullImageUrl(url);
     const img = new window.Image();
     img.crossOrigin = "anonymous";
-    img.src = url;
+    img.src = fullUrl;
     img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
+    img.onerror = () => {
+      // Fallback preloading without crossOrigin in case CORS header is missing
+      const imgNoCors = new window.Image();
+      imgNoCors.src = fullUrl;
+      imgNoCors.onload = () => resolve(imgNoCors);
+      imgNoCors.onerror = () => resolve(null);
+    };
   });
 };
 
@@ -193,431 +200,663 @@ const drawRealBIS916Hallmark = (ctx, centerX, centerY, scale = 1, style = "gold"
 };
 
 // ==========================================
-// 4 DISTINCT ELEGANT OVERLAY TEMPLATE RENDERERS
+// 4 DISTINCT ELEGANT FULL-CANVAS TEMPLATE RENDERERS
+// (Each template is fully self-contained, no background image needed)
 // ==========================================
 
 /**
- * TEMPLATE 1: Royal Heritage Gold (Classic Regal Luxury)
+ * Helper to parse numeric gold price and calculate 8GM (1 Pavan/Sovereign) price
  */
-const drawTemplate1_RoyalHeritage = (ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null) => {
+const getFormattedRates = (livePrices = {}) => {
+  const parseNum = (str) => {
+    if (!str) return 0;
+    const clean = String(str).replace(/[^0-9.]/g, "");
+    return parseFloat(clean) || 0;
+  };
+
+  const gold1gVal = parseNum(livePrices.gold22k) || 7195;
+  const silver1gVal = parseNum(livePrices.silver999) || 94.50;
+  const gold8gVal = gold1gVal * 8;
+
+  return {
+    gold1gVal,
+    silver1gVal,
+    gold8gVal,
+    gold1gStr: `\u20b9${gold1gVal.toLocaleString("en-IN")}`,
+    gold8gStr: `\u20b9${gold8gVal.toLocaleString("en-IN")}`,
+    silver1gStr: `\u20b9${silver1gVal.toLocaleString("en-IN")}`,
+  };
+};
+
+/** Draw a rounded rectangle helper */
+const roundRect = (ctx, x, y, w, h, r) => {
+  if (ctx.roundRect) {
+    ctx.roundRect(x, y, w, h, r);
+  } else {
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+};
+
+/** Draw decorative horizontal rule with diamond in center */
+const drawOrnamentalRule = (ctx, x, y, w, color, scale) => {
   ctx.save();
-  const scaleX = canvasWidth / 1080;
-  const scaleY = canvasHeight / 1920;
-  const scale = Math.min(scaleX, scaleY);
-  const centerX = canvasWidth / 2;
-
-  // Double Ornate Gold Frame
-  const margin = 28 * scale;
-  ctx.strokeStyle = "#D4AF37";
-  ctx.lineWidth = 5 * scale;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5 * scale;
+  ctx.globalAlpha = 0.7;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(margin, margin, canvasWidth - 2 * margin, canvasHeight - 2 * margin, 36 * scale);
-  else ctx.rect(margin, margin, canvasWidth - 2 * margin, canvasHeight - 2 * margin);
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + w * 0.44, y);
   ctx.stroke();
-
-  ctx.strokeStyle = "rgba(243, 229, 171, 0.6)";
-  ctx.lineWidth = 2 * scale;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(margin + 10 * scale, margin + 10 * scale, canvasWidth - 2 * (margin + 10 * scale), canvasHeight - 2 * (margin + 10 * scale), 26 * scale);
+  ctx.moveTo(x + w * 0.56, y);
+  ctx.lineTo(x + w, y);
   ctx.stroke();
-
-  // Top Shop Logo Emblem
-  const logoY = 145 * scaleY;
-  drawShopLogoBadge(ctx, centerX, logoY, 58 * scale, shopLogoImg, shopName, scale);
-
-  // Shop Name & Subheader
-  ctx.fillStyle = "#D4AF37";
-  ctx.font = `bold ${Math.round(58 * scale)}px Georgia, serif`;
-  ctx.textAlign = "center";
-  ctx.fillText(shopName, centerX, 255 * scaleY);
-
-  ctx.fillStyle = "#FAF9F5";
-  ctx.font = `bold ${Math.round(24 * scale)}px sans-serif`;
-  ctx.fillText("ROYAL HERITAGE SHOWROOM COLLECTION", centerX, 305 * scaleY);
-
-  // Decorative Divider
-  ctx.strokeStyle = "#D4AF37";
-  ctx.lineWidth = 3 * scale;
+  // Diamond
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = color;
+  const ds = 5 * scale;
   ctx.beginPath();
-  ctx.moveTo(centerX - 210 * scaleX, 345 * scaleY);
-  ctx.lineTo(centerX + 210 * scaleX, 345 * scaleY);
-  ctx.stroke();
-
-  // Official BIS 916 Hallmark Logo Image Badge (Positioned with zero collision)
-  drawRealBIS916Hallmark(ctx, centerX, canvasHeight - 440 * scaleY, scale * 1.05, "gold", hallmarkImg);
-
-  ctx.fillStyle = "#FAF9F5";
-  ctx.font = `bold ${Math.round(25 * scale)}px sans-serif`;
-  ctx.fillText("100% BIS Hallmarked 22K Gold & Certified Diamonds", centerX, canvasHeight - 325 * scaleY);
-
-  ctx.fillStyle = "#D4AF37";
-  ctx.font = `bold ${Math.round(34 * scale)}px Cinzel, sans-serif`;
-  ctx.fillText(shopInfo?.phonePrimary || "+91 99520 54493", centerX, canvasHeight - 265 * scaleY);
-
-  // Bottom Silver & Gold Rate Badges
-  const badgeW = 440 * scaleX;
-  const badgeH = 155 * scaleY;
-  const silverX = 60 * scaleX;
-  const badgeY = canvasHeight - 215 * scaleY;
-
-  // Silver Rate Badge
-  const silverGrad = ctx.createLinearGradient(silverX, badgeY, silverX + badgeW, badgeY + badgeH);
-  silverGrad.addColorStop(0, "rgba(255, 253, 248, 0.96)");
-  silverGrad.addColorStop(1, "rgba(240, 236, 222, 0.94)");
-  ctx.fillStyle = silverGrad;
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(silverX, badgeY, badgeW, badgeH, 22 * scale);
+  ctx.moveTo(x + w / 2, y - ds);
+  ctx.lineTo(x + w / 2 + ds, y);
+  ctx.lineTo(x + w / 2, y + ds);
+  ctx.lineTo(x + w / 2 - ds, y);
+  ctx.closePath();
   ctx.fill();
-  ctx.strokeStyle = "#B8860B";
+  ctx.restore();
+};
+
+/** Draw the 3-column rate table */
+const drawRatePanel = (ctx, x, y, w, h, rates, bgColor1, bgColor2, borderColor, labelColor, valueColor, dividerColor, scale) => {
+  ctx.save();
+  const bg = ctx.createLinearGradient(x, y, x, y + h);
+  bg.addColorStop(0, bgColor1);
+  bg.addColorStop(1, bgColor2);
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = 16 * scale;
+  ctx.fillStyle = bg;
+  ctx.beginPath();
+  roundRect(ctx, x, y, w, h, 18 * scale);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = borderColor;
   ctx.lineWidth = 2.5 * scale;
-  ctx.stroke();
-
-  ctx.fillStyle = "#44403C";
-  ctx.font = `bold ${Math.round(20 * scale)}px sans-serif`;
-  ctx.textAlign = "center";
-  ctx.fillText("SILVER RATE (999)", silverX + badgeW / 2, badgeY + 45 * scaleY);
-
-  ctx.fillStyle = "#1C1917";
-  ctx.font = `bold ${Math.round(46 * scale)}px Cinzel, "Playfair Display", Georgia, serif`;
-  ctx.fillText(`${livePrices.silver999 || '₹94.50'} /g`, silverX + badgeW / 2, badgeY + 110 * scaleY);
-
-  // Gold Rate Badge
-  const goldX = canvasWidth - badgeW - 60 * scaleX;
-  const goldGrad = ctx.createLinearGradient(goldX, badgeY, goldX + badgeW, badgeY + badgeH);
-  goldGrad.addColorStop(0, "rgba(255, 251, 235, 0.96)");
-  goldGrad.addColorStop(1, "rgba(254, 243, 199, 0.94)");
-  ctx.fillStyle = goldGrad;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(goldX, badgeY, badgeW, badgeH, 22 * scale);
-  ctx.fill();
-  ctx.strokeStyle = "#D4AF37";
-  ctx.lineWidth = 2.8 * scale;
+  roundRect(ctx, x, y, w, h, 18 * scale);
   ctx.stroke();
 
-  ctx.fillStyle = "#78350F";
-  ctx.font = `bold ${Math.round(20 * scale)}px sans-serif`;
-  ctx.textAlign = "center";
-  ctx.fillText("GOLD RATE (22K)", goldX + badgeW / 2, badgeY + 45 * scaleY);
+  const col = w / 3;
+  ctx.strokeStyle = dividerColor;
+  ctx.lineWidth = 1.5 * scale;
+  ctx.globalAlpha = 0.4;
+  ctx.setLineDash([5 * scale, 5 * scale]);
+  for (let i = 1; i <= 2; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x + col * i, y + 18 * scale);
+    ctx.lineTo(x + col * i, y + h - 18 * scale);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
 
-  ctx.fillStyle = "#1C1917";
-  ctx.font = `bold ${Math.round(46 * scale)}px Cinzel, "Playfair Display", Georgia, serif`;
-  ctx.fillText(`${livePrices.gold22k || '₹7,195'} /g`, goldX + badgeW / 2, badgeY + 110 * scaleY);
+  const cols = [
+    { cx: x + col * 0.5, label: "1GM  22K", value: rates.gold1gStr },
+    { cx: x + col * 1.5, label: "8GM  22K", value: rates.gold8gStr },
+    { cx: x + col * 2.5, label: "1GM SILVER", value: rates.silver1gStr },
+  ];
+
+  cols.forEach(({ cx, label, value }) => {
+    ctx.textAlign = "center";
+    ctx.fillStyle = labelColor;
+    ctx.font = `bold ${Math.round(17 * scale)}px Arial, sans-serif`;
+    ctx.fillText(label, cx, y + h * 0.28);
+    ctx.fillStyle = valueColor;
+    ctx.font = `bold ${Math.round(40 * scale)}px Georgia, serif`;
+    ctx.fillText(value, cx, y + h * 0.78);
+  });
 
   ctx.restore();
 };
 
-/**
- * TEMPLATE 2: Modern Minimalist Boutique (Clean Frosted Glass)
- */
-const drawTemplate2_ModernMinimalist = (ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null) => {
+// ==============================
+// TEMPLATE 1: Royal Maroon & Gold
+// ==============================
+const drawTemplate1_RoyalHeritage = (ctx, W, H, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null) => {
   ctx.save();
-  const scaleX = canvasWidth / 1080;
-  const scaleY = canvasHeight / 1920;
-  const scale = Math.min(scaleX, scaleY);
+  const sx = W / 1080, sy = H / 1920, sc = Math.min(sx, sy);
+  const cx = W / 2;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase();
+  const rates = getFormattedRates(livePrices);
+  const phone = shopInfo?.phonePrimary || "+91 99520 54493";
+  const city = shopInfo?.city || "Tuticorin";
 
-  // Top Left: Floating Official BIS 916 Hallmark Badge
-  drawRealBIS916Hallmark(ctx, 175 * scaleX, 95 * scaleY, scale * 0.92, "glass", hallmarkImg);
+  // TRANSLUCENT OVERLAY (allows background image/video to be sharp & clear)
+  ctx.fillStyle = "rgba(10, 0, 4, 0.20)";
+  ctx.fillRect(0, 0, W, H);
 
-  // Top Right: Floating Shop Emblem Badge
-  drawShopLogoBadge(ctx, canvasWidth - 110 * scaleX, 95 * scaleY, 44 * scale, shopLogoImg, shopName, scale);
+  // Top header dark scrim gradient
+  const topScrim = ctx.createLinearGradient(0, 0, 0, 410 * sy);
+  topScrim.addColorStop(0, "rgba(25, 2, 8, 0.95)");
+  topScrim.addColorStop(0.75, "rgba(25, 2, 8, 0.75)");
+  topScrim.addColorStop(1, "rgba(10, 0, 4, 0)");
+  ctx.fillStyle = topScrim;
+  ctx.fillRect(0, 0, W, 410 * sy);
 
-  // Below Middle of the Image: Centered Frosted Glass Shop Name Panel
-  const panelW = 740 * scaleX;
-  const panelH = 115 * scaleY;
-  const panelX = canvasWidth / 2 - panelW / 2;
-  const panelY = canvasHeight - 380 * scaleY;
+  // Top gold line
+  const goldGrad = ctx.createLinearGradient(0, 0, W, 0);
+  goldGrad.addColorStop(0, "rgba(212,175,55,0.2)"); goldGrad.addColorStop(0.5, "#D4AF37"); goldGrad.addColorStop(1, "rgba(212,175,55,0.2)");
+  ctx.fillStyle = goldGrad; ctx.fillRect(0, 0, W, 7 * sy);
 
-  ctx.fillStyle = "rgba(12, 12, 12, 0.88)";
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(panelX, panelY, panelW, panelH, 26 * scale);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(212, 175, 55, 0.75)";
-  ctx.lineWidth = 2.5 * scale;
-  ctx.stroke();
+  // Header content
+  drawOrnamentalRule(ctx, 55 * sx, 55 * sy, W - 110 * sx, "#D4AF37", sc);
+  drawShopLogoBadge(ctx, cx, 120 * sy, 50 * sc, shopLogoImg, shopName, sc);
 
-  // Shop Name centered in the below middle of the image
-  ctx.fillStyle = "#FFFFFF";
-  ctx.font = `bold ${Math.round(44 * scale)}px Georgia, serif`;
-  ctx.textAlign = "center";
-  ctx.fillText(shopName, canvasWidth / 2, panelY + 48 * scaleY);
+  ctx.shadowColor = "rgba(212,175,55,0.6)"; ctx.shadowBlur = 18 * sc;
+  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(58 * sc)}px Georgia, serif`;
+  ctx.textAlign = "center"; ctx.fillText(shopName, cx, 215 * sy); ctx.shadowBlur = 0;
 
-  ctx.fillStyle = "#D4AF37";
-  ctx.font = `bold ${Math.round(18 * scale)}px sans-serif`;
-  ctx.fillText("BOUTIQUE JEWELLERY", canvasWidth / 2, panelY + 86 * scaleY);
+  ctx.fillStyle = "#D4AF37"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
+  ctx.fillText("JEWELLERS & DIAMONDS", cx, 250 * sy);
 
-  // Bottom Sleek Horizontal Capsule Bar for Live Metal Rates
-  const botW = canvasWidth - 100 * scaleX;
-  const botH = 210 * scaleY;
-  const botX = 50 * scaleX;
-  const botY = canvasHeight - botH - 45 * scaleY;
+  drawOrnamentalRule(ctx, 55 * sx, 275 * sy, W - 110 * sx, "#D4AF37", sc);
 
-  ctx.fillStyle = "rgba(10, 10, 10, 0.92)";
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(botX, botY, botW, botH, 28 * scale);
-  ctx.fill();
-  ctx.strokeStyle = "#D4AF37";
-  ctx.lineWidth = 3 * scale;
-  ctx.stroke();
+  // BIGGER DATE (No emoji)
+  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(34 * sc)}px Georgia, serif`;
+  ctx.textAlign = "center"; ctx.fillText(dateStr, cx, 325 * sy);
 
-  // Inner Vertical Divider Line
-  ctx.strokeStyle = "rgba(212, 175, 55, 0.35)";
-  ctx.lineWidth = 2.5 * scale;
-  ctx.beginPath();
-  ctx.moveTo(botX + botW / 2, botY + 22 * scaleY);
-  ctx.lineTo(botX + botW / 2, botY + botH - 60 * scaleY);
-  ctx.stroke();
+  drawOrnamentalRule(ctx, 70 * sx, 365 * sy, W - 140 * sx, "#D4AF37", sc);
 
-  // Left: Silver Rate
-  ctx.fillStyle = "#A8A29E";
-  ctx.font = `bold ${Math.round(20 * scale)}px sans-serif`;
-  ctx.textAlign = "center";
-  ctx.fillText("SILVER RATE (999)", botX + botW / 4, botY + 48 * scaleY);
+  // === SIDE-BY-SIDE CARDS: GOLD (LEFT) & SILVER (RIGHT) AT BOTTOM (Y = 1240px) ===
+  const cardY = 1240 * sy, cardH = 270 * sy, cardW = 480 * sx;
+  const leftX = 40 * sx, leftCx = leftX + cardW / 2;
+  const rightX = 560 * sx, rightCx = rightX + cardW / 2;
 
-  ctx.fillStyle = "#FFFFFF";
-  ctx.font = `bold ${Math.round(46 * scale)}px Cinzel, "Playfair Display", Georgia, serif`;
-  ctx.fillText(`${livePrices.silver999 || '₹94.50'} /g`, botX + botW / 4, botY + 115 * scaleY);
-
-  // Right: Gold Rate
-  ctx.fillStyle = "#FBBF24";
-  ctx.font = `bold ${Math.round(20 * scale)}px sans-serif`;
-  ctx.textAlign = "center";
-  ctx.fillText("GOLD RATE (22K)", botX + (3 * botW) / 4, botY + 48 * scaleY);
-
-  ctx.fillStyle = "#FCD34D";
-  ctx.font = `bold ${Math.round(46 * scale)}px Cinzel, "Playfair Display", Georgia, serif`;
-  ctx.fillText(`${livePrices.gold22k || '₹7,195'} /g`, botX + (3 * botW) / 4, botY + 115 * scaleY);
-
-  // Bottom Contact & Hallmark Certification Strip
-  ctx.fillStyle = "#FAF9F5";
-  ctx.font = `bold ${Math.round(22 * scale)}px Cinzel, sans-serif`;
-  ctx.fillText(`100% BIS Hallmarked • Call / WhatsApp: ${shopInfo?.phonePrimary || "+91 99520 54493"}`, canvasWidth / 2, botY + 180 * scaleY);
-
+  // LEFT CARD: GOLD 22K (1g only)
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 16 * sc;
+  const gPanel = ctx.createLinearGradient(leftX, cardY, leftX, cardY + cardH);
+  gPanel.addColorStop(0, "rgba(70,15,8,0.92)"); gPanel.addColorStop(1, "rgba(35,4,4,0.95)");
+  ctx.fillStyle = gPanel; ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.fill();
+  ctx.shadowBlur = 0; ctx.strokeStyle = "#D4AF37"; ctx.lineWidth = 2 * sc;
+  ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
   ctx.restore();
-};
 
-/**
- * TEMPLATE 3: Bridal Emerald & Gold (Rich Traditional Opulence)
- */
-const drawTemplate3_BridalEmerald = (ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null) => {
+  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
+  ctx.textAlign = "center"; ctx.fillText("TODAY'S 22K GOLD RATE", leftCx, cardY + 42 * sy);
+  ctx.fillStyle = "#D4AF37"; ctx.font = `bold ${Math.round(15 * sc)}px Arial, sans-serif`;
+  ctx.fillText("PER 1 GRAM", leftCx, cardY + 70 * sy);
+
+  drawOrnamentalRule(ctx, leftX + 40 * sx, cardY + 95 * sy, cardW - 80 * sx, "rgba(212,175,55,0.5)", sc);
+
+  ctx.shadowColor = "rgba(212,175,55,0.9)"; ctx.shadowBlur = 24 * sc;
+  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(72 * sc)}px Georgia, serif`;
+  ctx.fillText(rates.gold1gStr, leftCx, cardY + 195 * sy); ctx.shadowBlur = 0;
+
+  // RIGHT CARD: SILVER 999 (1g only)
   ctx.save();
-  const scaleX = canvasWidth / 1080;
-  const scaleY = canvasHeight / 1920;
-  const scale = Math.min(scaleX, scaleY);
+  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 16 * sc;
+  const sPanel = ctx.createLinearGradient(rightX, cardY, rightX, cardY + cardH);
+  sPanel.addColorStop(0, "rgba(25,30,40,0.92)"); sPanel.addColorStop(1, "rgba(12,15,22,0.95)");
+  ctx.fillStyle = sPanel; ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.fill();
+  ctx.shadowBlur = 0; ctx.strokeStyle = "#CBD5E1"; ctx.lineWidth = 2 * sc;
+  ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
+  ctx.restore();
 
-  // Top Banner (Emerald Gradient)
-  const topH = 210 * scaleY;
-  const topGrad = ctx.createLinearGradient(0, 0, 0, topH);
-  topGrad.addColorStop(0, "rgba(4, 47, 36, 0.98)");
-  topGrad.addColorStop(1, "rgba(6, 78, 59, 0.94)");
-  ctx.fillStyle = topGrad;
-  ctx.fillRect(0, 0, canvasWidth, topH);
+  ctx.fillStyle = "#CBD5E1"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
+  ctx.textAlign = "center"; ctx.fillText("TODAY'S 999 FINE SILVER", rightCx, cardY + 42 * sy);
+  ctx.fillStyle = "#94A3B8"; ctx.font = `bold ${Math.round(15 * sc)}px Arial, sans-serif`;
+  ctx.fillText("PER 1 GRAM", rightCx, cardY + 70 * sy);
 
-  // Gold Trim Line at bottom of header
-  ctx.strokeStyle = "#D4AF37";
-  ctx.lineWidth = 4 * scale;
-  ctx.beginPath();
-  ctx.moveTo(0, topH);
-  ctx.lineTo(canvasWidth, topH);
-  ctx.stroke();
+  drawOrnamentalRule(ctx, rightX + 40 * sx, cardY + 95 * sy, cardW - 80 * sx, "rgba(203,213,225,0.5)", sc);
 
-  // Top Left: Shop Logo Badge
-  drawShopLogoBadge(ctx, 90 * scaleX, topH / 2, 42 * scale, shopLogoImg, shopName, scale);
+  ctx.shadowColor = "rgba(226,232,240,0.85)"; ctx.shadowBlur = 24 * sc;
+  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(72 * sc)}px Georgia, serif`;
+  ctx.fillText(rates.silver1gStr, rightCx, cardY + 195 * sy); ctx.shadowBlur = 0;
 
-  // Header Text
-  ctx.fillStyle = "#FCD34D";
-  ctx.font = `bold ${Math.round(40 * scale)}px Georgia, serif`;
+  // === FOOTER (1600px to H) ===
+  const fY = 1600 * sy;
+  drawOrnamentalRule(ctx, 60 * sx, fY, W - 120 * sx, "#D4AF37", sc);
+
+  const fGrad = ctx.createLinearGradient(0, fY + 10 * sy, 0, H);
+  fGrad.addColorStop(0, "rgba(0,0,0,0)"); fGrad.addColorStop(0.2, "rgba(45,5,5,0.95)"); fGrad.addColorStop(1, "rgba(12,1,1,0.99)");
+  ctx.fillStyle = fGrad; ctx.fillRect(0, fY + 10 * sy, W, H - (fY + 10 * sy));
+
+  // LEFT BOTTOM: Phone & Place
+  const phoneX = 60 * sx;
   ctx.textAlign = "left";
-  ctx.fillText(shopName, 150 * scaleX, topH / 2 - 7 * scaleY);
+  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(26 * sc)}px Arial, sans-serif`;
+  ctx.fillText("\uD83D\uDCDE " + phone, phoneX, fY + 110 * sy);
+  ctx.fillStyle = "#E2C97E"; ctx.font = `${Math.round(22 * sc)}px Arial, sans-serif`;
+  ctx.fillText("\uD83D\uDCCD " + city, phoneX, fY + 155 * sy);
 
-  ctx.fillStyle = "#ECFDF5";
-  ctx.font = `bold ${Math.round(19 * scale)}px sans-serif`;
-  ctx.fillText("BRIDAL & TRADITIONAL JEWELLERY", 150 * scaleX, topH / 2 + 29 * scaleY);
+  // RIGHT BOTTOM: BIS 916 Hallmark Emblem
+  if (hallmarkImg && hallmarkImg.complete && hallmarkImg.naturalWidth > 0) {
+    drawRealBIS916Hallmark(ctx, W - 160 * sx, fY + 132 * sy, sc * 0.78, "gold", hallmarkImg);
+  } else {
+    ctx.fillStyle = "#D4AF37"; ctx.font = `bold ${Math.round(18 * sc)}px Arial, sans-serif`;
+    ctx.textAlign = "right"; ctx.fillText("BIS 916 HALLMARKED", W - 40 * sx, fY + 132 * sy);
+  }
 
-  // Top Right: Authentic Official BIS 916 Hallmark Stamp
-  drawRealBIS916Hallmark(ctx, canvasWidth - 165 * scaleX, topH / 2, scale * 0.90, "emerald", hallmarkImg);
-
-  // Bottom Banner (Emerald Gradient)
-  const botH = 320 * scaleY;
-  const botY = canvasHeight - botH;
-  const botGrad = ctx.createLinearGradient(0, botY, 0, canvasHeight);
-  botGrad.addColorStop(0, "rgba(6, 78, 59, 0.95)");
-  botGrad.addColorStop(1, "rgba(2, 44, 34, 0.98)");
-  ctx.fillStyle = botGrad;
-  ctx.fillRect(0, botY, canvasWidth, botH);
-
-  ctx.strokeStyle = "#D4AF37";
-  ctx.lineWidth = 4 * scale;
-  ctx.beginPath();
-  ctx.moveTo(0, botY);
-  ctx.lineTo(canvasWidth, botY);
-  ctx.stroke();
-
-  // Tagline
-  ctx.fillStyle = "#FCD34D";
-  ctx.font = `bold ${Math.round(24 * scale)}px sans-serif`;
+  // BOTTOM CENTER: Tagline
   ctx.textAlign = "center";
-  ctx.fillText("100% BIS Hallmarked 22K Gold • Certified Solitaire Diamonds", canvasWidth / 2, botY + 42 * scaleY);
+  ctx.fillStyle = "rgba(255,229,128,0.75)"; ctx.font = `italic ${Math.round(23 * sc)}px Georgia, serif`;
+  ctx.fillText('"Where Luxury Meets Tradition"', cx, fY + 250 * sy);
 
-  // Dual Rate Pills
-  const pillW = 440 * scaleX;
-  const pillH = 135 * scaleY;
-  const pillY = botY + 75 * scaleY;
-
-  // Silver Pill
-  const silX = 60 * scaleX;
-  ctx.fillStyle = "rgba(255, 255, 255, 0.96)";
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(silX, pillY, pillW, pillH, 22 * scale);
-  ctx.fill();
-  ctx.strokeStyle = "#D4AF37";
-  ctx.lineWidth = 2.5 * scale;
-  ctx.stroke();
-
-  ctx.fillStyle = "#064E3B";
-  ctx.font = `bold ${Math.round(20 * scale)}px sans-serif`;
-  ctx.fillText("SILVER RATE (999)", silX + pillW / 2, pillY + 42 * scaleY);
-
-  ctx.fillStyle = "#022C22";
-  ctx.font = `bold ${Math.round(42 * scale)}px Cinzel, "Playfair Display", Georgia, serif`;
-  ctx.fillText(`${livePrices.silver999 || '₹94.50'} /g`, silX + pillW / 2, pillY + 98 * scaleY);
-
-  // Gold Pill
-  const gldX = canvasWidth - pillW - 60 * scaleX;
-  ctx.fillStyle = "rgba(254, 243, 199, 0.96)";
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(gldX, pillY, pillW, pillH, 22 * scale);
-  ctx.fill();
-  ctx.strokeStyle = "#B45309";
-  ctx.lineWidth = 2.8 * scale;
-  ctx.stroke();
-
-  ctx.fillStyle = "#78350F";
-  ctx.font = `bold ${Math.round(20 * scale)}px sans-serif`;
-  ctx.fillText("GOLD RATE (22K)", gldX + pillW / 2, pillY + 42 * scaleY);
-
-  ctx.fillStyle = "#451A03";
-  ctx.font = `bold ${Math.round(42 * scale)}px Cinzel, "Playfair Display", Georgia, serif`;
-  ctx.fillText(`${livePrices.gold22k || '₹7,195'} /g`, gldX + pillW / 2, pillY + 98 * scaleY);
-
-  // Phone Contact
-  ctx.fillStyle = "#FCD34D";
-  ctx.font = `bold ${Math.round(28 * scale)}px Cinzel, sans-serif`;
-  ctx.fillText(`WhatsApp Orders: ${shopInfo?.phonePrimary || "+91 99520 54493"}`, canvasWidth / 2, botY + 270 * scaleY);
-
+  ctx.fillStyle = goldGrad; ctx.fillRect(0, H - 7 * sy, W, 7 * sy);
   ctx.restore();
 };
 
-/**
- * TEMPLATE 4: Contemporary Solitaire Dark (Obsidian Glamour)
- */
-const drawTemplate4_SolitaireDark = (ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null) => {
+// ==============================
+// TEMPLATE 2: Midnight Navy & Diamond
+// ==============================
+const drawTemplate2_ModernMinimalist = (ctx, W, H, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null) => {
   ctx.save();
-  const scaleX = canvasWidth / 1080;
-  const scaleY = canvasHeight / 1920;
-  const scale = Math.min(scaleX, scaleY);
+  const sx = W / 1080, sy = H / 1920, sc = Math.min(sx, sy);
+  const cx = W / 2;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase();
+  const rates = getFormattedRates(livePrices);
+  const phone = shopInfo?.phonePrimary || "+91 99520 54493";
+  const city = shopInfo?.city || "Tuticorin";
 
-  // Dark Header Panel
-  const topH = 200 * scaleY;
-  const topGrad = ctx.createLinearGradient(0, 0, 0, topH);
-  topGrad.addColorStop(0, "rgba(10, 10, 10, 0.96)");
-  topGrad.addColorStop(1, "rgba(24, 20, 14, 0.92)");
-  ctx.fillStyle = topGrad;
-  ctx.fillRect(0, 0, canvasWidth, topH);
+  // TRANSLUCENT OVERLAY
+  ctx.fillStyle = "rgba(2, 6, 20, 0.20)";
+  ctx.fillRect(0, 0, W, H);
 
-  // Accent Divider
-  ctx.strokeStyle = "#F3E5AB";
-  ctx.lineWidth = 3 * scale;
-  ctx.beginPath();
-  ctx.moveTo(0, topH);
-  ctx.lineTo(canvasWidth, topH);
-  ctx.stroke();
+  // Top header dark scrim gradient
+  const topScrim2 = ctx.createLinearGradient(0, 0, 0, 410 * sy);
+  topScrim2.addColorStop(0, "rgba(4, 18, 72, 0.95)");
+  topScrim2.addColorStop(0.75, "rgba(4, 18, 72, 0.75)");
+  topScrim2.addColorStop(1, "rgba(2, 6, 20, 0)");
+  ctx.fillStyle = topScrim2;
+  ctx.fillRect(0, 0, W, 410 * sy);
 
-  // Left: Shop Logo Badge
-  drawShopLogoBadge(ctx, 90 * scaleX, topH / 2, 40 * scale, shopLogoImg, shopName, scale);
+  // Silver top line
+  const slvGrad = ctx.createLinearGradient(0, 0, W, 0);
+  slvGrad.addColorStop(0, "rgba(180,200,255,0)"); slvGrad.addColorStop(0.5, "rgba(220,235,255,0.9)"); slvGrad.addColorStop(1, "rgba(180,200,255,0)");
+  ctx.fillStyle = slvGrad; ctx.fillRect(0, 0, W, 6 * sy);
 
-  // Center: Shop Name
-  ctx.fillStyle = "#F3E5AB";
-  ctx.font = `bold ${Math.round(40 * scale)}px Georgia, serif`;
+  // Header content
+  drawShopLogoBadge(ctx, cx, 110 * sy, 50 * sc, shopLogoImg, shopName, sc);
+
+  ctx.shadowColor = "rgba(100,180,255,0.5)"; ctx.shadowBlur = 22 * sc;
+  ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(58 * sc)}px Georgia, serif`;
+  ctx.textAlign = "center"; ctx.fillText(shopName, cx, 205 * sy); ctx.shadowBlur = 0;
+
+  ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
+  ctx.fillText("BOUTIQUE FINE JEWELLERY", cx, 240 * sy);
+
+  const acLine = ctx.createLinearGradient(100 * sx, 0, W - 100 * sx, 0);
+  acLine.addColorStop(0, "rgba(126,184,255,0)"); acLine.addColorStop(0.5, "rgba(200,225,255,0.85)"); acLine.addColorStop(1, "rgba(126,184,255,0)");
+  ctx.strokeStyle = acLine; ctx.lineWidth = 1.5 * sc;
+  ctx.beginPath(); ctx.moveTo(100 * sx, 265 * sy); ctx.lineTo(W - 100 * sx, 265 * sy); ctx.stroke();
+
+  // BIGGER DATE (No emoji)
+  ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(34 * sc)}px Georgia, serif`;
+  ctx.textAlign = "center"; ctx.fillText(dateStr, cx, 320 * sy);
+
+  ctx.beginPath(); ctx.moveTo(100 * sx, 360 * sy); ctx.lineTo(W - 100 * sx, 360 * sy); ctx.stroke();
+
+  // === SIDE-BY-SIDE CARDS (PLACED BELOW, AT Y = 1240px) ===
+  const cardY = 1240 * sy, cardH = 270 * sy, cardW = 480 * sx;
+  const leftX = 40 * sx, leftCx = leftX + cardW / 2;
+  const rightX = 560 * sx, rightCx = rightX + cardW / 2;
+
+  // LEFT CARD: GOLD 22K (1g only)
+  ctx.save();
+  ctx.shadowColor = "rgba(0,100,255,0.3)"; ctx.shadowBlur = 16 * sc;
+  const gPanel2 = ctx.createLinearGradient(leftX, cardY, leftX, cardY + cardH);
+  gPanel2.addColorStop(0, "rgba(6,25,90,0.92)"); gPanel2.addColorStop(1, "rgba(3,14,55,0.95)");
+  ctx.fillStyle = gPanel2; ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.fill();
+  ctx.shadowBlur = 0; ctx.strokeStyle = "#7EB8FF"; ctx.lineWidth = 2 * sc;
+  ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
+  ctx.textAlign = "center"; ctx.fillText("TODAY'S 22K GOLD RATE", leftCx, cardY + 42 * sy);
+  ctx.fillStyle = "#A5CFFF"; ctx.font = `bold ${Math.round(15 * sc)}px Arial, sans-serif`;
+  ctx.fillText("PER 1 GRAM", leftCx, cardY + 70 * sy);
+
+  const divLine = ctx.createLinearGradient(leftX + 40 * sx, 0, leftX + cardW - 40 * sx, 0);
+  divLine.addColorStop(0, "rgba(126,184,255,0)"); divLine.addColorStop(0.5, "rgba(126,184,255,0.5)"); divLine.addColorStop(1, "rgba(126,184,255,0)");
+  ctx.strokeStyle = divLine; ctx.lineWidth = 1.5 * sc;
+  ctx.beginPath(); ctx.moveTo(leftX + 40 * sx, cardY + 95 * sy); ctx.lineTo(leftX + cardW - 40 * sx, cardY + 95 * sy); ctx.stroke();
+
+  ctx.shadowColor = "rgba(126,184,255,0.9)"; ctx.shadowBlur = 24 * sc;
+  ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(72 * sc)}px Georgia, serif`;
+  ctx.fillText(rates.gold1gStr, leftCx, cardY + 195 * sy); ctx.shadowBlur = 0;
+
+  // RIGHT CARD: SILVER 999 (1g only)
+  ctx.save();
+  ctx.shadowColor = "rgba(0,100,255,0.3)"; ctx.shadowBlur = 16 * sc;
+  const sPanel2 = ctx.createLinearGradient(rightX, cardY, rightX, cardY + cardH);
+  sPanel2.addColorStop(0, "rgba(10,35,80,0.92)"); sPanel2.addColorStop(1, "rgba(5,18,50,0.95)");
+  ctx.fillStyle = sPanel2; ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.fill();
+  ctx.shadowBlur = 0; ctx.strokeStyle = "#CBD5E1"; ctx.lineWidth = 2 * sc;
+  ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle = "#CBD5E1"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
+  ctx.textAlign = "center"; ctx.fillText("TODAY'S 999 FINE SILVER", rightCx, cardY + 42 * sy);
+  ctx.fillStyle = "#94A3B8"; ctx.font = `bold ${Math.round(15 * sc)}px Arial, sans-serif`;
+  ctx.fillText("PER 1 GRAM", rightCx, cardY + 70 * sy);
+
+  const divLineR = ctx.createLinearGradient(rightX + 40 * sx, 0, rightX + cardW - 40 * sx, 0);
+  divLineR.addColorStop(0, "rgba(203,213,225,0)"); divLineR.addColorStop(0.5, "rgba(203,213,225,0.5)"); divLineR.addColorStop(1, "rgba(203,213,225,0)");
+  ctx.strokeStyle = divLineR; ctx.lineWidth = 1.5 * sc;
+  ctx.beginPath(); ctx.moveTo(rightX + 40 * sx, cardY + 95 * sy); ctx.lineTo(rightX + cardW - 40 * sx, cardY + 95 * sy); ctx.stroke();
+
+  ctx.shadowColor = "rgba(226,232,240,0.85)"; ctx.shadowBlur = 24 * sc;
+  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(72 * sc)}px Georgia, serif`;
+  ctx.fillText(rates.silver1gStr, rightCx, cardY + 195 * sy); ctx.shadowBlur = 0;
+
+  // === FOOTER (1600px to H) ===
+  const fY = 1600 * sy;
+  ctx.strokeStyle = acLine; ctx.lineWidth = 1.5 * sc;
+  ctx.beginPath(); ctx.moveTo(60 * sx, fY); ctx.lineTo(W - 60 * sx, fY); ctx.stroke();
+
+  const fGrad2 = ctx.createLinearGradient(0, fY + 10 * sy, 0, H);
+  fGrad2.addColorStop(0, "rgba(0,0,0,0)"); fGrad2.addColorStop(0.2, "rgba(4,16,60,0.96)"); fGrad2.addColorStop(1, "rgba(2,8,30,0.99)");
+  ctx.fillStyle = fGrad2; ctx.fillRect(0, fY + 10 * sy, W, H - (fY + 10 * sy));
+
+  // LEFT BOTTOM: Phone & Place
+  const phoneX2 = 60 * sx;
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(26 * sc)}px Arial, sans-serif`;
+  ctx.fillText("\uD83D\uDCDE " + phone, phoneX2, fY + 110 * sy);
+  ctx.fillStyle = "#B0D0F0"; ctx.font = `${Math.round(22 * sc)}px Arial, sans-serif`;
+  ctx.fillText("\uD83D\uDCCD " + city, phoneX2, fY + 155 * sy);
+
+  // RIGHT BOTTOM: BIS 916 Hallmark Emblem
+  if (hallmarkImg && hallmarkImg.complete && hallmarkImg.naturalWidth > 0) {
+    drawRealBIS916Hallmark(ctx, W - 160 * sx, fY + 132 * sy, sc * 0.78, "glass", hallmarkImg);
+  } else {
+    ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(18 * sc)}px Arial, sans-serif`;
+    ctx.textAlign = "right"; ctx.fillText("BIS 916 HALLMARKED", W - 40 * sx, fY + 132 * sy);
+  }
+
+  // BOTTOM CENTER: Tagline
   ctx.textAlign = "center";
-  ctx.fillText(shopName, canvasWidth / 2 - 45 * scaleX, topH / 2 - 7 * scaleY);
+  ctx.fillStyle = "rgba(165,207,255,0.75)"; ctx.font = `italic ${Math.round(23 * sc)}px Georgia, serif`;
+  ctx.fillText('"Excellence in Every Carat"', cx, fY + 250 * sy);
 
-  ctx.fillStyle = "#D4AF37";
-  ctx.font = `bold ${Math.round(18 * scale)}px sans-serif`;
-  ctx.fillText("SOLITAIRE & FINE JEWELLERY", canvasWidth / 2 - 45 * scaleX, topH / 2 + 28 * scaleY);
-
-  // Right: Authentic Official BIS 916 Hallmark Seal
-  drawRealBIS916Hallmark(ctx, canvasWidth - 160 * scaleX, topH / 2, scale * 0.88, "dark", hallmarkImg);
-
-  // Bottom Metallic Ticker Panel
-  const botH = 300 * scaleY;
-  const botY = canvasHeight - botH;
-  const botGrad = ctx.createLinearGradient(0, botY, 0, canvasHeight);
-  botGrad.addColorStop(0, "rgba(24, 20, 14, 0.94)");
-  botGrad.addColorStop(1, "rgba(8, 8, 8, 0.98)");
-  ctx.fillStyle = botGrad;
-  ctx.fillRect(0, botY, canvasWidth, botH);
-
-  ctx.strokeStyle = "#F3E5AB";
-  ctx.lineWidth = 3 * scale;
-  ctx.beginPath();
-  ctx.moveTo(0, botY);
-  ctx.lineTo(canvasWidth, botY);
-  ctx.stroke();
-
-  // Center Tagline
-  ctx.fillStyle = "#FAF9F5";
-  ctx.font = `bold ${Math.round(24 * scale)}px sans-serif`;
-  ctx.textAlign = "center";
-  ctx.fillText("100% BIS Hallmarked 22K Gold & Certified Solitaire Diamonds", canvasWidth / 2, botY + 42 * scaleY);
-
-  // Left Box: Silver Rate
-  const boxW = 430 * scaleX;
-  const boxH = 125 * scaleY;
-  const boxY = botY + 72 * scaleY;
-
-  const silX = 60 * scaleX;
-  ctx.fillStyle = "rgba(255, 255, 255, 0.10)";
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(silX, boxY, boxW, boxH, 20 * scale);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(243, 229, 171, 0.5)";
-  ctx.lineWidth = 2 * scale;
-  ctx.stroke();
-
-  ctx.fillStyle = "#D6D3D1";
-  ctx.font = `bold ${Math.round(20 * scale)}px sans-serif`;
-  ctx.fillText("SILVER RATE (999)", silX + boxW / 2, boxY + 38 * scaleY);
-
-  ctx.fillStyle = "#FFFFFF";
-  ctx.font = `bold ${Math.round(42 * scale)}px Cinzel, "Playfair Display", Georgia, serif`;
-  ctx.fillText(`${livePrices.silver999 || '₹94.50'} /g`, silX + boxW / 2, boxY + 92 * scaleY);
-
-  // Right Box: Gold Rate
-  const gldX = canvasWidth - boxW - 60 * scaleX;
-  ctx.fillStyle = "rgba(243, 229, 171, 0.14)";
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(gldX, boxY, boxW, boxH, 20 * scale);
-  ctx.fill();
-  ctx.strokeStyle = "#F3E5AB";
-  ctx.lineWidth = 2.5 * scale;
-  ctx.stroke();
-
-  ctx.fillStyle = "#FCD34D";
-  ctx.font = `bold ${Math.round(20 * scale)}px sans-serif`;
-  ctx.fillText("GOLD RATE (22K)", gldX + boxW / 2, boxY + 38 * scaleY);
-
-  ctx.fillStyle = "#F3E5AB";
-  ctx.font = `bold ${Math.round(42 * scale)}px Cinzel, "Playfair Display", Georgia, serif`;
-  ctx.fillText(`${livePrices.gold22k || '₹7,195'} /g`, gldX + boxW / 2, boxY + 92 * scaleY);
-
-  // Bottom Phone
-  ctx.fillStyle = "#F3E5AB";
-  ctx.font = `bold ${Math.round(26 * scale)}px Cinzel, sans-serif`;
-  ctx.textAlign = "center";
-  ctx.fillText(`Showroom Contact: ${shopInfo?.phonePrimary || "+91 99520 54493"}`, canvasWidth / 2, botY + 254 * scaleY);
-
+  ctx.fillStyle = slvGrad; ctx.fillRect(0, H - 6 * sy, W, 6 * sy);
   ctx.restore();
 };
+
+// ==============================
+// TEMPLATE 3: Forest Emerald & Traditional Gold
+// ==============================
+const drawTemplate3_BridalEmerald = (ctx, W, H, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null) => {
+  ctx.save();
+  const sx = W / 1080, sy = H / 1920, sc = Math.min(sx, sy);
+  const cx = W / 2;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase();
+  const rates = getFormattedRates(livePrices);
+  const phone = shopInfo?.phonePrimary || "+91 99520 54493";
+  const city = shopInfo?.city || "Tuticorin";
+
+  // TRANSLUCENT OVERLAY
+  ctx.fillStyle = "rgba(0, 10, 5, 0.20)";
+  ctx.fillRect(0, 0, W, H);
+
+  // Top header dark scrim gradient
+  const topScrim3 = ctx.createLinearGradient(0, 0, 0, 410 * sy);
+  topScrim3.addColorStop(0, "rgba(1, 35, 15, 0.95)");
+  topScrim3.addColorStop(0.75, "rgba(1, 35, 15, 0.75)");
+  topScrim3.addColorStop(1, "rgba(0, 10, 5, 0)");
+  ctx.fillStyle = topScrim3;
+  ctx.fillRect(0, 0, W, 410 * sy);
+
+  // Gold top line
+  const topGoldGrad = ctx.createLinearGradient(0, 0, W, 0);
+  topGoldGrad.addColorStop(0, "rgba(212,175,55,0.2)"); topGoldGrad.addColorStop(0.5, "#D4AF37"); topGoldGrad.addColorStop(1, "rgba(212,175,55,0.2)");
+  ctx.fillStyle = topGoldGrad; ctx.fillRect(0, 0, W, 7 * sy);
+
+  // Header content
+  drawShopLogoBadge(ctx, cx, 120 * sy, 50 * sc, shopLogoImg, shopName, sc);
+
+  ctx.shadowColor = "rgba(212,175,55,0.55)"; ctx.shadowBlur = 16 * sc;
+  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(58 * sc)}px Georgia, serif`;
+  ctx.textAlign = "center"; ctx.fillText(shopName, cx, 215 * sy); ctx.shadowBlur = 0;
+
+  ctx.fillStyle = "#6EE7B7"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
+  ctx.fillText("BRIDAL & TRADITIONAL JEWELLERY", cx, 250 * sy);
+
+  drawOrnamentalRule(ctx, 65 * sx, 275 * sy, W - 130 * sx, "#D4AF37", sc);
+
+  // BIGGER DATE (No emoji)
+  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(34 * sc)}px Georgia, serif`;
+  ctx.textAlign = "center"; ctx.fillText(dateStr, cx, 325 * sy);
+
+  drawOrnamentalRule(ctx, 70 * sx, 365 * sy, W - 140 * sx, "#D4AF37", sc);
+
+  // === SIDE-BY-SIDE CARDS (PLACED BELOW, AT Y = 1240px) ===
+  const cardY = 1240 * sy, cardH = 270 * sy, cardW = 480 * sx;
+  const leftX = 40 * sx, leftCx = leftX + cardW / 2;
+  const rightX = 560 * sx, rightCx = rightX + cardW / 2;
+
+  // LEFT CARD: GOLD 22K
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 16 * sc;
+  const gPanel3 = ctx.createLinearGradient(leftX, cardY, leftX, cardY + cardH);
+  gPanel3.addColorStop(0, "rgba(0,40,18,0.92)"); gPanel3.addColorStop(1, "rgba(0,22,10,0.95)");
+  ctx.fillStyle = gPanel3; ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.fill();
+  ctx.shadowBlur = 0; ctx.strokeStyle = "#D4AF37"; ctx.lineWidth = 2 * sc;
+  ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
+  ctx.textAlign = "center"; ctx.fillText("TODAY'S 22K GOLD RATE", leftCx, cardY + 42 * sy);
+  ctx.fillStyle = "#6EE7B7"; ctx.font = `bold ${Math.round(15 * sc)}px Arial, sans-serif`;
+  ctx.fillText("PER 1 GRAM", leftCx, cardY + 70 * sy);
+
+  drawOrnamentalRule(ctx, leftX + 40 * sx, cardY + 95 * sy, cardW - 80 * sx, "rgba(212,175,55,0.5)", sc);
+
+  ctx.shadowColor = "rgba(212,175,55,0.9)"; ctx.shadowBlur = 24 * sc;
+  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(72 * sc)}px Georgia, serif`;
+  ctx.fillText(rates.gold1gStr, leftCx, cardY + 195 * sy); ctx.shadowBlur = 0;
+
+  // RIGHT CARD: SILVER 999
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 16 * sc;
+  const sPanel3 = ctx.createLinearGradient(rightX, cardY, rightX, cardY + cardH);
+  sPanel3.addColorStop(0, "rgba(5,30,25,0.92)"); sPanel3.addColorStop(1, "rgba(2,15,12,0.95)");
+  ctx.fillStyle = sPanel3; ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.fill();
+  ctx.shadowBlur = 0; ctx.strokeStyle = "#CBD5E1"; ctx.lineWidth = 2 * sc;
+  ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle = "#CBD5E1"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
+  ctx.textAlign = "center"; ctx.fillText("TODAY'S 999 FINE SILVER", rightCx, cardY + 42 * sy);
+  ctx.fillStyle = "#94A3B8"; ctx.font = `bold ${Math.round(15 * sc)}px Arial, sans-serif`;
+  ctx.fillText("PER 1 GRAM", rightCx, cardY + 70 * sy);
+
+  drawOrnamentalRule(ctx, rightX + 40 * sx, cardY + 95 * sy, cardW - 80 * sx, "rgba(203,213,225,0.5)", sc);
+
+  ctx.shadowColor = "rgba(226,232,240,0.85)"; ctx.shadowBlur = 24 * sc;
+  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(72 * sc)}px Georgia, serif`;
+  ctx.fillText(rates.silver1gStr, rightCx, cardY + 195 * sy); ctx.shadowBlur = 0;
+
+  // === FOOTER (1600px to H) ===
+  const fY = 1600 * sy;
+  drawOrnamentalRule(ctx, 65 * sx, fY, W - 130 * sx, "#D4AF37", sc);
+
+  const fGrad3 = ctx.createLinearGradient(0, fY + 10 * sy, 0, H);
+  fGrad3.addColorStop(0, "rgba(0,0,0,0)"); fGrad3.addColorStop(0.2, "rgba(0,30,14,0.96)"); fGrad3.addColorStop(1, "rgba(0,10,5,0.99)");
+  ctx.fillStyle = fGrad3; ctx.fillRect(0, fY + 10 * sy, W, H - (fY + 10 * sy));
+
+  // LEFT BOTTOM: Phone & Place
+  const phoneX3 = 65 * sx;
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(26 * sc)}px Arial, sans-serif`;
+  ctx.fillText("\uD83D\uDCDE " + phone, phoneX3, fY + 110 * sy);
+  ctx.fillStyle = "#A7F3D0"; ctx.font = `${Math.round(22 * sc)}px Arial, sans-serif`;
+  ctx.fillText("\uD83D\uDCCD " + city, phoneX3, fY + 155 * sy);
+
+  // RIGHT BOTTOM: BIS 916 Hallmark Emblem
+  if (hallmarkImg && hallmarkImg.complete && hallmarkImg.naturalWidth > 0) {
+    drawRealBIS916Hallmark(ctx, W - 160 * sx, fY + 132 * sy, sc * 0.78, "emerald", hallmarkImg);
+  } else {
+    ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(18 * sc)}px Arial, sans-serif`;
+    ctx.textAlign = "right"; ctx.fillText("BIS 916 HALLMARKED", W - 40 * sx, fY + 132 * sy);
+  }
+
+  // BOTTOM CENTER: Tagline
+  ctx.textAlign = "center";
+  ctx.fillStyle = "rgba(200,255,210,0.75)"; ctx.font = `italic ${Math.round(23 * sc)}px Georgia, serif`;
+  ctx.fillText('"Your Heritage, Our Craft"', cx, fY + 250 * sy);
+
+  ctx.fillStyle = topGoldGrad; ctx.fillRect(0, H - 7 * sy, W, 7 * sy);
+  ctx.restore();
+};
+
+// ==============================
+// TEMPLATE 4: Champagne & Rose Gold
+// ==============================
+const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null) => {
+  ctx.save();
+  const sx = W / 1080, sy = H / 1920, sc = Math.min(sx, sy);
+  const cx = W / 2;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase();
+  const rates = getFormattedRates(livePrices);
+  const phone = shopInfo?.phonePrimary || "+91 99520 54493";
+  const city = shopInfo?.city || "Tuticorin";
+
+  // TRANSLUCENT OVERLAY
+  ctx.fillStyle = "rgba(15, 8, 4, 0.20)";
+  ctx.fillRect(0, 0, W, H);
+
+  // Top header dark scrim gradient
+  const topScrim4 = ctx.createLinearGradient(0, 0, 0, 410 * sy);
+  topScrim4.addColorStop(0, "rgba(40, 22, 8, 0.95)");
+  topScrim4.addColorStop(0.75, "rgba(40, 22, 8, 0.75)");
+  topScrim4.addColorStop(1, "rgba(15, 8, 4, 0)");
+  ctx.fillStyle = topScrim4;
+  ctx.fillRect(0, 0, W, 410 * sy);
+
+  // Rose gold side stripes
+  const lsW = 14 * sx;
+  const lsGrad = ctx.createLinearGradient(0, 0, lsW, 0);
+  lsGrad.addColorStop(0, "#A06040"); lsGrad.addColorStop(1, "#D4916A");
+  ctx.fillStyle = lsGrad; ctx.fillRect(0, 0, lsW, H);
+  const rsGrad = ctx.createLinearGradient(W - lsW, 0, W, 0);
+  rsGrad.addColorStop(0, "#D4916A"); rsGrad.addColorStop(1, "#A06040");
+  ctx.fillStyle = rsGrad; ctx.fillRect(W - lsW, 0, lsW, H);
+
+  const roseBar = ctx.createLinearGradient(0, 0, W, 0);
+  roseBar.addColorStop(0, "rgba(212,145,106,0.3)"); roseBar.addColorStop(0.5, "rgba(212,145,106,0.9)"); roseBar.addColorStop(1, "rgba(212,145,106,0.3)");
+  ctx.fillStyle = roseBar; ctx.fillRect(lsW, 0, W - lsW * 2, 6 * sy);
+
+  // Header content
+  drawShopLogoBadge(ctx, cx, 110 * sy, 50 * sc, shopLogoImg, shopName, sc);
+
+  ctx.shadowColor = "rgba(212,145,106,0.45)"; ctx.shadowBlur = 18 * sc;
+  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(58 * sc)}px Georgia, serif`;
+  ctx.textAlign = "center"; ctx.fillText(shopName, cx, 205 * sy); ctx.shadowBlur = 0;
+
+  ctx.fillStyle = "#D4916A"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
+  ctx.fillText("SOLITAIRE & FINE JEWELLERY", cx, 240 * sy);
+
+  drawOrnamentalRule(ctx, 75 * sx, 265 * sy, W - 150 * sx, "#C08050", sc);
+
+  // BIGGER DATE (No emoji)
+  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(34 * sc)}px Georgia, serif`;
+  ctx.textAlign = "center"; ctx.fillText(dateStr, cx, 320 * sy);
+
+  drawOrnamentalRule(ctx, 70 * sx, 360 * sy, W - 140 * sx, "#D4916A", sc);
+
+  // === SIDE-BY-SIDE CARDS (PLACED BELOW, AT Y = 1240px) ===
+  const cardY = 1240 * sy, cardH = 270 * sy, cardW = 480 * sx;
+  const leftX = 40 * sx, leftCx = leftX + cardW / 2;
+  const rightX = 560 * sx, rightCx = rightX + cardW / 2;
+
+  // LEFT CARD: GOLD 22K
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 16 * sc;
+  const gPanel4 = ctx.createLinearGradient(leftX, cardY, leftX, cardY + cardH);
+  gPanel4.addColorStop(0, "rgba(40,22,8,0.92)"); gPanel4.addColorStop(1, "rgba(20,10,4,0.95)");
+  ctx.fillStyle = gPanel4; ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.fill();
+  ctx.shadowBlur = 0; ctx.strokeStyle = "#D4916A"; ctx.lineWidth = 2 * sc;
+  ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle = "#D4916A"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
+  ctx.textAlign = "center"; ctx.fillText("TODAY'S 22K GOLD RATE", leftCx, cardY + 42 * sy);
+  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(15 * sc)}px Arial, sans-serif`;
+  ctx.fillText("PER 1 GRAM", leftCx, cardY + 70 * sy);
+
+  drawOrnamentalRule(ctx, leftX + 40 * sx, cardY + 95 * sy, cardW - 80 * sx, "rgba(212,145,106,0.5)", sc);
+
+  ctx.shadowColor = "rgba(212,145,106,0.9)"; ctx.shadowBlur = 24 * sc;
+  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(72 * sc)}px Georgia, serif`;
+  ctx.fillText(rates.gold1gStr, leftCx, cardY + 195 * sy); ctx.shadowBlur = 0;
+
+  // RIGHT CARD: SILVER 999
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 16 * sc;
+  const sPanel4 = ctx.createLinearGradient(rightX, cardY, rightX, cardY + cardH);
+  sPanel4.addColorStop(0, "rgba(22,16,12,0.92)"); sPanel4.addColorStop(1, "rgba(10,8,6,0.95)");
+  ctx.fillStyle = sPanel4; ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.fill();
+  ctx.shadowBlur = 0; ctx.strokeStyle = "#CBD5E1"; ctx.lineWidth = 2 * sc;
+  ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle = "#CBD5E1"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
+  ctx.textAlign = "center"; ctx.fillText("TODAY'S 999 FINE SILVER", rightCx, cardY + 42 * sy);
+  ctx.fillStyle = "#94A3B8"; ctx.font = `bold ${Math.round(15 * sc)}px Arial, sans-serif`;
+  ctx.fillText("PER 1 GRAM", rightCx, cardY + 70 * sy);
+
+  drawOrnamentalRule(ctx, rightX + 40 * sx, cardY + 95 * sy, cardW - 80 * sx, "rgba(203,213,225,0.5)", sc);
+
+  ctx.shadowColor = "rgba(226,232,240,0.85)"; ctx.shadowBlur = 24 * sc;
+  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(72 * sc)}px Georgia, serif`;
+  ctx.fillText(rates.silver1gStr, rightCx, cardY + 195 * sy); ctx.shadowBlur = 0;
+
+  // === FOOTER (1600px to H) ===
+  const fY = 1600 * sy;
+  drawOrnamentalRule(ctx, 75 * sx, fY, W - 150 * sx, "#C08050", sc);
+
+  const fGrad4 = ctx.createLinearGradient(0, fY + 10 * sy, 0, H);
+  fGrad4.addColorStop(0, "rgba(0,0,0,0)"); fGrad4.addColorStop(0.2, "rgba(28,16,6,0.96)"); fGrad4.addColorStop(1, "rgba(12,6,2,0.99)");
+  ctx.fillStyle = fGrad4; ctx.fillRect(0, fY + 10 * sy, W, H - (fY + 10 * sy));
+
+  // LEFT BOTTOM: Phone & Place
+  const phoneX4 = 75 * sx;
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#D4916A"; ctx.font = `bold ${Math.round(26 * sc)}px Arial, sans-serif`;
+  ctx.fillText("\uD83D\uDCDE " + phone, phoneX4, fY + 110 * sy);
+  ctx.fillStyle = "#C8A878"; ctx.font = `${Math.round(22 * sc)}px Arial, sans-serif`;
+  ctx.fillText("\uD83D\uDCCD " + city, phoneX4, fY + 155 * sy);
+
+  // RIGHT BOTTOM: BIS 916 Hallmark Emblem
+  if (hallmarkImg && hallmarkImg.complete && hallmarkImg.naturalWidth > 0) {
+    drawRealBIS916Hallmark(ctx, W - 160 * sx, fY + 132 * sy, sc * 0.78, "gold", hallmarkImg);
+  } else {
+    ctx.fillStyle = "#D4916A"; ctx.font = `bold ${Math.round(18 * sc)}px Arial, sans-serif`;
+    ctx.textAlign = "right"; ctx.fillText("BIS 916 HALLMARKED", W - 40 * sx, fY + 132 * sy);
+  }
+
+  // BOTTOM CENTER: Tagline
+  ctx.textAlign = "center";
+  ctx.fillStyle = "rgba(200,150,100,0.75)"; ctx.font = `italic ${Math.round(23 * sc)}px Georgia, serif`;
+  ctx.fillText('"Where Luxury Meets Tradition"', cx, fY + 250 * sy);
+
+  ctx.fillStyle = roseBar; ctx.fillRect(lsW, H - 6 * sy, W - lsW * 2, 6 * sy);
+  ctx.restore();
+};
+
 
 /**
  * Dispatcher function for drawing the selected overlay template
@@ -643,8 +882,81 @@ const drawStatusOverlay = (ctx, canvasWidth, canvasHeight, shopName, templateId 
 };
 
 // ==========================================
-// VIDEO CANVAS PREVIEW COMPONENT
-// ==========================================
+function ImageCanvasPreview({ imageUrl, shopName, templateId, drawOverlay, shopLogoImg, livePrices, shopInfo, hallmarkImg, onDataUrlReady }) {
+  const canvasRef = React.useRef(null);
+  const [isLoaded, setIsLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    let isSubscribed = true;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.width = 1080;
+    canvas.height = 1920;
+    const ctx = canvas.getContext("2d");
+
+    const render = async () => {
+      let bgImg = null;
+      if (imageUrl) {
+        bgImg = await loadSingleImage(imageUrl);
+      }
+      if (!isSubscribed) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
+        const imgAspect = bgImg.naturalWidth / bgImg.naturalHeight;
+        const canvasAspect = canvas.width / canvas.height;
+        let drawW, drawH, drawX, drawY;
+        if (imgAspect > canvasAspect) {
+          drawH = canvas.height;
+          drawW = drawH * imgAspect;
+          drawX = (canvas.width - drawW) / 2;
+          drawY = 0;
+        } else {
+          drawW = canvas.width;
+          drawH = drawW / imgAspect;
+          drawX = 0;
+          drawY = (canvas.height - drawH) / 2;
+        }
+        ctx.drawImage(bgImg, drawX, drawY, drawW, drawH);
+      } else {
+        const fallbackGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        fallbackGrad.addColorStop(0, "#1A0008");
+        fallbackGrad.addColorStop(0.5, "#2D000F");
+        fallbackGrad.addColorStop(1, "#0D0006");
+        ctx.fillStyle = fallbackGrad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      drawOverlay(ctx, canvas.width, canvas.height, shopName, templateId, shopLogoImg, livePrices, shopInfo, hallmarkImg);
+      setIsLoaded(true);
+
+      if (onDataUrlReady) {
+        try {
+          onDataUrlReady(canvas.toDataURL("image/png"));
+        } catch (e) {}
+      }
+    };
+
+    render();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [imageUrl, shopName, templateId, drawOverlay, shopLogoImg, livePrices, shopInfo, hallmarkImg, onDataUrlReady]);
+
+  return (
+    <div className="relative w-full h-full overflow-hidden rounded-2xl bg-stone-900 flex items-center justify-center">
+      <canvas ref={canvasRef} className="w-full h-full object-cover" />
+      {!isLoaded && (
+        <div className="absolute inset-0 bg-stone-950/70 backdrop-blur-xs flex flex-col items-center justify-center gap-3">
+          <Loader2 className="w-8 h-8 text-[#D4AF37] animate-spin" />
+          <span className="text-xs text-amber-200/90 font-medium">Generating HD Card...</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function VideoCanvasPreview({ videoUrl, shopName, templateId, drawOverlay, shopLogoImg, livePrices, shopInfo, hallmarkImg }) {
   const canvasRef = React.useRef(null);
@@ -745,8 +1057,8 @@ export default function WhatsAppStatusSection({ shopInfo }) {
   });
 
   const [livePrices, setLivePrices] = useState({
-    gold22k: "₹7,195",
-    silver999: "₹94.50",
+    gold22k: "\u20b97,195",
+    silver999: "\u20b994.50",
   });
 
   // Preload Official Golden BIS 916 Hallmark Logo Image
@@ -760,13 +1072,11 @@ export default function WhatsAppStatusSection({ shopInfo }) {
 
   // Preload Shop Logo Image whenever shopInfo.logo changes
   useEffect(() => {
-    const logoUrl = shopInfo?.logo || shopInfo?.logoUrl;
-    if (logoUrl) {
-      const img = new window.Image();
-      img.crossOrigin = "anonymous";
-      img.src = logoUrl;
-      img.onload = () => setLoadedShopLogo(img);
-      img.onerror = () => setLoadedShopLogo(null);
+    const rawLogoUrl = shopInfo?.logo || shopInfo?.logoUrl;
+    if (rawLogoUrl) {
+      loadSingleImage(rawLogoUrl).then((loadedImg) => {
+        setLoadedShopLogo(loadedImg);
+      });
     } else {
       setLoadedShopLogo(null);
     }
@@ -781,18 +1091,18 @@ export default function WhatsAppStatusSection({ shopInfo }) {
         ]);
 
         if (siteRes && siteRes.success === 1 && Array.isArray(siteRes.priceData)) {
-          let goldVal = "₹7,195";
-          let silverVal = "₹94.50";
+          let goldVal = "\u20b97,195";
+          let silverVal = "\u20b994.50";
           siteRes.priceData.forEach((item) => {
             const mat = (item.material || "").toLowerCase();
             const purity = (item.purity || "").toLowerCase();
             const price = Number(item.price);
             if (!isNaN(price) && price > 0) {
               if (mat === "gold" && purity.includes("22")) {
-                goldVal = `₹${price.toLocaleString("en-IN")}`;
+                goldVal = `\u20b9${price.toLocaleString("en-IN")}`;
               }
               if (mat === "silver" && (purity.includes("24") || purity.includes("925"))) {
-                silverVal = `₹${price.toLocaleString("en-IN")}`;
+                silverVal = `\u20b9${price.toLocaleString("en-IN")}`;
               }
             }
           });
@@ -815,38 +1125,38 @@ export default function WhatsAppStatusSection({ shopInfo }) {
   const statusButtons = [
     {
       id: 1,
-      label: "Royal Heritage",
-      desc: "Regal Double Gold Border",
+      label: "Royal Maroon & Gold",
+      desc: "Deep Burgundy, Filigree Mandala",
       theme: {
-        bg: "bg-gradient-to-br from-[#854D0E] via-[#A16207] to-[#713F12] hover:from-[#A16207] hover:to-[#854D0E]",
-        border: "border-[#FDE047]/60 hover:border-[#FFFFFF]",
+        bg: "bg-gradient-to-br from-[#6B0014] via-[#950020] to-[#3D0010] hover:from-[#950020] hover:to-[#6B0014]",
+        border: "border-[#D4AF37]/60 hover:border-[#FFFFFF]",
         shadow: "shadow-lg shadow-amber-950/40 hover:shadow-xl hover:shadow-amber-900/60",
-        iconWrapper: "bg-amber-950/80 border border-[#FDE047]/50 text-[#FEF08A]",
+        iconWrapper: "bg-red-950/80 border border-[#D4AF37]/50 text-[#FEF08A]",
         titleColor: "text-white font-serif",
         actionColor: "text-[#FEF08A] group-hover:text-white",
-        accentDot: "bg-[#FDE047]",
+        accentDot: "bg-[#D4AF37]",
       },
     },
     {
       id: 2,
-      label: "Modern Minimalist",
-      desc: "Clean Frosted Glass Panels",
+      label: "Midnight Navy & Diamond",
+      desc: "Deep Blue, Geometric Diamond Grid",
       theme: {
-        bg: "bg-gradient-to-br from-[#1E1B4B] via-[#312E81] to-[#0F172A] hover:from-[#312E81] hover:to-[#1E1B4B]",
-        border: "border-indigo-400/50 hover:border-indigo-200",
-        shadow: "shadow-lg shadow-indigo-950/40 hover:shadow-xl hover:shadow-indigo-900/60",
-        iconWrapper: "bg-indigo-950/80 border border-indigo-400/40 text-indigo-200",
+        bg: "bg-gradient-to-br from-[#06174A] via-[#0A2568] to-[#020D30] hover:from-[#0A2568] hover:to-[#06174A]",
+        border: "border-blue-400/50 hover:border-blue-100",
+        shadow: "shadow-lg shadow-blue-950/40 hover:shadow-xl hover:shadow-blue-900/60",
+        iconWrapper: "bg-blue-950/80 border border-blue-400/40 text-blue-200",
         titleColor: "text-white font-serif",
-        actionColor: "text-indigo-200 group-hover:text-white",
-        accentDot: "bg-indigo-300",
+        actionColor: "text-blue-200 group-hover:text-white",
+        accentDot: "bg-blue-300",
       },
     },
     {
       id: 3,
-      label: "Bridal Emerald",
-      desc: "Emerald & Gold Leaf Ribbons",
+      label: "Forest Emerald Traditional",
+      desc: "Deep Green, Lotus Floral Pattern",
       theme: {
-        bg: "bg-gradient-to-br from-[#064E3B] via-[#047857] to-[#022C22] hover:from-[#047857] hover:to-[#064E3B]",
+        bg: "bg-gradient-to-br from-[#013018] via-[#024E28] to-[#000D06] hover:from-[#024E28] hover:to-[#013018]",
         border: "border-emerald-400/50 hover:border-[#D4AF37]",
         shadow: "shadow-lg shadow-emerald-950/40 hover:shadow-xl hover:shadow-emerald-900/60",
         iconWrapper: "bg-emerald-950/80 border border-emerald-400/40 text-emerald-200",
@@ -857,19 +1167,20 @@ export default function WhatsAppStatusSection({ shopInfo }) {
     },
     {
       id: 4,
-      label: "Solitaire Dark",
-      desc: "Champagne Gold Ticker",
+      label: "Champagne Rose Gold",
+      desc: "Warm Brown, Editorial Layout",
       theme: {
-        bg: "bg-gradient-to-br from-[#581C87] via-[#6B21A8] to-[#3B0764] hover:from-[#6B21A8] hover:to-[#581C87]",
-        border: "border-purple-400/50 hover:border-amber-300",
-        shadow: "shadow-lg shadow-purple-950/40 hover:shadow-xl hover:shadow-purple-900/60",
-        iconWrapper: "bg-purple-950/80 border border-purple-400/40 text-purple-200",
+        bg: "bg-gradient-to-br from-[#2E1A0A] via-[#3D2210] to-[#1A0D05] hover:from-[#3D2210] hover:to-[#2E1A0A]",
+        border: "border-[#D4916A]/50 hover:border-amber-300",
+        shadow: "shadow-lg shadow-amber-950/40 hover:shadow-xl hover:shadow-amber-900/60",
+        iconWrapper: "bg-amber-950/80 border border-[#D4916A]/40 text-[#D4916A]",
         titleColor: "text-white font-serif",
-        actionColor: "text-purple-200 group-hover:text-white",
-        accentDot: "bg-purple-300",
+        actionColor: "text-[#D4916A] group-hover:text-white",
+        accentDot: "bg-[#D4916A]",
       },
     },
   ];
+
 
   const statusVideos = [
     {
@@ -900,34 +1211,6 @@ export default function WhatsAppStatusSection({ shopInfo }) {
         accentDot: "bg-cyan-200",
       },
     },
-    {
-      id: 3,
-      label: "Bridal Emerald Reel",
-      desc: "Emerald Banner Reel",
-      theme: {
-        bg: "bg-gradient-to-br from-[#7C2D12] via-[#C2410C] to-[#431407] hover:from-[#C2410C] hover:to-[#7C2D12]",
-        border: "border-orange-400/60 hover:border-white",
-        shadow: "shadow-lg shadow-orange-950/40 hover:shadow-xl hover:shadow-orange-900/60",
-        iconWrapper: "bg-orange-950/80 border border-orange-400/40 text-orange-200",
-        titleColor: "text-white font-serif",
-        actionColor: "text-orange-200 group-hover:text-white",
-        accentDot: "bg-orange-300",
-      },
-    },
-    {
-      id: 4,
-      label: "Solitaire Dark Reel",
-      desc: "Champagne Ticker Reel",
-      theme: {
-        bg: "bg-gradient-to-br from-[#831843] via-[#BE185D] to-[#500724] hover:from-[#BE185D] hover:to-[#831843]",
-        border: "border-pink-400/60 hover:border-white",
-        shadow: "shadow-lg shadow-pink-950/40 hover:shadow-xl hover:shadow-pink-900/60",
-        iconWrapper: "bg-pink-950/80 border border-pink-400/40 text-pink-200",
-        titleColor: "text-white font-serif",
-        actionColor: "text-pink-200 group-hover:text-white",
-        accentDot: "bg-pink-300",
-      },
-    },
   ];
 
   const [previewData, setPreviewData] = useState(null);
@@ -936,7 +1219,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
   /**
    * Generates a high-resolution 1080x1920 9:16 Status Card PNG for a given template
    */
-  const generateImageCardDataUrl = (label, cardNum, templateId = 1, imageUrl = '') => {
+  const generateImageCardDataUrl = (label, cardNum, templateId = 1, bgImageUrl = null) => {
     return new Promise(async (resolve) => {
       try {
         const canvas = document.createElement("canvas");
@@ -956,28 +1239,52 @@ export default function WhatsAppStatusSection({ shopInfo }) {
           activeHallmarkLogo = await loadSingleImage("/bis_916_hallmark.png");
         }
 
-        const getRandomImg = Math.floor(Math.random() * 30) + 1;
+        const activeSubdomain = getTenantSubdomain();
+        const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase() + " JEWELLERY";
+        const shopNameStr = (shopInfo?.name || defaultShopName).toUpperCase();
 
-        const img = new window.Image();
-        img.crossOrigin = "anonymous";
-        img.src = imageUrl || `/aadagam (${getRandomImg}).png`;
+        if (bgImageUrl) {
+          const bgImg = await loadSingleImage(bgImageUrl);
+          if (bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
+            const imgAspect = bgImg.naturalWidth / bgImg.naturalHeight;
+            const canvasAspect = canvas.width / canvas.height;
+            let drawW, drawH, drawX, drawY;
+            if (imgAspect > canvasAspect) {
+              drawH = canvas.height;
+              drawW = drawH * imgAspect;
+              drawX = (canvas.width - drawW) / 2;
+              drawY = 0;
+            } else {
+              drawW = canvas.width;
+              drawH = drawW / imgAspect;
+              drawX = 0;
+              drawY = (canvas.height - drawH) / 2;
+            }
+            ctx.drawImage(bgImg, drawX, drawY, drawW, drawH);
+          } else {
+            const fallbackGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            fallbackGrad.addColorStop(0, "#1A0008");
+            fallbackGrad.addColorStop(0.5, "#2D000F");
+            fallbackGrad.addColorStop(1, "#0D0006");
+            ctx.fillStyle = fallbackGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          }
+        } else {
+          const fallbackGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+          fallbackGrad.addColorStop(0, "#1A0008");
+          fallbackGrad.addColorStop(0.5, "#2D000F");
+          fallbackGrad.addColorStop(1, "#0D0006");
+          ctx.fillStyle = fallbackGrad;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
 
-        img.onload = () => {
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        drawStatusOverlay(ctx, canvas.width, canvas.height, shopNameStr, templateId, activeShopLogo, livePrices, shopInfo, activeHallmarkLogo);
 
-          const activeSubdomain = getTenantSubdomain();
-          const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase() + " JEWELLERY";
-          const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
-
-          drawStatusOverlay(ctx, canvas.width, canvas.height, shopName, templateId, activeShopLogo, livePrices, shopInfo, activeHallmarkLogo);
-
-          resolve({
-            dataUrl: canvas.toDataURL("image/png"),
-            shopName,
-            cardNum,
-          });
-        };
-        img.onerror = () => resolve(null);
+        resolve({
+          dataUrl: canvas.toDataURL("image/png"),
+          shopName: shopNameStr,
+          cardNum,
+        });
       } catch (e) {
         console.warn("Canvas preview error:", e);
         resolve(null);
@@ -985,28 +1292,30 @@ export default function WhatsAppStatusSection({ shopInfo }) {
     });
   };
 
-  const handleOpenImagePreview = async (btn) => {
-    setIsPreviewLoading(true);
-    const randomImageNumber = Math.floor(Math.random() * 50) + 1;
-    let selectedAssetUrl = '';
-    if (basicAssets.images && basicAssets.images.length > 0) {
-      selectedAssetUrl = basicAssets.images[(btn.id - 1) % basicAssets.images.length];
-    }
-    const result = await generateImageCardDataUrl(btn.label, randomImageNumber, btn.id, selectedAssetUrl);
+  const handleOpenImagePreview = (btn) => {
+    const activeSubdomain = getTenantSubdomain();
+    const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase() + " JEWELLERY";
+    const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
 
-    if (result && result.dataUrl) {
-      setPreviewData({
-        type: "image",
-        title: btn.label,
-        subtitle: `Daily Rates Card - Template ${btn.id}`,
-        previewUrl: result.dataUrl,
-        cardNum: randomImageNumber,
-        templateId: btn.id,
-        shopName: result.shopName,
-        item: btn,
-      });
+    let selectedAssetUrl = "";
+    if (basicAssets.images && basicAssets.images.length > 0) {
+      const randIdx = Math.floor(Math.random() * basicAssets.images.length);
+      const imgObj = basicAssets.images[randIdx];
+      selectedAssetUrl = typeof imgObj === "string" ? imgObj : (imgObj?.url || imgObj?.image || imgObj?.src || "");
     }
-    setIsPreviewLoading(false);
+    const randomImageNumber = Math.floor(Math.random() * 30) + 1;
+    const finalImgUrl = selectedAssetUrl || `/aadagam (${randomImageNumber}).png`;
+
+    setPreviewData({
+      type: "image",
+      title: btn.label,
+      subtitle: `Daily Rates Card - Template ${btn.id}`,
+      previewUrl: finalImgUrl,
+      cardNum: randomImageNumber,
+      templateId: btn.id,
+      shopName: shopName,
+      item: btn,
+    });
   };
 
   const handleOpenVideoPreview = (vid) => {
@@ -1014,15 +1323,22 @@ export default function WhatsAppStatusSection({ shopInfo }) {
     const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase() + " JEWELLERY";
     const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
 
+    let selectedVideoUrl = "";
+    if (basicAssets.videos && basicAssets.videos.length > 0) {
+      const randIdx = Math.floor(Math.random() * basicAssets.videos.length);
+      const vidObj = basicAssets.videos[randIdx];
+      selectedVideoUrl = typeof vidObj === "string" ? vidObj : (vidObj?.url || vidObj?.video || vidObj?.src || "");
+    }
     const randomVideoNumber = Math.floor(Math.random() * 10) + 1;
-    const randomFile = `aadagam${randomVideoNumber}.mp4`;
+    const fallbackFile = `aadagam${randomVideoNumber}.mp4`;
+    const finalVidUrl = selectedVideoUrl || `/status_videos/${fallbackFile}`;
 
     setPreviewData({
       type: "video",
       title: vid.label,
       subtitle: `WhatsApp Status Reel - Template ${vid.id}`,
-      previewUrl: `/status_videos/${randomFile}`,
-      fileName: randomFile,
+      previewUrl: finalVidUrl,
+      fileName: fallbackFile,
       videoNumber: randomVideoNumber,
       templateId: vid.id,
       shopName: shopName,
@@ -1063,11 +1379,11 @@ export default function WhatsAppStatusSection({ shopInfo }) {
     const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
     const cleanName = shopName.toLowerCase().replace(/\s+/g, "_");
 
-    const videoPath = `/status_videos/${fileName || `aadagam${videoNumber}.mp4`}`;
+    const videoPath = previewData?.previewUrl || `/status_videos/${fileName || `aadagam${videoNumber}.mp4`}`;
 
     try {
       const video = document.createElement("video");
-      video.src = videoPath;
+      video.src = resolveFullImageUrl(videoPath);
       video.crossOrigin = "anonymous";
       video.muted = true;
       video.playsInline = true;
@@ -1150,7 +1466,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
     } catch (err) {
       console.warn("Video branding fallback to direct download:", err);
       const link = document.createElement("a");
-      link.href = videoPath;
+      link.href = resolveFullImageUrl(videoPath);
       link.download = `${cleanName}_template${templateId}_whatsapp_status_video_${videoNumber}.mp4`;
       document.body.appendChild(link);
       link.click();
@@ -1170,8 +1486,8 @@ export default function WhatsAppStatusSection({ shopInfo }) {
   };
 
   const handleVideoDownload = () => {
-    const randomVideoNumber = Math.floor(Math.random() * 4) + 1;
-    const target = statusVideos.find((v) => v.id === randomVideoNumber) || statusVideos[0];
+    const randomIdx = Math.floor(Math.random() * statusVideos.length);
+    const target = statusVideos[randomIdx] || statusVideos[0];
     handleOpenVideoPreview(target);
   };
 
@@ -1191,7 +1507,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
             Luxury Branded Templates for Status & Reels
           </h2>
           <p className="text-stone-600 text-xs sm:text-sm font-light leading-relaxed">
-            Choose from 4 elegant image templates and 4 video reel templates stamped with live gold & silver rates, official BIS 916 Hallmark logo, and your showroom emblem.
+            Choose from 4 elegant image templates and 2 video reel templates stamped with live gold & silver rates, official BIS 916 Hallmark logo, and your showroom emblem.
           </p>
         </div>
 
@@ -1251,13 +1567,13 @@ export default function WhatsAppStatusSection({ shopInfo }) {
           <div className="relative flex items-center justify-center">
             <div className="border-t border-stone-200 w-full" />
             <span className="bg-white px-3 text-[10px] uppercase tracking-wider font-bold text-stone-400 absolute">
-              HD Video Status Templates (4 Reel Styles)
+              HD Video Status Templates (2 Reel Styles)
             </span>
           </div>
 
-          {/* Row 2: 4 Status Video Templates */}
+          {/* Row 2: 2 Status Video Templates */}
           <div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-xl mx-auto">
               {statusVideos.map((vid) => {
                 const { theme } = vid;
                 return (
@@ -1346,10 +1662,18 @@ export default function WhatsAppStatusSection({ shopInfo }) {
             <div className="w-full md:w-1/2 flex flex-col items-center justify-center">
               <div className="relative aspect-[9/16] w-full max-w-[280px] sm:max-w-[300px] rounded-2xl overflow-hidden shadow-2xl border-2 border-[#D4AF37]/60 bg-stone-900 group">
                 {previewData.type === "image" ? (
-                  <img
-                    src={previewData.previewUrl}
-                    alt={previewData.title}
-                    className="w-full h-full object-cover"
+                  <ImageCanvasPreview
+                    imageUrl={previewData.previewUrl}
+                    shopName={previewData.shopName}
+                    templateId={previewData.templateId || 1}
+                    drawOverlay={drawStatusOverlay}
+                    shopLogoImg={loadedShopLogo}
+                    livePrices={livePrices}
+                    shopInfo={shopInfo}
+                    hallmarkImg={loadedHallmarkLogo}
+                    onDataUrlReady={(dataUrl) => {
+                      setPreviewData((prev) => (prev ? { ...prev, generatedDataUrl: dataUrl } : null));
+                    }}
                   />
                 ) : (
                   <VideoCanvasPreview
@@ -1422,8 +1746,15 @@ export default function WhatsAppStatusSection({ shopInfo }) {
               <div className="space-y-3 pt-2">
                 {previewData.type === "image" ? (
                   <button
-                    onClick={() => {
-                      triggerImageDownloadFromDataUrl(previewData.previewUrl, previewData.title, previewData.cardNum, previewData.templateId);
+                    onClick={async () => {
+                      let dataUrl = previewData.generatedDataUrl;
+                      if (!dataUrl) {
+                        const res = await generateImageCardDataUrl(previewData.title, previewData.cardNum, previewData.templateId, previewData.previewUrl);
+                        dataUrl = res?.dataUrl;
+                      }
+                      if (dataUrl) {
+                        triggerImageDownloadFromDataUrl(dataUrl, previewData.title, previewData.cardNum, previewData.templateId);
+                      }
                       setPreviewData(null);
                     }}
                     className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-stone-950 font-bold py-3.5 px-6 rounded-2xl text-xs sm:text-sm tracking-wider uppercase shadow-lg shadow-amber-500/20 hover:scale-[1.01] transition-all cursor-pointer"

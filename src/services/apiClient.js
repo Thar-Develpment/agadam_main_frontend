@@ -36,6 +36,30 @@ export const apiClient = axios.create({
   },
 });
 
+/**
+ * Resolves a full image URL given a relative or absolute path from backend.
+ * E.g., "/opxXxolN7m6CU/upload/file.png" -> "https://aadagamback.in/opxXxolN7m6CU/upload/file.png"
+ * "opxXxolN7m6CU/upload" -> "https://aadagamback.in/opxXxolN7m6CU/upload"
+ * @param {string} url 
+ * @returns {string}
+ */
+export function resolveFullImageUrl(url) {
+  if (!url || typeof url !== "string") return "";
+  const clean = url.trim();
+  if (!clean) return "";
+
+  if (clean.startsWith("http://") || clean.startsWith("https://") || clean.startsWith("data:") || clean.startsWith("blob:")) {
+    return clean;
+  }
+
+  const baseUrl = API_BASE_URL.replace(/\/+$/, "");
+  if (clean.startsWith("/")) {
+    return `${baseUrl}${clean}`;
+  }
+
+  return `${baseUrl}/${clean}`;
+}
+
 // Request Interceptor: Automatically attach JWT token if available in storage
 apiClient.interceptors.request.use(
   (config) => {

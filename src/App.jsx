@@ -26,7 +26,7 @@ import VideoGallery from "./components/VideoGallery";
 import ContactSection from "./components/ContactSection";
 import Footer from "./components/Footer";
 import { Gem, Loader2, Sparkles, Lock, AlertCircle } from "lucide-react";
-import { getTenantSubdomain, getShopPrefix, isTenantSubdomainHost } from "./services/apiClient";
+import { getTenantSubdomain, getShopPrefix, isTenantSubdomainHost, resolveFullImageUrl } from "./services/apiClient";
 
 /**
  * Client Storefront Website Page ("/shop")
@@ -93,7 +93,7 @@ function ClientStorefrontPage() {
         setShopInfo({
           ...baseContact,
           name: liveSiteData.shop_name ? (liveSiteData.shop_name.toUpperCase() + " JEWELLERY") : (shopPrefix.toUpperCase() + " JEWELLERY"),
-          logo: liveSiteData.logo || baseContact.logo || "",
+          logo: resolveFullImageUrl(liveSiteData.logo || baseContact.logo || ""),
           email: liveSiteData.contact_us || baseContact.email || `contact@${shopPrefix}jewellery.com`,
           contact_us: liveSiteData.contact_us || baseContact.email || `contact@${shopPrefix}jewellery.com`,
           city: liveSiteData.city || baseContact.city || "",
