@@ -109,7 +109,7 @@ export default function GoldRateSection({ shopInfo }) {
           </div>
 
           <div className="hidden md:flex items-center gap-2 text-xs font-mono text-stone-700 bg-stone-100/90 px-4 py-2 rounded-2xl border border-stone-200 shadow-xs">
-            <Award className="w-4 h-4 text-[#B8860B]" />
+            <img src="/bis_916_hallmark.png" alt="BIS 916 Hallmark" className="h-5 object-contain bg-white/90 px-1 py-0.5 rounded" />
             <span>100% Certified Purity Guaranteed</span>
           </div>
         </div>
@@ -167,7 +167,7 @@ export default function GoldRateSection({ shopInfo }) {
                   PER 1 GRAM RATE
                 </span>
                 <div className="flex items-baseline gap-2 mt-1">
-                  <span className="font-serif text-4xl sm:text-5xl font-black text-[#2B0E01] tracking-tight filter drop-shadow-[0_1px_2px_rgba(255,255,255,0.4)]">
+                  <span className="font-number text-4xl sm:text-5xl font-black text-[#2B0E01] tracking-tight filter drop-shadow-[0_1px_2px_rgba(255,255,255,0.4)]">
                     {formatPrice(rates.gold.pricePerGram)}
                   </span>
                 </div>
@@ -177,7 +177,7 @@ export default function GoldRateSection({ shopInfo }) {
             {/* Card Footer Hallmark Certification */}
             <div className="pt-4 mt-6 border-t border-[#78350F]/20 flex items-center justify-between text-xs font-mono font-bold text-[#361302] relative z-10">
               <span className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-[#78350F]" />
+                <img src="/bis_916_hallmark.png" alt="BIS 916 Hallmark" className="h-6 object-contain bg-white/95 px-1.5 py-0.5 rounded shadow-sm border border-[#D4AF37]/40" />
                 <span>{rates.gold.hallmark}</span>
               </span>
               <span className="inline-flex items-center gap-1 text-[10px] font-sans text-[#FEF3C7] bg-[#522409] px-2.5 py-1 rounded-md border border-[#78350F] font-semibold shadow-xs">
@@ -237,7 +237,7 @@ export default function GoldRateSection({ shopInfo }) {
                   PER 1 GRAM RATE
                 </span>
                 <div className="flex items-baseline gap-2 mt-1">
-                  <span className="font-serif text-4xl sm:text-5xl font-black text-[#090D16] tracking-tight filter drop-shadow-[0_1px_2px_rgba(255,255,255,0.6)]">
+                  <span className="font-number text-4xl sm:text-5xl font-black text-[#090D16] tracking-tight filter drop-shadow-[0_1px_2px_rgba(255,255,255,0.6)]">
                     {formatPrice(rates.silver.pricePerGram)}
                   </span>
                 </div>

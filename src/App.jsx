@@ -62,9 +62,23 @@ function ClientStorefrontPage() {
         const subdomain = getTenantSubdomain();
         const shopPrefix = getShopPrefix(subdomain);
 
-        const [info, siteInfoRes, slideData, videoData, aboutData, categoryData] = await Promise.all([
+        // 1. Guard Check: Verify payment status via site_info first
+        const siteInfoRes = await getSiteInfo(shopPrefix);
+
+        if (siteInfoRes && siteInfoRes.paymentPending) {
+          setIsSuspended(true);
+          setSuspendedMessage(
+            siteInfoRes.message === "Payment pending"
+              ? "Your showroom subscription payment is pending. Please contact platform support to activate your showroom."
+              : "Showroom not found or deactivated."
+          );
+          setIsLoading(false);
+          return;
+        }
+
+        // 2. Load remaining storefront APIs only if payment status is valid
+        const [info, slideData, videoData, aboutData, categoryData] = await Promise.all([
           getContactInfo(),
-          getSiteInfo(shopPrefix),
           getSlides(),
           getVideos(),
           getAboutContent(),

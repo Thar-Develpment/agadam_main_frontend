@@ -9,6 +9,7 @@
     --bg-main: #FFFFFF;
     --font-serif: 'Cormorant Garamond', Georgia, serif;
     --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-number: 'Cinzel', 'Playfair Display', Georgia, serif;
   }
 
   html {
@@ -24,6 +25,11 @@
 
   h1, h2, h3, h4, .font-serif {
     font-family: var(--font-serif);
+  }
+
+  .font-number {
+    font-family: var(--font-number);
+    font-variant-numeric: tabular-nums lining-nums;
   }
 
   /* Disable browser native password reveal icon (e.g. MS Edge / IE) to prevent duplicate eye icons */

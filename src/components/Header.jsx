@@ -61,7 +61,7 @@ export default function Header({ shopInfo }) {
     <>
       {/* Top Banner Notice */}
       <div className="bg-stone-900 text-[#D4AF37] text-xs py-2 px-4 text-center border-b border-[#D4AF37]/20 flex items-center justify-center gap-2">
-        <Sparkles className="w-3.5 h-3.5 animate-pulse text-[#D4AF37]" />
+        <img src="/bis_916_hallmark.png" alt="BIS 916 Hallmark" className="h-4 object-contain bg-white/95 px-1 py-0.5 rounded shadow-xs shrink-0" />
         <span className="font-medium tracking-wide">
           {shopInfo?.announcement || "100% BIS Hallmarked 22K Gold & Certified Solitaire Diamonds"}
         </span>

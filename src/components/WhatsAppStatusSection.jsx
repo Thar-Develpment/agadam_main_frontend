@@ -3,7 +3,650 @@ import { Download, Sparkles, Video, Image, CheckCircle2, Loader2, X, Play } from
 import { getSiteInfo, getBasicAssets } from "../services/api";
 import { getTenantSubdomain, getShopPrefix } from "../services/apiClient";
 
-function VideoCanvasPreview({ videoUrl, shopName, drawOverlay }) {
+// ==========================================
+// CANVAS VECTOR EMBLEM & OVERLAY DRAWING HELPERS
+// ==========================================
+
+/**
+ * Draws the Shop Logo inside a circular badge or fallback luxury shop monogram emblem on Canvas
+ */
+const drawShopLogoBadge = (ctx, centerX, centerY, radius, shopLogoImg, shopName, scale = 1) => {
+  ctx.save();
+  
+  if (shopLogoImg && shopLogoImg.complete && shopLogoImg.naturalWidth > 0) {
+    ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+    ctx.shadowBlur = 8 * scale;
+
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fill();
+    
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius - 3 * scale, 0, Math.PI * 2);
+    ctx.clip();
+    
+    const aspect = shopLogoImg.naturalWidth / shopLogoImg.naturalHeight;
+    let drawW = radius * 1.65;
+    let drawH = drawW / aspect;
+    if (drawH > radius * 1.65) {
+      drawH = radius * 1.65;
+      drawW = drawH * aspect;
+    }
+    ctx.drawImage(shopLogoImg, centerX - drawW / 2, centerY - drawH / 2, drawW, drawH);
+    ctx.restore();
+
+    ctx.strokeStyle = "#D4AF37";
+    ctx.lineWidth = 3.5 * scale;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.stroke();
+  } else {
+    // Luxury Shop Monogram Emblem Medallion (Fallback when shop image logo is not set)
+    ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+    ctx.shadowBlur = 10 * scale;
+
+    // Outer Gold Medallion Gradient
+    const goldGrad = ctx.createLinearGradient(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
+    goldGrad.addColorStop(0, "#78590F");
+    goldGrad.addColorStop(0.5, "#D4AF37");
+    goldGrad.addColorStop(1, "#FFF6D4");
+    ctx.fillStyle = goldGrad;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Inner Obsidian Background
+    const innerGrad = ctx.createLinearGradient(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
+    innerGrad.addColorStop(0, "#261B02");
+    innerGrad.addColorStop(1, "#0D0801");
+    ctx.fillStyle = innerGrad;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius - 4 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#FDE68A";
+    ctx.lineWidth = 1.8 * scale;
+    ctx.stroke();
+
+    // Shop Initial Monogram Letter
+    const shopInitial = (shopName || "S").trim().charAt(0).toUpperCase();
+    ctx.fillStyle = "#FDE68A";
+    ctx.font = `bold ${Math.round(radius * 1.05)}px Georgia, serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(shopInitial, centerX, centerY + 2 * scale);
+  }
+  
+  ctx.restore();
+};
+
+const loadSingleImage = (url) => {
+  return new Promise((resolve) => {
+    if (!url) return resolve(null);
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.src = url;
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+  });
+};
+
+/**
+ * Draws the Authentic, Official Gold BIS 916 Hallmark Logo Image on Canvas
+ */
+const drawRealBIS916Hallmark = (ctx, centerX, centerY, scale = 1, style = "gold", hallmarkImg = null) => {
+  ctx.save();
+  
+  if (hallmarkImg && hallmarkImg.complete && hallmarkImg.naturalWidth > 0) {
+    const aspect = hallmarkImg.naturalWidth / hallmarkImg.naturalHeight;
+    const drawW = 230 * scale;
+    const drawH = drawW / aspect;
+    const drawX = centerX - drawW / 2;
+    const drawY = centerY - drawH / 2;
+
+    const padX = 14 * scale;
+    const padY = 8 * scale;
+    const badgeX = drawX - padX;
+    const badgeY = drawY - padY;
+    const badgeW = drawW + padX * 2;
+    const badgeH = drawH + padY * 2;
+
+    ctx.save();
+    ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+    ctx.shadowBlur = 10 * scale;
+
+    if (style === "emerald") {
+      const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeW, badgeY + badgeH);
+      grad.addColorStop(0, "rgba(4, 47, 36, 0.98)");
+      grad.addColorStop(1, "rgba(2, 44, 34, 0.98)");
+      ctx.fillStyle = grad;
+      ctx.strokeStyle = "#D4AF37";
+    } else if (style === "dark") {
+      const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeW, badgeY + badgeH);
+      grad.addColorStop(0, "rgba(22, 18, 12, 0.98)");
+      grad.addColorStop(1, "rgba(8, 8, 8, 0.98)");
+      ctx.fillStyle = grad;
+      ctx.strokeStyle = "#F3E5AB";
+    } else if (style === "glass") {
+      ctx.fillStyle = "rgba(255, 255, 255, 0.96)";
+      ctx.strokeStyle = "#D4AF37";
+    } else {
+      // Luxury Gold Background for the Official 916 Hallmark Logo
+      const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeW, badgeY + badgeH);
+      grad.addColorStop(0, "rgba(255, 255, 255, 0.98)");
+      grad.addColorStop(1, "rgba(254, 243, 199, 0.96)");
+      ctx.fillStyle = grad;
+      ctx.strokeStyle = "#D4AF37";
+    }
+
+    ctx.lineWidth = 3 * scale;
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 16 * scale);
+    } else {
+      ctx.rect(badgeX, badgeY, badgeW, badgeH);
+    }
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.drawImage(hallmarkImg, drawX, drawY, drawW, drawH);
+    ctx.restore();
+    ctx.restore();
+    return;
+  }
+
+  // Vector Fallback if Image is loading
+  const w = 220 * scale;
+  const h = 72 * scale;
+  const left = centerX - w / 2;
+  const top = centerY - h / 2;
+
+  ctx.fillStyle = "rgba(26, 22, 16, 0.96)";
+  ctx.strokeStyle = "#D4AF37";
+  ctx.lineWidth = 3 * scale;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(left, top, w, h, 16 * scale);
+  else ctx.rect(left, top, w, h);
+  ctx.fill();
+  ctx.stroke();
+
+  // BIS Triangle mark
+  const triCenterX = left + 40 * scale;
+  const triCenterY = centerY - 2 * scale;
+  const triSize = 20 * scale;
+
+  ctx.fillStyle = "#D4AF37";
+  ctx.beginPath();
+  ctx.moveTo(triCenterX, triCenterY - triSize * 0.95);
+  ctx.lineTo(triCenterX + triSize * 0.95, triCenterY + triSize * 0.75);
+  ctx.lineTo(triCenterX - triSize * 0.95, triCenterY + triSize * 0.75);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = `900 ${Math.round(30 * scale)}px Cinzel, serif`;
+  ctx.textAlign = "left";
+  ctx.fillText("916", left + 72 * scale, centerY + 5 * scale);
+
+  ctx.restore();
+};
+
+// ==========================================
+// 4 DISTINCT ELEGANT OVERLAY TEMPLATE RENDERERS
+// ==========================================
+
+/**
+ * TEMPLATE 1: Royal Heritage Gold (Classic Regal Luxury)
+ */
+const drawTemplate1_RoyalHeritage = (ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null) => {
+  ctx.save();
+  const scaleX = canvasWidth / 1080;
+  const scaleY = canvasHeight / 1920;
+  const scale = Math.min(scaleX, scaleY);
+  const centerX = canvasWidth / 2;
+
+  // Double Ornate Gold Frame
+  const margin = 28 * scale;
+  ctx.strokeStyle = "#D4AF37";
+  ctx.lineWidth = 5 * scale;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(margin, margin, canvasWidth - 2 * margin, canvasHeight - 2 * margin, 36 * scale);
+  else ctx.rect(margin, margin, canvasWidth - 2 * margin, canvasHeight - 2 * margin);
+  ctx.stroke();
+
+  ctx.strokeStyle = "rgba(243, 229, 171, 0.6)";
+  ctx.lineWidth = 2 * scale;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(margin + 10 * scale, margin + 10 * scale, canvasWidth - 2 * (margin + 10 * scale), canvasHeight - 2 * (margin + 10 * scale), 26 * scale);
+  ctx.stroke();
+
+  // Top Shop Logo Emblem
+  const logoY = 145 * scaleY;
+  drawShopLogoBadge(ctx, centerX, logoY, 58 * scale, shopLogoImg, shopName, scale);
+
+  // Shop Name & Subheader
+  ctx.fillStyle = "#D4AF37";
+  ctx.font = `bold ${Math.round(58 * scale)}px Georgia, serif`;
+  ctx.textAlign = "center";
+  ctx.fillText(shopName, centerX, 255 * scaleY);
+
+  ctx.fillStyle = "#FAF9F5";
+  ctx.font = `bold ${Math.round(24 * scale)}px sans-serif`;
+  ctx.fillText("ROYAL HERITAGE SHOWROOM COLLECTION", centerX, 305 * scaleY);
+
+  // Decorative Divider
+  ctx.strokeStyle = "#D4AF37";
+  ctx.lineWidth = 3 * scale;
+  ctx.beginPath();
+  ctx.moveTo(centerX - 210 * scaleX, 345 * scaleY);
+  ctx.lineTo(centerX + 210 * scaleX, 345 * scaleY);
+  ctx.stroke();
+
+  // Official BIS 916 Hallmark Logo Image Badge (Positioned with zero collision)
+  drawRealBIS916Hallmark(ctx, centerX, canvasHeight - 440 * scaleY, scale * 1.05, "gold", hallmarkImg);
+
+  ctx.fillStyle = "#FAF9F5";
+  ctx.font = `bold ${Math.round(25 * scale)}px sans-serif`;
+  ctx.fillText("100% BIS Hallmarked 22K Gold & Certified Diamonds", centerX, canvasHeight - 325 * scaleY);
+
+  ctx.fillStyle = "#D4AF37";
+  ctx.font = `bold ${Math.round(34 * scale)}px Cinzel, sans-serif`;
+  ctx.fillText(shopInfo?.phonePrimary || "+91 99520 54493", centerX, canvasHeight - 265 * scaleY);
+
+  // Bottom Silver & Gold Rate Badges
+  const badgeW = 440 * scaleX;
+  const badgeH = 155 * scaleY;
+  const silverX = 60 * scaleX;
+  const badgeY = canvasHeight - 215 * scaleY;
+
+  // Silver Rate Badge
+  const silverGrad = ctx.createLinearGradient(silverX, badgeY, silverX + badgeW, badgeY + badgeH);
+  silverGrad.addColorStop(0, "rgba(255, 253, 248, 0.96)");
+  silverGrad.addColorStop(1, "rgba(240, 236, 222, 0.94)");
+  ctx.fillStyle = silverGrad;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(silverX, badgeY, badgeW, badgeH, 22 * scale);
+  ctx.fill();
+  ctx.strokeStyle = "#B8860B";
+  ctx.lineWidth = 2.5 * scale;
+  ctx.stroke();
+
+  ctx.fillStyle = "#44403C";
+  ctx.font = `bold ${Math.round(20 * scale)}px sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText("SILVER RATE (999)", silverX + badgeW / 2, badgeY + 45 * scaleY);
+
+  ctx.fillStyle = "#1C1917";
+  ctx.font = `bold ${Math.round(46 * scale)}px Cinzel, "Playfair Display", Georgia, serif`;
+  ctx.fillText(`${livePrices.silver999 || '₹94.50'} /g`, silverX + badgeW / 2, badgeY + 110 * scaleY);
+
+  // Gold Rate Badge
+  const goldX = canvasWidth - badgeW - 60 * scaleX;
+  const goldGrad = ctx.createLinearGradient(goldX, badgeY, goldX + badgeW, badgeY + badgeH);
+  goldGrad.addColorStop(0, "rgba(255, 251, 235, 0.96)");
+  goldGrad.addColorStop(1, "rgba(254, 243, 199, 0.94)");
+  ctx.fillStyle = goldGrad;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(goldX, badgeY, badgeW, badgeH, 22 * scale);
+  ctx.fill();
+  ctx.strokeStyle = "#D4AF37";
+  ctx.lineWidth = 2.8 * scale;
+  ctx.stroke();
+
+  ctx.fillStyle = "#78350F";
+  ctx.font = `bold ${Math.round(20 * scale)}px sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText("GOLD RATE (22K)", goldX + badgeW / 2, badgeY + 45 * scaleY);
+
+  ctx.fillStyle = "#1C1917";
+  ctx.font = `bold ${Math.round(46 * scale)}px Cinzel, "Playfair Display", Georgia, serif`;
+  ctx.fillText(`${livePrices.gold22k || '₹7,195'} /g`, goldX + badgeW / 2, badgeY + 110 * scaleY);
+
+  ctx.restore();
+};
+
+/**
+ * TEMPLATE 2: Modern Minimalist Boutique (Clean Frosted Glass)
+ */
+const drawTemplate2_ModernMinimalist = (ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null) => {
+  ctx.save();
+  const scaleX = canvasWidth / 1080;
+  const scaleY = canvasHeight / 1920;
+  const scale = Math.min(scaleX, scaleY);
+
+  // Top Left: Floating Official BIS 916 Hallmark Badge
+  drawRealBIS916Hallmark(ctx, 175 * scaleX, 95 * scaleY, scale * 0.92, "glass", hallmarkImg);
+
+  // Top Right: Floating Shop Emblem Badge
+  drawShopLogoBadge(ctx, canvasWidth - 110 * scaleX, 95 * scaleY, 44 * scale, shopLogoImg, shopName, scale);
+
+  // Below Middle of the Image: Centered Frosted Glass Shop Name Panel
+  const panelW = 740 * scaleX;
+  const panelH = 115 * scaleY;
+  const panelX = canvasWidth / 2 - panelW / 2;
+  const panelY = canvasHeight - 380 * scaleY;
+
+  ctx.fillStyle = "rgba(12, 12, 12, 0.88)";
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(panelX, panelY, panelW, panelH, 26 * scale);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(212, 175, 55, 0.75)";
+  ctx.lineWidth = 2.5 * scale;
+  ctx.stroke();
+
+  // Shop Name centered in the below middle of the image
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = `bold ${Math.round(44 * scale)}px Georgia, serif`;
+  ctx.textAlign = "center";
+  ctx.fillText(shopName, canvasWidth / 2, panelY + 48 * scaleY);
+
+  ctx.fillStyle = "#D4AF37";
+  ctx.font = `bold ${Math.round(18 * scale)}px sans-serif`;
+  ctx.fillText("BOUTIQUE JEWELLERY", canvasWidth / 2, panelY + 86 * scaleY);
+
+  // Bottom Sleek Horizontal Capsule Bar for Live Metal Rates
+  const botW = canvasWidth - 100 * scaleX;
+  const botH = 210 * scaleY;
+  const botX = 50 * scaleX;
+  const botY = canvasHeight - botH - 45 * scaleY;
+
+  ctx.fillStyle = "rgba(10, 10, 10, 0.92)";
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(botX, botY, botW, botH, 28 * scale);
+  ctx.fill();
+  ctx.strokeStyle = "#D4AF37";
+  ctx.lineWidth = 3 * scale;
+  ctx.stroke();
+
+  // Inner Vertical Divider Line
+  ctx.strokeStyle = "rgba(212, 175, 55, 0.35)";
+  ctx.lineWidth = 2.5 * scale;
+  ctx.beginPath();
+  ctx.moveTo(botX + botW / 2, botY + 22 * scaleY);
+  ctx.lineTo(botX + botW / 2, botY + botH - 60 * scaleY);
+  ctx.stroke();
+
+  // Left: Silver Rate
+  ctx.fillStyle = "#A8A29E";
+  ctx.font = `bold ${Math.round(20 * scale)}px sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText("SILVER RATE (999)", botX + botW / 4, botY + 48 * scaleY);
+
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = `bold ${Math.round(46 * scale)}px Cinzel, "Playfair Display", Georgia, serif`;
+  ctx.fillText(`${livePrices.silver999 || '₹94.50'} /g`, botX + botW / 4, botY + 115 * scaleY);
+
+  // Right: Gold Rate
+  ctx.fillStyle = "#FBBF24";
+  ctx.font = `bold ${Math.round(20 * scale)}px sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText("GOLD RATE (22K)", botX + (3 * botW) / 4, botY + 48 * scaleY);
+
+  ctx.fillStyle = "#FCD34D";
+  ctx.font = `bold ${Math.round(46 * scale)}px Cinzel, "Playfair Display", Georgia, serif`;
+  ctx.fillText(`${livePrices.gold22k || '₹7,195'} /g`, botX + (3 * botW) / 4, botY + 115 * scaleY);
+
+  // Bottom Contact & Hallmark Certification Strip
+  ctx.fillStyle = "#FAF9F5";
+  ctx.font = `bold ${Math.round(22 * scale)}px Cinzel, sans-serif`;
+  ctx.fillText(`100% BIS Hallmarked • Call / WhatsApp: ${shopInfo?.phonePrimary || "+91 99520 54493"}`, canvasWidth / 2, botY + 180 * scaleY);
+
+  ctx.restore();
+};
+
+/**
+ * TEMPLATE 3: Bridal Emerald & Gold (Rich Traditional Opulence)
+ */
+const drawTemplate3_BridalEmerald = (ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null) => {
+  ctx.save();
+  const scaleX = canvasWidth / 1080;
+  const scaleY = canvasHeight / 1920;
+  const scale = Math.min(scaleX, scaleY);
+
+  // Top Banner (Emerald Gradient)
+  const topH = 210 * scaleY;
+  const topGrad = ctx.createLinearGradient(0, 0, 0, topH);
+  topGrad.addColorStop(0, "rgba(4, 47, 36, 0.98)");
+  topGrad.addColorStop(1, "rgba(6, 78, 59, 0.94)");
+  ctx.fillStyle = topGrad;
+  ctx.fillRect(0, 0, canvasWidth, topH);
+
+  // Gold Trim Line at bottom of header
+  ctx.strokeStyle = "#D4AF37";
+  ctx.lineWidth = 4 * scale;
+  ctx.beginPath();
+  ctx.moveTo(0, topH);
+  ctx.lineTo(canvasWidth, topH);
+  ctx.stroke();
+
+  // Top Left: Shop Logo Badge
+  drawShopLogoBadge(ctx, 90 * scaleX, topH / 2, 42 * scale, shopLogoImg, shopName, scale);
+
+  // Header Text
+  ctx.fillStyle = "#FCD34D";
+  ctx.font = `bold ${Math.round(40 * scale)}px Georgia, serif`;
+  ctx.textAlign = "left";
+  ctx.fillText(shopName, 150 * scaleX, topH / 2 - 7 * scaleY);
+
+  ctx.fillStyle = "#ECFDF5";
+  ctx.font = `bold ${Math.round(19 * scale)}px sans-serif`;
+  ctx.fillText("BRIDAL & TRADITIONAL JEWELLERY", 150 * scaleX, topH / 2 + 29 * scaleY);
+
+  // Top Right: Authentic Official BIS 916 Hallmark Stamp
+  drawRealBIS916Hallmark(ctx, canvasWidth - 165 * scaleX, topH / 2, scale * 0.90, "emerald", hallmarkImg);
+
+  // Bottom Banner (Emerald Gradient)
+  const botH = 320 * scaleY;
+  const botY = canvasHeight - botH;
+  const botGrad = ctx.createLinearGradient(0, botY, 0, canvasHeight);
+  botGrad.addColorStop(0, "rgba(6, 78, 59, 0.95)");
+  botGrad.addColorStop(1, "rgba(2, 44, 34, 0.98)");
+  ctx.fillStyle = botGrad;
+  ctx.fillRect(0, botY, canvasWidth, botH);
+
+  ctx.strokeStyle = "#D4AF37";
+  ctx.lineWidth = 4 * scale;
+  ctx.beginPath();
+  ctx.moveTo(0, botY);
+  ctx.lineTo(canvasWidth, botY);
+  ctx.stroke();
+
+  // Tagline
+  ctx.fillStyle = "#FCD34D";
+  ctx.font = `bold ${Math.round(24 * scale)}px sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText("100% BIS Hallmarked 22K Gold • Certified Solitaire Diamonds", canvasWidth / 2, botY + 42 * scaleY);
+
+  // Dual Rate Pills
+  const pillW = 440 * scaleX;
+  const pillH = 135 * scaleY;
+  const pillY = botY + 75 * scaleY;
+
+  // Silver Pill
+  const silX = 60 * scaleX;
+  ctx.fillStyle = "rgba(255, 255, 255, 0.96)";
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(silX, pillY, pillW, pillH, 22 * scale);
+  ctx.fill();
+  ctx.strokeStyle = "#D4AF37";
+  ctx.lineWidth = 2.5 * scale;
+  ctx.stroke();
+
+  ctx.fillStyle = "#064E3B";
+  ctx.font = `bold ${Math.round(20 * scale)}px sans-serif`;
+  ctx.fillText("SILVER RATE (999)", silX + pillW / 2, pillY + 42 * scaleY);
+
+  ctx.fillStyle = "#022C22";
+  ctx.font = `bold ${Math.round(42 * scale)}px Cinzel, "Playfair Display", Georgia, serif`;
+  ctx.fillText(`${livePrices.silver999 || '₹94.50'} /g`, silX + pillW / 2, pillY + 98 * scaleY);
+
+  // Gold Pill
+  const gldX = canvasWidth - pillW - 60 * scaleX;
+  ctx.fillStyle = "rgba(254, 243, 199, 0.96)";
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(gldX, pillY, pillW, pillH, 22 * scale);
+  ctx.fill();
+  ctx.strokeStyle = "#B45309";
+  ctx.lineWidth = 2.8 * scale;
+  ctx.stroke();
+
+  ctx.fillStyle = "#78350F";
+  ctx.font = `bold ${Math.round(20 * scale)}px sans-serif`;
+  ctx.fillText("GOLD RATE (22K)", gldX + pillW / 2, pillY + 42 * scaleY);
+
+  ctx.fillStyle = "#451A03";
+  ctx.font = `bold ${Math.round(42 * scale)}px Cinzel, "Playfair Display", Georgia, serif`;
+  ctx.fillText(`${livePrices.gold22k || '₹7,195'} /g`, gldX + pillW / 2, pillY + 98 * scaleY);
+
+  // Phone Contact
+  ctx.fillStyle = "#FCD34D";
+  ctx.font = `bold ${Math.round(28 * scale)}px Cinzel, sans-serif`;
+  ctx.fillText(`WhatsApp Orders: ${shopInfo?.phonePrimary || "+91 99520 54493"}`, canvasWidth / 2, botY + 270 * scaleY);
+
+  ctx.restore();
+};
+
+/**
+ * TEMPLATE 4: Contemporary Solitaire Dark (Obsidian Glamour)
+ */
+const drawTemplate4_SolitaireDark = (ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null) => {
+  ctx.save();
+  const scaleX = canvasWidth / 1080;
+  const scaleY = canvasHeight / 1920;
+  const scale = Math.min(scaleX, scaleY);
+
+  // Dark Header Panel
+  const topH = 200 * scaleY;
+  const topGrad = ctx.createLinearGradient(0, 0, 0, topH);
+  topGrad.addColorStop(0, "rgba(10, 10, 10, 0.96)");
+  topGrad.addColorStop(1, "rgba(24, 20, 14, 0.92)");
+  ctx.fillStyle = topGrad;
+  ctx.fillRect(0, 0, canvasWidth, topH);
+
+  // Accent Divider
+  ctx.strokeStyle = "#F3E5AB";
+  ctx.lineWidth = 3 * scale;
+  ctx.beginPath();
+  ctx.moveTo(0, topH);
+  ctx.lineTo(canvasWidth, topH);
+  ctx.stroke();
+
+  // Left: Shop Logo Badge
+  drawShopLogoBadge(ctx, 90 * scaleX, topH / 2, 40 * scale, shopLogoImg, shopName, scale);
+
+  // Center: Shop Name
+  ctx.fillStyle = "#F3E5AB";
+  ctx.font = `bold ${Math.round(40 * scale)}px Georgia, serif`;
+  ctx.textAlign = "center";
+  ctx.fillText(shopName, canvasWidth / 2 - 45 * scaleX, topH / 2 - 7 * scaleY);
+
+  ctx.fillStyle = "#D4AF37";
+  ctx.font = `bold ${Math.round(18 * scale)}px sans-serif`;
+  ctx.fillText("SOLITAIRE & FINE JEWELLERY", canvasWidth / 2 - 45 * scaleX, topH / 2 + 28 * scaleY);
+
+  // Right: Authentic Official BIS 916 Hallmark Seal
+  drawRealBIS916Hallmark(ctx, canvasWidth - 160 * scaleX, topH / 2, scale * 0.88, "dark", hallmarkImg);
+
+  // Bottom Metallic Ticker Panel
+  const botH = 300 * scaleY;
+  const botY = canvasHeight - botH;
+  const botGrad = ctx.createLinearGradient(0, botY, 0, canvasHeight);
+  botGrad.addColorStop(0, "rgba(24, 20, 14, 0.94)");
+  botGrad.addColorStop(1, "rgba(8, 8, 8, 0.98)");
+  ctx.fillStyle = botGrad;
+  ctx.fillRect(0, botY, canvasWidth, botH);
+
+  ctx.strokeStyle = "#F3E5AB";
+  ctx.lineWidth = 3 * scale;
+  ctx.beginPath();
+  ctx.moveTo(0, botY);
+  ctx.lineTo(canvasWidth, botY);
+  ctx.stroke();
+
+  // Center Tagline
+  ctx.fillStyle = "#FAF9F5";
+  ctx.font = `bold ${Math.round(24 * scale)}px sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText("100% BIS Hallmarked 22K Gold & Certified Solitaire Diamonds", canvasWidth / 2, botY + 42 * scaleY);
+
+  // Left Box: Silver Rate
+  const boxW = 430 * scaleX;
+  const boxH = 125 * scaleY;
+  const boxY = botY + 72 * scaleY;
+
+  const silX = 60 * scaleX;
+  ctx.fillStyle = "rgba(255, 255, 255, 0.10)";
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(silX, boxY, boxW, boxH, 20 * scale);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(243, 229, 171, 0.5)";
+  ctx.lineWidth = 2 * scale;
+  ctx.stroke();
+
+  ctx.fillStyle = "#D6D3D1";
+  ctx.font = `bold ${Math.round(20 * scale)}px sans-serif`;
+  ctx.fillText("SILVER RATE (999)", silX + boxW / 2, boxY + 38 * scaleY);
+
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = `bold ${Math.round(42 * scale)}px Cinzel, "Playfair Display", Georgia, serif`;
+  ctx.fillText(`${livePrices.silver999 || '₹94.50'} /g`, silX + boxW / 2, boxY + 92 * scaleY);
+
+  // Right Box: Gold Rate
+  const gldX = canvasWidth - boxW - 60 * scaleX;
+  ctx.fillStyle = "rgba(243, 229, 171, 0.14)";
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(gldX, boxY, boxW, boxH, 20 * scale);
+  ctx.fill();
+  ctx.strokeStyle = "#F3E5AB";
+  ctx.lineWidth = 2.5 * scale;
+  ctx.stroke();
+
+  ctx.fillStyle = "#FCD34D";
+  ctx.font = `bold ${Math.round(20 * scale)}px sans-serif`;
+  ctx.fillText("GOLD RATE (22K)", gldX + boxW / 2, boxY + 38 * scaleY);
+
+  ctx.fillStyle = "#F3E5AB";
+  ctx.font = `bold ${Math.round(42 * scale)}px Cinzel, "Playfair Display", Georgia, serif`;
+  ctx.fillText(`${livePrices.gold22k || '₹7,195'} /g`, gldX + boxW / 2, boxY + 92 * scaleY);
+
+  // Bottom Phone
+  ctx.fillStyle = "#F3E5AB";
+  ctx.font = `bold ${Math.round(26 * scale)}px Cinzel, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText(`Showroom Contact: ${shopInfo?.phonePrimary || "+91 99520 54493"}`, canvasWidth / 2, botY + 254 * scaleY);
+
+  ctx.restore();
+};
+
+/**
+ * Dispatcher function for drawing the selected overlay template
+ */
+const drawStatusOverlay = (ctx, canvasWidth, canvasHeight, shopName, templateId = 1, shopLogoImg = null, livePrices = {}, shopInfo = {}, hallmarkImg = null) => {
+  switch (Number(templateId)) {
+    case 1:
+      drawTemplate1_RoyalHeritage(ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg);
+      break;
+    case 2:
+      drawTemplate2_ModernMinimalist(ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg);
+      break;
+    case 3:
+      drawTemplate3_BridalEmerald(ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg);
+      break;
+    case 4:
+      drawTemplate4_SolitaireDark(ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg);
+      break;
+    default:
+      drawTemplate1_RoyalHeritage(ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg);
+      break;
+  }
+};
+
+// ==========================================
+// VIDEO CANVAS PREVIEW COMPONENT
+// ==========================================
+
+function VideoCanvasPreview({ videoUrl, shopName, templateId, drawOverlay, shopLogoImg, livePrices, shopInfo, hallmarkImg }) {
   const canvasRef = React.useRef(null);
   const videoRef = React.useRef(null);
   const [isPlaying, setIsPlaying] = React.useState(true);
@@ -31,7 +674,7 @@ function VideoCanvasPreview({ videoUrl, shopName, drawOverlay }) {
       const render = () => {
         if (ctx && canvas) {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          drawOverlay(ctx, canvas.width, canvas.height, shopName);
+          drawOverlay(ctx, canvas.width, canvas.height, shopName, templateId, shopLogoImg, livePrices, shopInfo, hallmarkImg);
         }
         animId = requestAnimationFrame(render);
       };
@@ -47,7 +690,7 @@ function VideoCanvasPreview({ videoUrl, shopName, drawOverlay }) {
         video.src = "";
       }
     };
-  }, [videoUrl, shopName, drawOverlay]);
+  }, [videoUrl, shopName, templateId, drawOverlay, shopLogoImg, livePrices, shopInfo, hallmarkImg]);
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -75,11 +718,19 @@ function VideoCanvasPreview({ videoUrl, shopName, drawOverlay }) {
   );
 }
 
+// ==========================================
+// MAIN SECTION COMPONENT
+// ==========================================
+
 export default function WhatsAppStatusSection({ shopInfo }) {
   const [downloadingId, setDownloadingId] = useState(null);
   const [successInfo, setSuccessInfo] = useState(null);
+  const [loadedShopLogo, setLoadedShopLogo] = useState(null);
+  const [loadedHallmarkLogo, setLoadedHallmarkLogo] = useState(null);
+
   const [basicAssets, setBasicAssets] = useState({
-    images: [], videos: [
+    images: [],
+    videos: [
       'https://s3.in-west3.purestore.io/aadagam/images/aadagam1.mp4',
       'https://s3.in-west3.purestore.io/aadagam/images/aadagam2.mp4',
       'https://s3.in-west3.purestore.io/aadagam/images/aadagam3.mp4',
@@ -97,6 +748,29 @@ export default function WhatsAppStatusSection({ shopInfo }) {
     gold22k: "₹7,195",
     silver999: "₹94.50",
   });
+
+  // Preload Official Golden BIS 916 Hallmark Logo Image
+  useEffect(() => {
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.src = "/bis_916_hallmark.png";
+    img.onload = () => setLoadedHallmarkLogo(img);
+    img.onerror = () => setLoadedHallmarkLogo(null);
+  }, []);
+
+  // Preload Shop Logo Image whenever shopInfo.logo changes
+  useEffect(() => {
+    const logoUrl = shopInfo?.logo || shopInfo?.logoUrl;
+    if (logoUrl) {
+      const img = new window.Image();
+      img.crossOrigin = "anonymous";
+      img.src = logoUrl;
+      img.onload = () => setLoadedShopLogo(img);
+      img.onerror = () => setLoadedShopLogo(null);
+    } else {
+      setLoadedShopLogo(null);
+    }
+  }, [shopInfo?.logo, shopInfo?.logoUrl]);
 
   useEffect(() => {
     async function loadData() {
@@ -141,54 +815,117 @@ export default function WhatsAppStatusSection({ shopInfo }) {
   const statusButtons = [
     {
       id: 1,
-      label: "Status Design - 1",
+      label: "Royal Heritage",
+      desc: "Regal Double Gold Border",
       theme: {
-        bg: "bg-[#111111] hover:bg-black",
-        border: "border-stone-800 hover:border-[#D4AF37]",
-        shadow: "shadow-md shadow-black/25 hover:shadow-xl hover:shadow-black/40",
-        iconWrapper: "bg-stone-900 border border-stone-700 text-[#25D366]",
+        bg: "bg-gradient-to-br from-[#854D0E] via-[#A16207] to-[#713F12] hover:from-[#A16207] hover:to-[#854D0E]",
+        border: "border-[#FDE047]/60 hover:border-[#FFFFFF]",
+        shadow: "shadow-lg shadow-amber-950/40 hover:shadow-xl hover:shadow-amber-900/60",
+        iconWrapper: "bg-amber-950/80 border border-[#FDE047]/50 text-[#FEF08A]",
         titleColor: "text-white font-serif",
-        actionColor: "text-[#D4AF37] group-hover:text-[#F3E5AB]",
-        accentDot: "bg-[#25D366]",
+        actionColor: "text-[#FEF08A] group-hover:text-white",
+        accentDot: "bg-[#FDE047]",
       },
     },
     {
       id: 2,
-      label: "Status Design - 2",
+      label: "Modern Minimalist",
+      desc: "Clean Frosted Glass Panels",
       theme: {
-        bg: "bg-[#B91C1C] hover:bg-[#991B1B]",
-        border: "border-red-400/40 hover:border-white/80",
-        shadow: "shadow-md shadow-red-950/25 hover:shadow-xl hover:shadow-red-900/40",
-        iconWrapper: "bg-white/20 backdrop-blur-xs border border-white/40 text-white",
+        bg: "bg-gradient-to-br from-[#1E1B4B] via-[#312E81] to-[#0F172A] hover:from-[#312E81] hover:to-[#1E1B4B]",
+        border: "border-indigo-400/50 hover:border-indigo-200",
+        shadow: "shadow-lg shadow-indigo-950/40 hover:shadow-xl hover:shadow-indigo-900/60",
+        iconWrapper: "bg-indigo-950/80 border border-indigo-400/40 text-indigo-200",
         titleColor: "text-white font-serif",
-        actionColor: "text-rose-100 group-hover:text-white",
-        accentDot: "bg-rose-200",
+        actionColor: "text-indigo-200 group-hover:text-white",
+        accentDot: "bg-indigo-300",
       },
     },
     {
       id: 3,
-      label: "Status Design - 3",
+      label: "Bridal Emerald",
+      desc: "Emerald & Gold Leaf Ribbons",
       theme: {
-        bg: "bg-[#3B49DF] hover:bg-[#2A37B8]",
-        border: "border-blue-400/40 hover:border-white/80",
-        shadow: "shadow-md shadow-blue-950/25 hover:shadow-xl hover:shadow-blue-900/40",
-        iconWrapper: "bg-white/20 backdrop-blur-xs border border-white/40 text-white",
+        bg: "bg-gradient-to-br from-[#064E3B] via-[#047857] to-[#022C22] hover:from-[#047857] hover:to-[#064E3B]",
+        border: "border-emerald-400/50 hover:border-[#D4AF37]",
+        shadow: "shadow-lg shadow-emerald-950/40 hover:shadow-xl hover:shadow-emerald-900/60",
+        iconWrapper: "bg-emerald-950/80 border border-emerald-400/40 text-emerald-200",
         titleColor: "text-white font-serif",
-        actionColor: "text-blue-100 group-hover:text-white",
-        accentDot: "bg-blue-200",
+        actionColor: "text-emerald-200 group-hover:text-white",
+        accentDot: "bg-emerald-300",
       },
     },
     {
       id: 4,
-      label: "Status Design - 4",
+      label: "Solitaire Dark",
+      desc: "Champagne Gold Ticker",
       theme: {
-        bg: "bg-[#6B21A8] hover:bg-[#581C87]",
-        border: "border-purple-400/40 hover:border-white/80",
-        shadow: "shadow-md shadow-purple-950/25 hover:shadow-xl hover:shadow-purple-900/40",
-        iconWrapper: "bg-white/20 backdrop-blur-xs border border-white/40 text-white",
+        bg: "bg-gradient-to-br from-[#581C87] via-[#6B21A8] to-[#3B0764] hover:from-[#6B21A8] hover:to-[#581C87]",
+        border: "border-purple-400/50 hover:border-amber-300",
+        shadow: "shadow-lg shadow-purple-950/40 hover:shadow-xl hover:shadow-purple-900/60",
+        iconWrapper: "bg-purple-950/80 border border-purple-400/40 text-purple-200",
         titleColor: "text-white font-serif",
-        actionColor: "text-purple-100 group-hover:text-white",
-        accentDot: "bg-purple-200",
+        actionColor: "text-purple-200 group-hover:text-white",
+        accentDot: "bg-purple-300",
+      },
+    },
+  ];
+
+  const statusVideos = [
+    {
+      id: 1,
+      label: "Royal Heritage Reel",
+      desc: "Regal Gold Frame Reel",
+      theme: {
+        bg: "bg-gradient-to-br from-[#881337] via-[#BE123C] to-[#4C0519] hover:from-[#BE123C] hover:to-[#881337]",
+        border: "border-rose-400/60 hover:border-white",
+        shadow: "shadow-lg shadow-rose-950/40 hover:shadow-xl hover:shadow-rose-900/60",
+        iconWrapper: "bg-rose-950/80 border border-rose-400/50 text-rose-200",
+        titleColor: "text-white font-serif",
+        actionColor: "text-rose-200 group-hover:text-white",
+        accentDot: "bg-rose-300",
+      },
+    },
+    {
+      id: 2,
+      label: "Minimalist Glass Reel",
+      desc: "Frosted Glass Reel",
+      theme: {
+        bg: "bg-gradient-to-br from-[#0E7490] via-[#0891B2] to-[#155E75] hover:from-[#0891B2] hover:to-[#0E7490]",
+        border: "border-cyan-300/60 hover:border-white",
+        shadow: "shadow-lg shadow-cyan-950/40 hover:shadow-xl hover:shadow-cyan-900/60",
+        iconWrapper: "bg-cyan-950/80 border border-cyan-300/40 text-cyan-200",
+        titleColor: "text-white font-serif",
+        actionColor: "text-cyan-100 group-hover:text-white",
+        accentDot: "bg-cyan-200",
+      },
+    },
+    {
+      id: 3,
+      label: "Bridal Emerald Reel",
+      desc: "Emerald Banner Reel",
+      theme: {
+        bg: "bg-gradient-to-br from-[#7C2D12] via-[#C2410C] to-[#431407] hover:from-[#C2410C] hover:to-[#7C2D12]",
+        border: "border-orange-400/60 hover:border-white",
+        shadow: "shadow-lg shadow-orange-950/40 hover:shadow-xl hover:shadow-orange-900/60",
+        iconWrapper: "bg-orange-950/80 border border-orange-400/40 text-orange-200",
+        titleColor: "text-white font-serif",
+        actionColor: "text-orange-200 group-hover:text-white",
+        accentDot: "bg-orange-300",
+      },
+    },
+    {
+      id: 4,
+      label: "Solitaire Dark Reel",
+      desc: "Champagne Ticker Reel",
+      theme: {
+        bg: "bg-gradient-to-br from-[#831843] via-[#BE185D] to-[#500724] hover:from-[#BE185D] hover:to-[#831843]",
+        border: "border-pink-400/60 hover:border-white",
+        shadow: "shadow-lg shadow-pink-950/40 hover:shadow-xl hover:shadow-pink-900/60",
+        iconWrapper: "bg-pink-950/80 border border-pink-400/40 text-pink-200",
+        titleColor: "text-white font-serif",
+        actionColor: "text-pink-200 group-hover:text-white",
+        accentDot: "bg-pink-300",
       },
     },
   ];
@@ -197,11 +934,10 @@ export default function WhatsAppStatusSection({ shopInfo }) {
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   /**
-   * Generates a high-resolution 1080x1920 9:16 WhatsApp Status Card PNG
-   * displaying Shop Name on top, Silver Price on bottom left, and Gold Price on bottom right.
+   * Generates a high-resolution 1080x1920 9:16 Status Card PNG for a given template
    */
-  const generateImageCardDataUrl = (label, cardNum, imageUrl = '') => {
-    return new Promise((resolve) => {
+  const generateImageCardDataUrl = (label, cardNum, templateId = 1, imageUrl = '') => {
+    return new Promise(async (resolve) => {
       try {
         const canvas = document.createElement("canvas");
         canvas.width = 1080;
@@ -209,6 +945,16 @@ export default function WhatsAppStatusSection({ shopInfo }) {
         const ctx = canvas.getContext("2d");
 
         if (!ctx) return resolve(null);
+
+        let activeShopLogo = loadedShopLogo;
+        const targetShopLogoUrl = shopInfo?.logo || shopInfo?.logoUrl;
+        if ((!activeShopLogo || !activeShopLogo.complete || activeShopLogo.naturalWidth === 0) && targetShopLogoUrl) {
+          activeShopLogo = await loadSingleImage(targetShopLogoUrl);
+        }
+        let activeHallmarkLogo = loadedHallmarkLogo;
+        if (!activeHallmarkLogo || !activeHallmarkLogo.complete || activeHallmarkLogo.naturalWidth === 0) {
+          activeHallmarkLogo = await loadSingleImage("/bis_916_hallmark.png");
+        }
 
         const getRandomImg = Math.floor(Math.random() * 30) + 1;
 
@@ -223,7 +969,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
           const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase() + " JEWELLERY";
           const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
 
-          drawVideoBrandingOverlay(ctx, canvas.width, canvas.height, shopName);
+          drawStatusOverlay(ctx, canvas.width, canvas.height, shopName, templateId, activeShopLogo, livePrices, shopInfo, activeHallmarkLogo);
 
           resolve({
             dataUrl: canvas.toDataURL("image/png"),
@@ -246,15 +992,16 @@ export default function WhatsAppStatusSection({ shopInfo }) {
     if (basicAssets.images && basicAssets.images.length > 0) {
       selectedAssetUrl = basicAssets.images[(btn.id - 1) % basicAssets.images.length];
     }
-    const result = await generateImageCardDataUrl(btn.label, randomImageNumber, selectedAssetUrl);
+    const result = await generateImageCardDataUrl(btn.label, randomImageNumber, btn.id, selectedAssetUrl);
 
     if (result && result.dataUrl) {
       setPreviewData({
         type: "image",
         title: btn.label,
-        subtitle: "Daily Live Rates Card",
+        subtitle: `Daily Rates Card - Template ${btn.id}`,
         previewUrl: result.dataUrl,
         cardNum: randomImageNumber,
+        templateId: btn.id,
         shopName: result.shopName,
         item: btn,
       });
@@ -273,23 +1020,24 @@ export default function WhatsAppStatusSection({ shopInfo }) {
     setPreviewData({
       type: "video",
       title: vid.label,
-      subtitle: "WhatsApp Status Video",
+      subtitle: `WhatsApp Status Reel - Template ${vid.id}`,
       previewUrl: `/status_videos/${randomFile}`,
       fileName: randomFile,
       videoNumber: randomVideoNumber,
+      templateId: vid.id,
       shopName: shopName,
       item: vid,
     });
   };
 
-  const triggerImageDownloadFromDataUrl = (dataUrl, label, cardNum) => {
+  const triggerImageDownloadFromDataUrl = (dataUrl, label, cardNum, templateId = 1) => {
     const activeSubdomain = getTenantSubdomain();
     const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase() + " JEWELLERY";
     const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
     const cleanName = shopName.toLowerCase().replace(/\s+/g, "_");
 
     const link = document.createElement("a");
-    link.download = `${cleanName}_${label.toLowerCase().replace(/\s+/g, "_")}_card_${cardNum}.png`;
+    link.download = `${cleanName}_template${templateId}_${label.toLowerCase().replace(/\s+/g, "_")}_card_${cardNum}.png`;
     link.href = dataUrl;
     document.body.appendChild(link);
     link.click();
@@ -297,7 +1045,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
 
     setSuccessInfo({
       title: `${label} Downloaded Successfully!`,
-      desc: `Daily Card #${cardNum} for ${shopName} saved with Live Gold & Silver rates!`,
+      desc: `Template #${templateId} Card for ${shopName} saved with Live Rates & Official Gold BIS 916 Hallmark!`,
       type: "image",
     });
 
@@ -306,197 +1054,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
     }, 5000);
   };
 
-  const handleStatusDownload = (buttonId, buttonLabel) => {
-    const btn = statusButtons.find((b) => b.id === buttonId) || { label: buttonLabel, desc: "Status Card" };
-    handleOpenImagePreview(btn);
-  };
-
-  const statusVideos = [
-    {
-      id: 1,
-      label: "Status Video - 1",
-      theme: {
-        bg: "bg-gradient-to-r from-[#D97706] via-[#FBBF24] to-[#D97706] hover:from-[#B45309] hover:via-[#F59E0B] hover:to-[#B45309]",
-        border: "border-amber-300/80 hover:border-white",
-        shadow: "shadow-md shadow-amber-950/25 hover:shadow-xl hover:shadow-amber-900/40",
-        iconWrapper: "bg-stone-950/80 border border-stone-800 text-[#FCD34D]",
-        titleColor: "text-stone-950 font-black",
-        actionColor: "text-stone-900 font-bold group-hover:text-stone-950",
-        accentDot: "bg-stone-950",
-      },
-    },
-    {
-      id: 2,
-      label: "Status Video - 2",
-      theme: {
-        bg: "bg-[#BE123C] hover:bg-[#9F1239]",
-        border: "border-pink-400/40 hover:border-white/80",
-        shadow: "shadow-md shadow-pink-950/25 hover:shadow-xl hover:shadow-pink-900/40",
-        iconWrapper: "bg-white/20 backdrop-blur-xs border border-white/40 text-white",
-        titleColor: "text-white font-serif",
-        actionColor: "text-pink-100 group-hover:text-white",
-        accentDot: "bg-pink-200",
-      },
-    },
-    {
-      id: 3,
-      label: "Status Video - 3",
-      theme: {
-        bg: "bg-[#C2410C] hover:bg-[#9A3412]",
-        border: "border-orange-400/40 hover:border-white/80",
-        shadow: "shadow-md shadow-orange-950/25 hover:shadow-xl hover:shadow-orange-900/40",
-        iconWrapper: "bg-white/20 backdrop-blur-xs border border-white/40 text-white",
-        titleColor: "text-white font-serif",
-        actionColor: "text-orange-100 group-hover:text-white",
-        accentDot: "bg-orange-200",
-      },
-    },
-    {
-      id: 4,
-      label: "Status Video - 4",
-      theme: {
-        bg: "bg-[#EA580C] hover:bg-[#C2410C]",
-        border: "border-amber-300/50 hover:border-white/80",
-        shadow: "shadow-md shadow-amber-950/25 hover:shadow-xl hover:shadow-amber-900/40",
-        iconWrapper: "bg-white/20 backdrop-blur-xs border border-white/40 text-white",
-        titleColor: "text-white font-serif",
-        actionColor: "text-amber-100 group-hover:text-white",
-        accentDot: "bg-amber-200",
-      },
-    },
-  ];
-
-  const drawVideoBrandingOverlay = (ctx, canvasWidth, canvasHeight, shopName) => {
-    ctx.save();
-
-    // Scaling factors based on standard 1080x1920 reference resolution
-    const scaleX = canvasWidth / 1080;
-    const scaleY = canvasHeight / 1920;
-    const scale = Math.min(scaleX, scaleY);
-
-    const centerX = canvasWidth / 2;
-
-    // 1. Static Luxury Brand Logo Emblem at Top Center
-    const logoY = 130 * scaleY;
-    const logoRadius = 48 * scale;
-
-    ctx.fillStyle = "rgba(20, 18, 16, 0.88)";
-    ctx.beginPath();
-    ctx.arc(centerX, logoY, logoRadius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#D4AF37";
-    ctx.lineWidth = 3 * scale;
-    ctx.stroke();
-
-    ctx.strokeStyle = "rgba(243, 229, 171, 0.6)";
-    ctx.lineWidth = 1.5 * scale;
-    ctx.beginPath();
-    ctx.arc(centerX, logoY, logoRadius - 6 * scale, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Diamond Logo Icon inside logo circle
-    ctx.fillStyle = "#D4AF37";
-    ctx.beginPath();
-    ctx.moveTo(centerX, logoY - 24 * scale);
-    ctx.lineTo(centerX + 24 * scale, logoY - 8 * scale);
-    ctx.lineTo(centerX, logoY + 24 * scale);
-    ctx.lineTo(centerX - 24 * scale, logoY - 8 * scale);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.strokeStyle = "#FFF8DC";
-    ctx.lineWidth = 1.5 * scale;
-    ctx.beginPath();
-    ctx.moveTo(centerX - 24 * scale, logoY - 8 * scale);
-    ctx.lineTo(centerX + 24 * scale, logoY - 8 * scale);
-    ctx.moveTo(centerX, logoY - 24 * scale);
-    ctx.lineTo(centerX, logoY + 24 * scale);
-    ctx.stroke();
-
-    // 2. Showroom Brand Header at Top of Video
-    ctx.fillStyle = "#D4AF37";
-    ctx.font = `bold ${Math.round(48 * scale)}px Georgia, serif`;
-    ctx.textAlign = "center";
-    ctx.fillText(shopName, centerX, 230 * scaleY);
-
-    ctx.fillStyle = "#E7E5E4";
-    ctx.font = `${Math.round(22 * scale)}px sans-serif`;
-    ctx.fillText("EXCLUSIVE SHOWROOM COLLECTION", centerX, 280 * scaleY);
-
-    // Decorative divider below header
-    ctx.strokeStyle = "#D4AF37";
-    ctx.lineWidth = 3 * scale;
-    ctx.beginPath();
-    ctx.moveTo(centerX - 180 * scaleX, 320 * scaleY);
-    ctx.lineTo(centerX + 180 * scaleX, 320 * scaleY);
-    ctx.stroke();
-
-    // 3. Middle Tagline & Contact Details
-    ctx.fillStyle = "#FAF9F5";
-    ctx.font = `${Math.round(28 * scale)}px sans-serif`;
-    ctx.fillText("100% BIS Hallmarked 22K Gold & Certified Diamonds", centerX, canvasHeight - 540 * scaleY);
-
-    ctx.fillStyle = "#E7E5E4";
-    ctx.font = `${Math.round(24 * scale)}px sans-serif`;
-    ctx.fillText("Visit our showroom or message us on WhatsApp for orders", centerX, canvasHeight - 480 * scaleY);
-
-    ctx.fillStyle = "#D4AF37";
-    ctx.font = `bold ${Math.round(34 * scale)}px sans-serif`;
-    ctx.fillText(shopInfo?.phonePrimary || "+91 98765 43210", centerX, canvasHeight - 410 * scaleY);
-
-    // 4. Bottom Left Corner: Silver Price Badge
-    const silverX = 80 * scaleX;
-    const badgeY = canvasHeight - 280 * scaleY;
-    const badgeW = 380 * scaleX;
-    const badgeH = 140 * scaleY;
-
-    const silverGrad = ctx.createLinearGradient(silverX, badgeY, silverX + badgeW, badgeY + badgeH);
-    silverGrad.addColorStop(0, "rgba(255, 253, 248, 0.94)");
-    silverGrad.addColorStop(1, "rgba(242, 238, 226, 0.92)");
-    ctx.fillStyle = silverGrad;
-    ctx.beginPath();
-    ctx.roundRect(silverX, badgeY, badgeW, badgeH, 20 * scale);
-    ctx.fill();
-    ctx.strokeStyle = "#B8860B";
-    ctx.lineWidth = 2 * scale;
-    ctx.stroke();
-
-    ctx.fillStyle = "#57534E";
-    ctx.font = `bold ${Math.round(20 * scale)}px sans-serif`;
-    ctx.textAlign = "center";
-    ctx.fillText("SILVER RATE (999)", silverX + badgeW / 2, badgeY + 45 * scaleY);
-
-    ctx.fillStyle = "#1C1917";
-    ctx.font = `bold ${Math.round(34 * scale)}px Georgia, serif`;
-    ctx.fillText(`${livePrices.silver999} /g`, silverX + badgeW / 2, badgeY + 100 * scaleY);
-
-    // 5. Bottom Right Corner: Gold Price Badge
-    const goldX = canvasWidth - badgeW - 80 * scaleX;
-
-    const goldGrad = ctx.createLinearGradient(goldX, badgeY, goldX + badgeW, badgeY + badgeH);
-    goldGrad.addColorStop(0, "rgba(255, 251, 235, 0.94)");
-    goldGrad.addColorStop(1, "rgba(254, 243, 199, 0.92)");
-    ctx.fillStyle = goldGrad;
-    ctx.beginPath();
-    ctx.roundRect(goldX, badgeY, badgeW, badgeH, 20 * scale);
-    ctx.fill();
-    ctx.strokeStyle = "#D4AF37";
-    ctx.lineWidth = 2.5 * scale;
-    ctx.stroke();
-
-    ctx.fillStyle = "#78350F";
-    ctx.font = `bold ${Math.round(20 * scale)}px sans-serif`;
-    ctx.textAlign = "center";
-    ctx.fillText("GOLD RATE (22K)", goldX + badgeW / 2, badgeY + 45 * scaleY);
-
-    ctx.fillStyle = "#1C1917";
-    ctx.font = `bold ${Math.round(34 * scale)}px Georgia, serif`;
-    ctx.fillText(`${livePrices.gold22k} /g`, goldX + badgeW / 2, badgeY + 100 * scaleY);
-
-    ctx.restore();
-  };
-
-  const handleVideoDownloadItem = async (videoNumber, label, fileName) => {
+  const handleVideoDownloadItem = async (videoNumber, label, fileName, templateId = 1) => {
     setDownloadingId(`video-${videoNumber}`);
     setSuccessInfo(null);
 
@@ -554,7 +1112,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
           const link = document.createElement("a");
           link.href = url;
           const ext = mimeType.includes("mp4") ? "mp4" : "webm";
-          link.download = `${cleanName}_whatsapp_status_video_${videoNumber}.${ext}`;
+          link.download = `${cleanName}_template${templateId}_whatsapp_video_${videoNumber}.${ext}`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -576,7 +1134,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
           return;
         }
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        drawVideoBrandingOverlay(ctx, canvas.width, canvas.height, shopName);
+        drawStatusOverlay(ctx, canvas.width, canvas.height, shopName, templateId, loadedShopLogo, livePrices, shopInfo, loadedHallmarkLogo);
         animId = requestAnimationFrame(renderFrame);
       };
 
@@ -585,15 +1143,15 @@ export default function WhatsAppStatusSection({ shopInfo }) {
 
       setDownloadingId(null);
       setSuccessInfo({
-        title: `${label || `Status Video ${videoNumber}`} Branded & Downloaded!`,
-        desc: `WhatsApp Status Video #${videoNumber} (${label}) with Live Rates & ${shopName} branding saved!`,
+        title: `${label || `Status Video ${videoNumber}`} Downloaded!`,
+        desc: `Template #${templateId} Video (${label}) for ${shopName} branded & saved!`,
         type: "video",
       });
     } catch (err) {
       console.warn("Video branding fallback to direct download:", err);
       const link = document.createElement("a");
       link.href = videoPath;
-      link.download = `${cleanName}_whatsapp_status_video_${videoNumber}.mp4`;
+      link.download = `${cleanName}_template${templateId}_whatsapp_status_video_${videoNumber}.mp4`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -612,7 +1170,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
   };
 
   const handleVideoDownload = () => {
-    const randomVideoNumber = Math.floor(Math.random() * 10) + 1;
+    const randomVideoNumber = Math.floor(Math.random() * 4) + 1;
     const target = statusVideos.find((v) => v.id === randomVideoNumber) || statusVideos[0];
     handleOpenVideoPreview(target);
   };
@@ -627,26 +1185,26 @@ export default function WhatsAppStatusSection({ shopInfo }) {
         <div className="max-w-2xl mx-auto mb-10 space-y-3">
           <div className="inline-flex items-center gap-2 bg-[#25D366]/15 text-emerald-800 border border-[#25D366]/30 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest">
             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>WhatsApp Status & Media</span>
+            <span>WhatsApp Status & Media Studio</span>
           </div>
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-stone-900">
-            Share Our Collections on WhatsApp
+            Luxury Branded Templates for Status & Reels
           </h2>
           <p className="text-stone-600 text-xs sm:text-sm font-light leading-relaxed">
-            Preview & download daily high-resolution status cards stamped with live gold & silver rates or HD status videos for your showroom.
+            Choose from 4 elegant image templates and 4 video reel templates stamped with live gold & silver rates, official BIS 916 Hallmark logo, and your showroom emblem.
           </p>
         </div>
 
         {/* Action Container Card */}
         <div className="bg-white border border-[#D4AF37]/30 rounded-3xl p-6 sm:p-10 shadow-xl max-w-4xl mx-auto space-y-8 relative">
-          {/* Row 1: 4 Flex Buttons for Status Images */}
+          {/* Row 1: 4 Status Image Templates */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <span className="block text-[11px] font-bold text-stone-500 uppercase tracking-widest text-left">
-                Daily WhatsApp Status Images (With Live Rates)
+                Image Status Templates (Live Rates & Official BIS 916 Hallmark)
               </span>
               <span className="text-[10px] font-mono text-[#B8860B] bg-[#D4AF37]/10 px-2 py-0.5 rounded-full border border-[#D4AF37]/20">
-                4 Unique Designs
+                4 Unique Luxury Templates
               </span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
@@ -660,7 +1218,6 @@ export default function WhatsAppStatusSection({ shopInfo }) {
                     disabled={isPreviewLoading}
                     className={`group relative flex flex-col items-center justify-center gap-2.5 sm:gap-3 ${theme.bg} border ${theme.border} ${theme.shadow} p-4 sm:p-5 rounded-2xl sm:rounded-3xl transition-all duration-300 hover:-translate-y-1.5 disabled:opacity-60 cursor-pointer overflow-hidden text-center`}
                   >
-                    {/* Top Right Decorative Corner Accent */}
                     <span className={`absolute top-2.5 right-2.5 w-2 h-2 rounded-full ${theme.accentDot} opacity-70 group-hover:opacity-100 group-hover:scale-125 transition-all`} />
 
                     <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl ${theme.iconWrapper} flex items-center justify-center transition-transform group-hover:scale-110 group-hover:rotate-3 duration-300 shadow-sm`}>
@@ -671,13 +1228,18 @@ export default function WhatsAppStatusSection({ shopInfo }) {
                       )}
                     </div>
 
-                    <span className={`font-serif font-bold text-xs sm:text-sm tracking-wide block truncate ${theme.titleColor}`}>
-                      {btn.label}
-                    </span>
+                    <div className="space-y-0.5">
+                      <span className={`font-serif font-bold text-xs sm:text-sm tracking-wide block truncate ${theme.titleColor}`}>
+                        {btn.label}
+                      </span>
+                      <span className="text-[10px] text-stone-400 font-light block truncate">
+                        Template {btn.id}
+                      </span>
+                    </div>
 
                     <span className={`inline-flex items-center gap-1 text-[11px] font-semibold font-mono transition-colors ${theme.actionColor}`}>
                       <Sparkles className="w-3 h-3 animate-pulse" />
-                      <span>Preview & Save</span>
+                      <span>Preview Card</span>
                     </span>
                   </button>
                 );
@@ -689,11 +1251,11 @@ export default function WhatsAppStatusSection({ shopInfo }) {
           <div className="relative flex items-center justify-center">
             <div className="border-t border-stone-200 w-full" />
             <span className="bg-white px-3 text-[10px] uppercase tracking-wider font-bold text-stone-400 absolute">
-              Daily WhatsApp Status Videos (HD Reels)
+              HD Video Status Templates (4 Reel Styles)
             </span>
           </div>
 
-          {/* Row 2: 4 Status Video Buttons Grid */}
+          {/* Row 2: 4 Status Video Templates */}
           <div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
               {statusVideos.map((vid) => {
@@ -704,20 +1266,24 @@ export default function WhatsAppStatusSection({ shopInfo }) {
                     onClick={() => handleOpenVideoPreview(vid)}
                     className={`group relative flex flex-col items-center justify-center gap-2.5 sm:gap-3 ${theme.bg} border ${theme.border} ${theme.shadow} p-4 sm:p-5 rounded-2xl sm:rounded-3xl transition-all duration-300 hover:-translate-y-1.5 cursor-pointer overflow-hidden text-center`}
                   >
-                    {/* Top Right Decorative Corner Accent */}
                     <span className={`absolute top-2.5 right-2.5 w-2 h-2 rounded-full ${theme.accentDot} opacity-70 group-hover:opacity-100 group-hover:scale-125 transition-all`} />
 
                     <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl ${theme.iconWrapper} flex items-center justify-center transition-transform group-hover:scale-110 group-hover:-rotate-3 duration-300 shadow-sm`}>
                       <Video className="w-5 h-5" />
                     </div>
 
-                    <span className={`font-serif font-bold text-xs sm:text-sm tracking-wide block truncate ${theme.titleColor}`}>
-                      {vid.label}
-                    </span>
+                    <div className="space-y-0.5">
+                      <span className={`font-serif font-bold text-xs sm:text-sm tracking-wide block truncate ${theme.titleColor}`}>
+                        {vid.label}
+                      </span>
+                      <span className="text-[10px] text-stone-300/80 font-light block truncate">
+                        Template {vid.id}
+                      </span>
+                    </div>
 
                     <span className={`inline-flex items-center gap-1 text-[11px] font-semibold font-mono transition-colors ${theme.actionColor}`}>
                       <Sparkles className="w-3 h-3 animate-pulse" />
-                      <span>Preview MP4</span>
+                      <span>Preview Reel</span>
                     </span>
                   </button>
                 );
@@ -725,14 +1291,14 @@ export default function WhatsAppStatusSection({ shopInfo }) {
             </div>
           </div>
 
-          {/* Quick Action: Random Video Download */}
+          {/* Quick Action: Preview & Download Video */}
           <div className="pt-2">
             <button
               onClick={handleVideoDownload}
               className="w-full sm:w-auto min-w-[280px] inline-flex items-center justify-center gap-3 bg-gradient-to-r from-emerald-600 via-emerald-700 to-emerald-800 hover:from-emerald-700 hover:to-emerald-900 text-white font-bold py-3.5 px-8 rounded-2xl text-xs sm:text-sm tracking-wider uppercase shadow-lg shadow-emerald-900/15 hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer"
             >
               <Video className="w-4 h-4 text-emerald-200" />
-              <span>Preview & Download WhatsApp Status Video</span>
+              <span>Preview & Download Branded Video Reel</span>
             </button>
           </div>
 
@@ -789,12 +1355,17 @@ export default function WhatsAppStatusSection({ shopInfo }) {
                   <VideoCanvasPreview
                     videoUrl={previewData.previewUrl}
                     shopName={previewData.shopName}
-                    drawOverlay={drawVideoBrandingOverlay}
+                    templateId={previewData.templateId || 1}
+                    drawOverlay={drawStatusOverlay}
+                    shopLogoImg={loadedShopLogo}
+                    livePrices={livePrices}
+                    shopInfo={shopInfo}
+                    hallmarkImg={loadedHallmarkLogo}
                   />
                 )}
               </div>
               <span className="text-[11px] text-stone-400 font-mono mt-2">
-                9:16 HD WhatsApp Status Format
+                9:16 HD WhatsApp Status Format (Template #{previewData.templateId || 1})
               </span>
             </div>
 
@@ -803,7 +1374,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
               <div className="space-y-4">
                 <div className="inline-flex items-center gap-2 bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-widest">
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>WhatsApp Status Preview</span>
+                  <span>Template {previewData.templateId || 1} Preview</span>
                 </div>
 
                 <div>
@@ -822,17 +1393,28 @@ export default function WhatsAppStatusSection({ shopInfo }) {
                     <span className="font-bold text-[#D4AF37]">{previewData.shopName}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs border-b border-stone-800 pb-2">
+                    <span className="text-stone-400">Shop Logo:</span>
+                    <span className="font-bold text-emerald-400">{loadedShopLogo ? "Loaded (Custom)" : "Default Luxury Emblem"}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs border-b border-stone-800 pb-2">
+                    <span className="text-stone-400">Hallmark Seal:</span>
+                    <span className="font-bold text-[#D4AF37] flex items-center gap-1.5">
+                      <img src="/bis_916_hallmark.png" alt="Official BIS 916 Hallmark" className="h-5 object-contain bg-white/90 px-1 py-0.5 rounded" />
+                      <span>BIS 916 Official</span>
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs border-b border-stone-800 pb-2">
                     <span className="text-stone-400">Live Gold Rate (22K):</span>
-                    <span className="font-bold text-amber-300">{livePrices.gold22k} /g</span>
+                    <span className="font-number font-bold text-amber-300 text-sm">{livePrices.gold22k} /g</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-stone-400">Live Silver Rate (999):</span>
-                    <span className="font-bold text-stone-200">{livePrices.silver999} /g</span>
+                    <span className="font-number font-bold text-stone-200 text-sm">{livePrices.silver999} /g</span>
                   </div>
                 </div>
 
                 <p className="text-[11px] text-stone-400 font-light leading-relaxed">
-                  Stamped with 100% BIS Hallmarked guarantee, live metal rates, and your showroom phone number ready to share on WhatsApp Status.
+                  Stamped with official 100% BIS Hallmarked 916 gold emblem, live metal rates in Cinzel typography, showroom logo, and contact phone number.
                 </p>
               </div>
 
@@ -841,18 +1423,18 @@ export default function WhatsAppStatusSection({ shopInfo }) {
                 {previewData.type === "image" ? (
                   <button
                     onClick={() => {
-                      triggerImageDownloadFromDataUrl(previewData.previewUrl, previewData.title, previewData.cardNum);
+                      triggerImageDownloadFromDataUrl(previewData.previewUrl, previewData.title, previewData.cardNum, previewData.templateId);
                       setPreviewData(null);
                     }}
                     className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-stone-950 font-bold py-3.5 px-6 rounded-2xl text-xs sm:text-sm tracking-wider uppercase shadow-lg shadow-amber-500/20 hover:scale-[1.01] transition-all cursor-pointer"
                   >
                     <Download className="w-4 h-4 text-stone-950" />
-                    <span>Download Image Status Card</span>
+                    <span>Download Template #{previewData.templateId} Image</span>
                   </button>
                 ) : (
                   <button
                     onClick={() => {
-                      handleVideoDownloadItem(previewData.videoNumber, previewData.title, previewData.fileName);
+                      handleVideoDownloadItem(previewData.videoNumber, previewData.title, previewData.fileName, previewData.templateId);
                       setPreviewData(null);
                     }}
                     disabled={downloadingId !== null}
@@ -866,7 +1448,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
                     ) : (
                       <>
                         <Download className="w-4 h-4 text-emerald-200" />
-                        <span>Download Branded Status Video</span>
+                        <span>Download Template #{previewData.templateId} Video</span>
                       </>
                     )}
                   </button>

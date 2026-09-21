@@ -221,7 +221,7 @@ export default function GallerySection({
 
                 {currentImage.purity && (
                   <div className="flex items-center gap-2 text-xs font-semibold text-stone-700 bg-stone-100 p-3 rounded-lg border border-stone-200">
-                    <CheckCircle className="w-4 h-4 text-[#B8860B]" />
+                    <img src="/bis_916_hallmark.png" alt="BIS 916 Hallmark" className="h-5 object-contain bg-white px-1.5 py-0.5 rounded shadow-xs shrink-0" />
                     <span>Purity & Gems: {currentImage.purity}</span>
                   </div>
                 )}

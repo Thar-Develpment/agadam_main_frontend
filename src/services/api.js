@@ -16,7 +16,7 @@ export const DEFAULT_GOLD_THUMBNAIL = "https://images.unsplash.com/photo-1599643
 export function extractYoutubeId(url = "") {
   if (!url || typeof url !== "string") return "";
   const trimmed = url.trim();
-  
+
   // If already an 11-char alphanumeric ID
   if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
     return trimmed;
@@ -91,7 +91,8 @@ export async function checkTenantStatus() {
 export async function getGalleryCategories() {
   try {
     const subdomain = getTenantSubdomain();
-    const res = await apiClient.post("/user/gallery_categories", { subdomain });
+    const shop_name = getShopPrefix(subdomain);
+    const res = await apiClient.post("/user/gallery_categories", { shop_name, subdomain });
     if (res.data && res.data.status === 1 && Array.isArray(res.data.data)) {
       const names = res.data.data
         .map((cat) => cat.category_name?.trim())
@@ -114,11 +115,12 @@ export async function getGalleryCategories() {
 export async function getGalleryImages(categoryName = "All") {
   try {
     const subdomain = getTenantSubdomain();
-    
+    const shop_name = getShopPrefix(subdomain);
+
     // 1. Fetch categories to build an ID-to-Name map
     const categoriesMap = new Map();
     try {
-      const catRes = await apiClient.post("/user/gallery_categories", { subdomain });
+      const catRes = await apiClient.post("/user/gallery_categories", { shop_name, subdomain });
       if (catRes.data && catRes.data.status === 1 && Array.isArray(catRes.data.data)) {
         catRes.data.data.forEach((cat) => {
           if (cat?.id && cat?.category_name) {
@@ -131,7 +133,7 @@ export async function getGalleryImages(categoryName = "All") {
     }
 
     // 2. Fetch the gallery details (using backend typo route /user/galler_details)
-    const res = await apiClient.post("/user/galler_details", { subdomain });
+    const res = await apiClient.post("/user/galler_details", { shop_name, subdomain });
     if (res.data && res.data.status === 1 && Array.isArray(res.data.data)) {
       const mappedImages = res.data.data.map((item) => {
         const mappedCategory = categoriesMap.get(item.category_id) || "Exclusive";
@@ -167,8 +169,9 @@ export async function getGalleryImages(categoryName = "All") {
 export async function getVideos() {
   try {
     const subdomain = getTenantSubdomain();
-    const res = await apiClient.post("/user/videos_details", { subdomain });
-    
+    const shop_name = getShopPrefix(subdomain);
+    const res = await apiClient.post("/user/videos_details", { shop_name, subdomain });
+
     if (res.data && res.data.status === 1 && Array.isArray(res.data.data)) {
       return res.data.data.map((item) => {
         const rawUrl = item.video_url || "";
@@ -180,7 +183,7 @@ export async function getVideos() {
           videoUrl: rawUrl,
           youtubeId: !isDirectVideo ? youtubeId : "",
           isDirectVideo: isDirectVideo,
-          thumbnail: youtubeId 
+          thumbnail: youtubeId
             ? `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg`
             : "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=800&q=80",
           category: "Showcase",
@@ -203,8 +206,9 @@ export async function getVideos() {
 export async function getAboutContent() {
   try {
     const subdomain = getTenantSubdomain();
-    const res = await apiClient.post("/user/our_stories", { subdomain });
-    
+    const shop_name = getShopPrefix(subdomain);
+    const res = await apiClient.post("/user/our_stories", { shop_name, subdomain });
+
     if (res.data && res.data.status === 1 && Array.isArray(res.data.data) && res.data.data.length > 0) {
       const activeStory = res.data.data.find((story) => story.status === 1) || res.data.data[0];
       let storyText = activeStory.content || activeStory.strContent || "";
@@ -237,31 +241,114 @@ export async function getAboutContent() {
   }
 }
 
+const DEFAULT_PRICE_DATA = [
+  { id: 1, material: "gold", purity: "24K (99.9% Pure)", price: 7850 },
+  { id: 2, material: "gold", purity: "22K (91.6% Pure)", price: 7195 },
+  { id: 3, material: "gold", purity: "18K (75.0% Pure)", price: 5890 },
+  { id: 4, material: "silver", purity: "999 Fine Silver", price: 92 },
+];
+
 /**
  * Fetch live metal/bullion prices and showroom contact info from backend `POST /user/site_info`
  * @param {string} [shopName] Optional shop name filter
- * @returns {Promise<Object>} { success: number, priceData: Array<{ id, material, purity, price }>, siteInfoData: Object|null }
+ * @returns {Promise<Object>} { success: number, priceData: Array<{ id, material, purity, price }>, siteInfoData: Object|null, paymentPending?: boolean }
  */
 export async function getSiteInfo(shopName = "") {
-  try {
-    const subdomain = getTenantSubdomain();
-    const targetShop = shopName || getShopPrefix(subdomain);
-    const payload = targetShop ? { shop_name: targetShop } : {};
+  const subdomain = getTenantSubdomain();
+  const targetShop = shopName || getShopPrefix(subdomain);
+  const payload = {
+    shop_name: targetShop,
+    subdomain: subdomain,
+  };
 
+  try {
     const res = await apiClient.post("/user/site_info", payload);
-    if (res.data && (res.data.success === 1 || res.data.status === 1)) {
+
+    if (res.data) {
+      // 1. Explicit Payment Pending check from backend checkPayment middleware
+      if (res.data.message === "Payment pending") {
+        return {
+          success: 0,
+          paymentPending: true,
+          priceData: DEFAULT_PRICE_DATA,
+          siteInfoData: null,
+          message: res.data.message,
+        };
+      }
+
+      // 2. Successful response from registered shop
+      if (res.data.success === 1 || res.data.status === 1) {
+        const priceData = (Array.isArray(res.data.priceData) && res.data.priceData.length > 0)
+          ? res.data.priceData
+          : (Array.isArray(res.data.data) && res.data.data.length > 0)
+            ? res.data.data
+            : DEFAULT_PRICE_DATA;
+
+        const siteInfoData = res.data.siteInfoData || null;
+
+        if (siteInfoData && typeof siteInfoData === "object") {
+          try {
+            localStorage.setItem(`aadagam_site_info_${targetShop}`, JSON.stringify(siteInfoData));
+          } catch (e) {}
+        }
+
+        return {
+          success: 1,
+          paymentPending: false,
+          priceData: priceData,
+          siteInfoData: siteInfoData,
+          message: res.data.message || "Site info fetched successfully",
+        };
+      }
+    }
+  } catch (err) {
+    const errMsg = err.response?.data?.message || err.message;
+    if (errMsg === "Payment pending") {
       return {
-        success: 1,
-        priceData: res.data.priceData || res.data.data || [],
-        siteInfoData: res.data.siteInfoData || null,
-        message: res.data.message || "Site info fetched successfully",
+        success: 0,
+        paymentPending: true,
+        priceData: DEFAULT_PRICE_DATA,
+        siteInfoData: null,
+        message: errMsg,
       };
     }
-    return { success: 0, priceData: [], siteInfoData: null, message: "No data found" };
-  } catch (err) {
-    console.error("Error in getSiteInfo:", err);
-    return { success: 0, priceData: [], siteInfoData: null, message: err.message };
   }
+
+  // 3. Fallback for unregistered shops, localhost, or network issues: return fallback site info
+  let basicData = null;
+  try {
+    const basicRes = await apiClient.get("/basic/get_basic_info");
+    if (basicRes.data && basicRes.data.status === 1 && basicRes.data.data) {
+      basicData = basicRes.data.data;
+    }
+  } catch (e) {}
+
+  let cachedSiteInfo = null;
+  try {
+    const local = localStorage.getItem(`aadagam_site_info_${targetShop}`);
+    if (local) {
+      cachedSiteInfo = JSON.parse(local);
+    }
+  } catch (e) {}
+
+  const mergedSiteInfo = {
+    shop_name: cachedSiteInfo?.shop_name || basicData?.shop_name || targetShop,
+    logo: cachedSiteInfo?.logo || "",
+    city: cachedSiteInfo?.city || basicData?.city || "",
+    address: cachedSiteInfo?.address || basicData?.address || "",
+    phone: cachedSiteInfo?.phone || basicData?.phone || "",
+    contact_us: cachedSiteInfo?.contact_us || basicData?.email || "",
+    whatsapp_no: cachedSiteInfo?.whatsapp_no || cachedSiteInfo?.phone || basicData?.phone || "",
+    ...cachedSiteInfo,
+  };
+
+  return {
+    success: 1,
+    paymentPending: false,
+    priceData: DEFAULT_PRICE_DATA,
+    siteInfoData: mergedSiteInfo,
+    message: "Site info loaded via fallback",
+  };
 }
 
 /**
@@ -340,7 +427,7 @@ export async function submitEnquiry(formData) {
     };
 
     const res = await apiClient.post("/user/ask_question", payload);
-    
+
     if (res.data && res.data.status === 1) {
       return {
         success: true,
@@ -391,7 +478,7 @@ export async function registerShop(regData) {
     };
 
     const res = await apiClient.post("/auth/register", payload);
-    
+
     if (res.data && res.data.success === 1) {
       const returnedDomain = res.data.data?.domain || `${payload.shop_name.toLowerCase()}.aadagam.com`;
       return {
@@ -411,7 +498,7 @@ export async function registerShop(regData) {
   } catch (err) {
     console.error("Error in registerShop:", err);
     let errorMsg = "Registration failed.";
-    
+
     if (err.response?.status === 409) {
       errorMsg = "This shop name is already taken. Please choose a different shop name.";
     } else if (err.response?.data) {
@@ -464,7 +551,7 @@ export async function adminLogin(email, password) {
     if (res.data && res.data.status === 1 && res.data.authTkn) {
       const token = res.data.authTkn;
       const decoded = parseJwt(token) || {};
-      
+
       const userSession = {
         token,
         authTkn: token,

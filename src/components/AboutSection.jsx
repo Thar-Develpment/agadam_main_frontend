@@ -99,9 +99,12 @@ export default function AboutSection({ aboutContent, galleryImages = [], shopInf
                     <h4 className="font-serif font-bold text-[#D4AF37] text-lg">
                       {shopName}
                     </h4>
-                    <p className="text-xs uppercase tracking-wider text-stone-400 font-semibold">
-                      100% BIS Hallmarked Purity Guarantee
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <img src="/bis_916_hallmark.png" alt="BIS 916 Hallmark" className="h-5 object-contain bg-white/95 px-1 py-0.5 rounded shadow-xs" />
+                      <p className="text-xs uppercase tracking-wider text-stone-300 font-semibold">
+                        100% BIS Hallmarked Purity Guarantee
+                      </p>
+                    </div>
                   </div>
                   <Gem className="w-6 h-6 text-[#D4AF37] shrink-0" />
                 </div>
