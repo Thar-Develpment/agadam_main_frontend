@@ -1240,7 +1240,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
         }
 
         const activeSubdomain = getTenantSubdomain();
-        const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase() + " JEWELLERY";
+        const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
         const shopNameStr = (shopInfo?.name || defaultShopName).toUpperCase();
 
         if (bgImageUrl) {
@@ -1294,7 +1294,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
 
   const handleOpenImagePreview = (btn) => {
     const activeSubdomain = getTenantSubdomain();
-    const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase() + " JEWELLERY";
+    const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
     const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
 
     let selectedAssetUrl = "";
@@ -1320,7 +1320,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
 
   const handleOpenVideoPreview = (vid) => {
     const activeSubdomain = getTenantSubdomain();
-    const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase() + " JEWELLERY";
+    const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
     const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
 
     let selectedVideoUrl = "";
@@ -1348,7 +1348,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
 
   const triggerImageDownloadFromDataUrl = (dataUrl, label, cardNum, templateId = 1) => {
     const activeSubdomain = getTenantSubdomain();
-    const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase() + " JEWELLERY";
+    const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
     const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
     const cleanName = shopName.toLowerCase().replace(/\s+/g, "_");
 
@@ -1375,7 +1375,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
     setSuccessInfo(null);
 
     const activeSubdomain = getTenantSubdomain();
-    const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase() + " JEWELLERY";
+    const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
     const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
     const cleanName = shopName.toLowerCase().replace(/\s+/g, "_");
 

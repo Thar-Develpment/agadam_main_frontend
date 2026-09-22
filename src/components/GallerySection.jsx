@@ -9,6 +9,7 @@ import {
   PhoneCall,
   CheckCircle,
 } from "lucide-react";
+import { getCleanWhatsAppNumber } from "../services/apiClient";
 
 export default function GallerySection({
   categories = [],
@@ -234,7 +235,15 @@ export default function GallerySection({
               {/* Action Buttons */}
               <div className="space-y-3 pt-4 border-t border-stone-200">
                 <a
-                  href={`https://wa.me/${(shopInfo?.whatsapp || "919952054493").replace(/\D/g, "")}?text=Hello%20${encodeURIComponent(shopInfo?.name || "Jewellery Boutique")}%2C%20I%20am%20interested%20in%20item%20${encodeURIComponent(currentImage.title)}%20(Code%3A%20${currentImage.code}).`}
+                  href={`https://wa.me/${getCleanWhatsAppNumber(
+                    shopInfo?.whatsapp_no ||
+                    shopInfo?.whatsapp ||
+                    shopInfo?.phone ||
+                    shopInfo?.phonePrimary ||
+                    ""
+                  )}?text=${encodeURIComponent(
+                    `Hello ${shopInfo?.name || "Jewellery Boutique"}, I am interested in enquiry for item "${currentImage.title}" (Code: ${currentImage.code || "AG-JEWEL"}) from your website catalogue.`
+                  )}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba59] text-white font-semibold py-3 px-4 rounded-xl text-sm transition-colors shadow-md"

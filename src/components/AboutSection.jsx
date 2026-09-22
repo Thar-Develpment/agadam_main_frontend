@@ -7,9 +7,9 @@ export default function AboutSection({ aboutContent, galleryImages = [], shopInf
   if (!aboutContent) return null;
 
   const activeSubdomain = getTenantSubdomain();
-  const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase() + " JEWELLERY";
+  const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
   const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
-  const brandNameOnly = shopName.replace(/\s+JEWELLERY/gi, "").trim();
+  const brandNameOnly = shopName;
 
   // Parse raw content if it contains JSON payload
   let rawText = "";

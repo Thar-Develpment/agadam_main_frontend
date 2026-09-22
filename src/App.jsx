@@ -112,21 +112,32 @@ function ClientStorefrontPage() {
           };
         }
 
+        const showroomPhone = (liveSiteData.phone || baseContact.phone || baseContact.phonePrimary || "").trim();
+        const showroomWhatsApp = (
+          liveSiteData.whatsapp_no ||
+          liveSiteData.whatsapp ||
+          socialLinks?.whatsapp ||
+          baseContact.whatsapp_no ||
+          baseContact.whatsapp ||
+          showroomPhone ||
+          ""
+        ).trim();
+
         setShopInfo({
           ...baseContact,
-          name: liveSiteData.shop_name ? (liveSiteData.shop_name.toUpperCase() + " JEWELLERY") : (shopPrefix.toUpperCase() + " JEWELLERY"),
+          name: (liveSiteData.shop_name || shopPrefix || "").trim().toUpperCase(),
           logo: resolveFullImageUrl(liveSiteData.logo || baseContact.logo || ""),
           email: liveSiteData.contact_us || baseContact.email || `contact@${shopPrefix}jewellery.com`,
           contact_us: liveSiteData.contact_us || baseContact.email || `contact@${shopPrefix}jewellery.com`,
           city: liveSiteData.city || baseContact.city || "",
           address: liveSiteData.address || baseContact.address || "",
-          phone: liveSiteData.phone || baseContact.phone || baseContact.phonePrimary || "+91 98765 43210",
-          phonePrimary: liveSiteData.phone || baseContact.phonePrimary || "+91 98765 43210",
-          whatsapp_no: liveSiteData.whatsapp_no || baseContact.whatsapp_no || baseContact.whatsapp || "",
+          phone: showroomPhone || "+91 98765 43210",
+          phonePrimary: showroomPhone || "+91 98765 43210",
+          whatsapp_no: showroomWhatsApp,
+          whatsapp: showroomWhatsApp,
           social_urls: socialLinks,
           facebook: socialLinks?.facebook || liveSiteData.facebook || baseContact.facebook || "",
           instagram: socialLinks?.instagram || liveSiteData.instagram || baseContact.instagram || "",
-          whatsapp: socialLinks?.whatsapp || liveSiteData.whatsapp || baseContact.whatsapp || "",
           twitter: socialLinks?.twitter || liveSiteData.twitter || baseContact.twitter || "",
           youtube: socialLinks?.youtube || liveSiteData.youtube || baseContact.youtube || "",
           telegram: socialLinks?.telegram || liveSiteData.telegram || baseContact.telegram || "",
@@ -254,7 +265,7 @@ function ClientStorefrontPage() {
         <div className="max-w-md space-y-3">
           <div className="inline-flex items-center gap-2 bg-[#D4AF37]/15 text-[#B8860B] border border-[#D4AF37]/30 px-3.5 py-1 rounded-full text-xs font-semibold uppercase tracking-widest">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>{shopInfo?.name || (shopPrefix && shopPrefix !== "mycompany" ? `${shopPrefix.toUpperCase()} JEWELLERY` : "Curating Fine Masterpieces")}</span>
+            <span>{shopInfo?.name || (shopPrefix && shopPrefix !== "mycompany" ? shopPrefix.toUpperCase() : "Curating Fine Masterpieces")}</span>
           </div>
 
           <h2 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 tracking-wide">

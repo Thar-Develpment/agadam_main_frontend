@@ -277,9 +277,14 @@ export function formatIndianPhoneNumber(phone, fallback = "+91 9952054493") {
  * @param {string} fallback 
  * @returns {string}
  */
-export function getCleanWhatsAppNumber(phone, fallback = "919952054493") {
+export function getCleanWhatsAppNumber(phone, fallback = "") {
   if (!phone) return fallback;
-  const digits = String(phone).replace(/\D/g, "");
+  const raw = String(phone).trim();
+  if (raw.includes("wa.me/")) {
+    const afterWa = raw.split("wa.me/")[1].split("?")[0].replace(/\D/g, "");
+    if (afterWa) return afterWa;
+  }
+  const digits = raw.replace(/\D/g, "");
   if (digits.length === 10) {
     return `91${digits}`;
   }

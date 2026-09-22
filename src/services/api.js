@@ -514,6 +514,14 @@ export async function getContactInfo() {
   return {
     ...mockShopInfo,
     name: shopNamePrefix !== "MYCOMPANY" ? shopNamePrefix : mockShopInfo.name,
+    phonePrimary: "",
+    phone: "",
+    whatsapp_no: "",
+    whatsapp: "",
+    address: "",
+    city: "",
+    email: "",
+    social_urls: {},
   };
 }
 
