@@ -10,12 +10,16 @@ export default function AboutSection({ aboutContent, galleryImages = [], shopInf
   const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
   const brandNameOnly = shopName.replace(/\s+JEWELLERY/gi, "").trim();
 
-  // Use the first image from the showroom's gallery, or fallback to luxury jewellery image
+  // Priority: 1. Custom uploaded Our Story image from admin panel, 2. First gallery image, 3. Luxury default fallback
+  const customStoryImage = aboutContent.image || aboutContent.imageUrl;
   const showcaseItem = galleryImages && galleryImages.length > 0 ? galleryImages[0] : null;
   const showcaseImage =
+    customStoryImage ||
     showcaseItem?.imageUrl ||
     "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=800&q=80";
-  const showcaseTitle = showcaseItem?.title || `${brandNameOnly} Signature Collection`;
+  const showcaseTitle = customStoryImage
+    ? `${brandNameOnly} Heritage & Craft`
+    : showcaseItem?.title || `${brandNameOnly} Signature Collection`;
 
   // Process history paragraphs (handling single strings with line breaks or array of paragraphs)
   const rawParagraphs = Array.isArray(aboutContent.historyParagraphs)

@@ -1607,8 +1607,8 @@ export default function WhatsAppStatusSection({ shopInfo }) {
             </div>
           </div>
 
-          {/* Quick Action: Preview & Download Video */}
-          <div className="pt-2">
+          {/* Quick Action: Preview & Download Video & Festive Announcement */}
+          <div className="pt-2 flex flex-col items-center justify-center gap-5">
             <button
               onClick={handleVideoDownload}
               className="w-full sm:w-auto min-w-[280px] inline-flex items-center justify-center gap-3 bg-gradient-to-r from-emerald-600 via-emerald-700 to-emerald-800 hover:from-emerald-700 hover:to-emerald-900 text-white font-bold py-3.5 px-8 rounded-2xl text-xs sm:text-sm tracking-wider uppercase shadow-lg shadow-emerald-900/15 hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer"
@@ -1616,6 +1616,49 @@ export default function WhatsAppStatusSection({ shopInfo }) {
               <Video className="w-4 h-4 text-emerald-200" />
               <span>Preview & Download Branded Video Reel</span>
             </button>
+
+            {/* Grand, Styled & Catchy Festival Posters Announcement Button */}
+            <div className="w-full sm:w-auto">
+              <div className="relative group inline-flex items-center justify-center w-full sm:w-auto">
+                {/* Ambient Festive Luxury Glow */}
+                <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 via-[#F59E0B] to-yellow-400 rounded-3xl blur-md opacity-60 group-hover:opacity-100 transition duration-500 animate-pulse" />
+
+                {/* Grand Announcement Container */}
+                <div className="relative w-full sm:w-auto inline-flex items-center justify-center gap-3.5 sm:gap-5 bg-gradient-to-r from-[#1C1205] via-[#331C04] to-[#1C1205] text-[#FAF9F5] border-2 border-[#FDE047] py-3.5 sm:py-4 px-6 sm:px-10 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden cursor-default select-none">
+                  {/* Subtle Shimmer Ray */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
+
+                  {/* Left Blinking Ball & Sparkles Icon */}
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-[#F59E0B]"></span>
+                    </span>
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-yellow-500 text-stone-950 flex items-center justify-center shadow-md">
+                      <Sparkles className="w-4 h-4 sm:w-4.5 sm:h-4.5 fill-stone-950" />
+                    </div>
+                  </div>
+
+                  {/* Catchy Announcement Content (Prominent & Bold) */}
+                  <div className="text-center px-1 sm:px-2">
+                    <span className="font-serif font-bold text-base sm:text-lg md:text-xl tracking-wider text-white drop-shadow-sm block">
+                      Festival Posters are coming soon
+                    </span>
+                  </div>
+
+                  {/* Right Blinking Ball & Sparkles Icon */}
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-yellow-500 text-stone-950 flex items-center justify-center shadow-md">
+                      <Sparkles className="w-4 h-4 sm:w-4.5 sm:h-4.5 fill-stone-950" />
+                    </div>
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-[#F59E0B]"></span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Success Alert Toast */}

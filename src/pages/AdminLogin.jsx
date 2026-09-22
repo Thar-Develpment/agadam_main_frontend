@@ -99,9 +99,17 @@ export default function AdminLogin() {
 
           {/* Password Input */}
           <div className="space-y-1.5 text-left">
-            <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider">
-              Password
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wider">
+                Password
+              </label>
+              <Link
+                to="/forgot-password"
+                className="text-[11px] font-semibold text-[#783bf0] hover:underline cursor-pointer"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400">
                 <Lock className="w-4 h-4" />

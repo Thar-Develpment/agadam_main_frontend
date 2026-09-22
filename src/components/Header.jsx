@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Menu, X, PhoneCall, Sparkles, Gem } from "lucide-react";
 import { formatIndianPhoneNumber, resolveFullImageUrl } from "../services/apiClient";
 
@@ -38,6 +39,7 @@ export default function Header({ shopInfo }) {
     { name: "Gold Rates", href: "#rates", id: "rates" },
     { name: "About Us", href: "#about", id: "about" },
     { name: "Contact", href: "#contact", id: "contact" },
+    { name: "Admin Sign in", href: "/admin", isRoute: true },
   ];
 
   const handleNavClick = (e, href) => {
@@ -125,23 +127,33 @@ export default function Header({ shopInfo }) {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                onClick={(e) => handleNavClick(e, link.href)}
-                className={`text-sm font-medium tracking-wide transition-all relative py-1 ${
-                  activeSection === link.id
-                    ? "text-[#B8860B] font-semibold"
-                    : "text-stone-700 hover:text-[#B8860B]"
-                }`}
-              >
-                {link.name}
-                {activeSection === link.id && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D4AF37] rounded-full animate-fade-in" />
-                )}
-              </a>
-            ))}
+            {navLinks.map((link) =>
+              link.isRoute ? (
+                <Link
+                  key={link.name}
+                  to={link.href}
+                  className="text-sm font-medium tracking-wide transition-all relative py-1 text-stone-700 hover:text-[#B8860B]"
+                >
+                  {link.name}
+                </Link>
+              ) : (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  onClick={(e) => handleNavClick(e, link.href)}
+                  className={`text-sm font-medium tracking-wide transition-all relative py-1 ${
+                    activeSection === link.id
+                      ? "text-[#B8860B] font-semibold"
+                      : "text-stone-700 hover:text-[#B8860B]"
+                  }`}
+                >
+                  {link.name}
+                  {activeSection === link.id && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D4AF37] rounded-full animate-fade-in" />
+                  )}
+                </a>
+              )
+            )}
           </nav>
 
           {/* Header Action Buttons */}
@@ -195,20 +207,31 @@ export default function Header({ shopInfo }) {
 
               {/* Mobile Nav Links */}
               <nav className="mt-6 space-y-2">
-                {navLinks.map((link) => (
-                  <a
-                    key={link.name}
-                    href={link.href}
-                    onClick={(e) => handleNavClick(e, link.href)}
-                    className={`block px-4 py-3 rounded-xl font-medium text-base transition-colors ${
-                      activeSection === link.id
-                        ? "bg-[#D4AF37]/15 text-[#B8860B] font-semibold border-l-4 border-[#D4AF37]"
-                        : "text-stone-800 hover:bg-stone-100"
-                    }`}
-                  >
-                    {link.name}
-                  </a>
-                ))}
+                {navLinks.map((link) =>
+                  link.isRoute ? (
+                    <Link
+                      key={link.name}
+                      to={link.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block px-4 py-3 rounded-xl font-medium text-base text-stone-800 hover:bg-stone-100 transition-colors"
+                    >
+                      {link.name}
+                    </Link>
+                  ) : (
+                    <a
+                      key={link.name}
+                      href={link.href}
+                      onClick={(e) => handleNavClick(e, link.href)}
+                      className={`block px-4 py-3 rounded-xl font-medium text-base transition-colors ${
+                        activeSection === link.id
+                          ? "bg-[#D4AF37]/15 text-[#B8860B] font-semibold border-l-4 border-[#D4AF37]"
+                          : "text-stone-800 hover:bg-stone-100"
+                      }`}
+                    >
+                      {link.name}
+                    </a>
+                  )
+                )}
               </nav>
             </div>
 

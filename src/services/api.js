@@ -42,11 +42,66 @@ export function extractYoutubeId(url = "") {
  * ========================================================================== */
 
 /**
- * Fetch hero carousel slides (Fallback to showroom slides)
+ * Fetch hero carousel slides (Checks backend hero slides, basic assets fallback, or mock slides)
  * @returns {Promise<Array>} Array of slide objects
  */
 export async function getSlides() {
-  return mockSlides;
+  try {
+    const subdomain = getTenantSubdomain();
+    const shopPrefix = getShopPrefix(subdomain);
+
+    // 1. Query backend hero slides API
+    const res = await adminGetAllHeroSlide(0, 10);
+    if (res && res.status === 1 && Array.isArray(res.data) && res.data.length > 0) {
+      const activeSlides = res.data
+        .filter((s) => s.status === 1 || s.status === undefined)
+        .map((s) => ({
+          id: s.id,
+          title: s.title || "Royal Bridal Heritage",
+          subtitle: s.description || "Discover timeless handcrafted bridal jewels",
+          description: s.description || "Discover timeless handcrafted bridal jewels",
+          desktopImg: s.image,
+          mobileImg: s.image,
+          image: s.image,
+          ctaLink: "#gallery",
+          ctaText: "Explore Collection",
+        }));
+
+      if (activeSlides.length > 0) {
+        localStorage.setItem(`aadagam_carousel_slides_${shopPrefix}`, JSON.stringify(activeSlides));
+        return activeSlides;
+      }
+    }
+
+    // 2. Try local storage cache fallback
+    const localSlides = localStorage.getItem(`aadagam_carousel_slides_${shopPrefix}`);
+    if (localSlides) {
+      const parsed = JSON.parse(localSlides);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+
+    // 3. Fallback to basic assets
+    const basicRes = await getBasicAssets();
+    if (basicRes && basicRes.status === 1 && basicRes.image?.data?.length > 0) {
+      const basicSlides = basicRes.image.data.slice(0, 4).map((url, idx) => ({
+        id: idx + 1,
+        title: idx === 0 ? "Exquisite Bridal Diamond Collection" : "Royal Heritage Gold Collection",
+        subtitle: idx === 0 ? "Discover timeless handcrafted bridal jewels" : "Handcrafted pure 22K gold ornaments",
+        description: idx === 0 ? "Discover timeless handcrafted bridal jewels" : "Handcrafted pure 22K gold ornaments",
+        desktopImg: url,
+        mobileImg: url,
+        image: url,
+        ctaLink: "#gallery",
+        ctaText: "Explore Collection",
+      }));
+      return basicSlides;
+    }
+
+    return mockSlides;
+  } catch (err) {
+    console.warn("Could not load backend hero slides, using defaults:", err);
+    return mockSlides;
+  }
 }
 
 /**
@@ -213,12 +268,16 @@ export async function getAboutContent() {
       const activeStory = res.data.data.find((story) => story.status === 1) || res.data.data[0];
       let storyText = activeStory.content || activeStory.strContent || "";
       let headingText = null;
+      let imageUrl = activeStory.image || activeStory.image_url || activeStory.imageUrl || null;
 
       if (typeof storyText === "string" && (storyText.startsWith("{") || storyText.startsWith("["))) {
         try {
           const parsed = JSON.parse(storyText);
           storyText = parsed.body || parsed.content || parsed.text || storyText;
           headingText = parsed.heading || parsed.title || null;
+          if (!imageUrl) {
+            imageUrl = parsed.image_url || parsed.image || parsed.imageUrl || null;
+          }
         } catch (e) {
           // Keep raw string if not JSON
         }
@@ -232,6 +291,7 @@ export async function getAboutContent() {
       return {
         title: headingText || "Our Heritage & Passion for Perfection",
         historyParagraphs: userParagraphs.length > 0 ? userParagraphs : [storyText],
+        image: imageUrl || null,
       };
     }
     return mockAboutContent;
@@ -601,6 +661,72 @@ export async function adminLogin(email, password) {
 }
 
 /**
+ * Send 6-digit numeric OTP to registered admin email via `POST /opxXxolN7m6CU/send_otp`
+ * @param {string} email
+ * @returns {Promise<Object>} { status: number, message: string }
+ */
+export async function adminSendOtp(email) {
+  try {
+    const cleanEmail = (email || "").trim();
+    const res = await apiClient.post("/opxXxolN7m6CU/send_otp", { email: cleanEmail });
+    return res.data || { status: 1, message: "OTP sent successfully" };
+  } catch (err) {
+    console.error("Error in adminSendOtp:", err);
+    return {
+      status: 0,
+      message: err.response?.data?.message || err.message || "Failed to send OTP.",
+    };
+  }
+}
+
+/**
+ * Resend fresh 6-digit OTP via `POST /opxXxolN7m6CU/resend_otp`
+ * @param {string} email
+ * @returns {Promise<Object>} { status: number, message: string, resendCount?: number, remainingResends?: number }
+ */
+export async function adminResendOtp(email) {
+  try {
+    const cleanEmail = (email || "").trim();
+    const res = await apiClient.post("/opxXxolN7m6CU/resend_otp", { email: cleanEmail });
+    return res.data || { status: 1, message: "OTP resent successfully" };
+  } catch (err) {
+    console.error("Error in adminResendOtp:", err);
+    return {
+      status: 0,
+      message: err.response?.data?.message || err.message || "Failed to resend OTP.",
+    };
+  }
+}
+
+/**
+ * Verify 6-digit OTP and set new password via `POST /opxXxolN7m6CU/reset_password`
+ * @param {string} email
+ * @param {string|number} otp
+ * @param {string} newPassword
+ * @returns {Promise<Object>} { status: number, message: string }
+ */
+export async function adminResetPassword(email, otp, newPassword) {
+  try {
+    const cleanEmail = (email || "").trim();
+    const cleanOtp = String(otp || "").trim();
+    const cleanPassword = (newPassword || "").trim();
+
+    const res = await apiClient.post("/opxXxolN7m6CU/reset_password", {
+      email: cleanEmail,
+      otp: cleanOtp,
+      newPassword: cleanPassword,
+    });
+    return res.data || { status: 1, message: "Password reset successfully" };
+  } catch (err) {
+    console.error("Error in adminResetPassword:", err);
+    return {
+      status: 0,
+      message: err.response?.data?.message || err.message || "Failed to reset password.",
+    };
+  }
+}
+
+/**
  * Fetch Admin Dashboard overview statistics from `GET /opxXxolN7m6CU/dash_board`
  * @param {string} token Optional JWT token
  * @returns {Promise<Object>} { status: number, success: number, category_count: number, gallery_count: number, videos_count: number, asked_question: number }
@@ -912,11 +1038,26 @@ export async function adminUpdateAskedQuestionStatus(id, status = 1, token = nul
 
 /* ------------------ E. OUR STORY NARRATIVE ------------------ */
 
-export async function adminAddOurStory(content, token = null) {
+export async function adminAddOurStory(content, image = "", token = null) {
   try {
+    const rawText = typeof content === "string" ? content.trim() : "";
+    const imageUrl = (image || "").trim();
+
+    // Format content JSON string containing heading, body, image_url as per backend specification
+    const contentObj = {
+      heading: "Our Heritage & Craftsmanship",
+      body: rawText,
+      image_url: imageUrl
+    };
+
+    const payload = {
+      content: JSON.stringify(contentObj),
+      image: imageUrl
+    };
+
     const res = await apiClient.post(
       "/opxXxolN7m6CU/add_our_story",
-      { content: (content || "").trim() },
+      payload,
       { headers: getAuthHeader(token) }
     );
     return res.data;
@@ -954,15 +1095,27 @@ export async function adminGetSingleOurStory(id, token = null) {
   }
 }
 
-export async function adminUpdateOurStory(id, content, status = 1, token = null) {
+export async function adminUpdateOurStory(id, content, status = 1, image = "", token = null) {
   try {
+    const rawText = typeof content === "string" ? content.trim() : "";
+    const imageUrl = (image || "").trim();
+
+    const contentObj = {
+      heading: "Our Heritage & Craftsmanship",
+      body: rawText,
+      image_url: imageUrl
+    };
+
+    const payload = {
+      id: Number(id),
+      content: JSON.stringify(contentObj),
+      status: Number(status),
+      image: imageUrl
+    };
+
     const res = await apiClient.post(
       "/opxXxolN7m6CU/update_our_story",
-      {
-        id: Number(id),
-        content: (content || "").trim(),
-        status: Number(status),
-      },
+      payload,
       { headers: getAuthHeader(token) }
     );
     return res.data;
@@ -1030,12 +1183,28 @@ export async function adminActivateSubdomain(id, status = null, token = null) {
 /* ------------------ G. SITE INFO & S3 MULTI-IMAGE UPLOAD ------------------ */
 
 /**
- * Update showroom contact, physical address info, and logo via `POST /opxXxolN7m6CU/update_site_info`
- * @param {Object} siteInfo { logo, city, address, phone, contact_us, whatsapp_no }
+ * Update showroom contact, physical address info, logo, and social media links via `POST /opxXxolN7m6CU/update_site_info`
+ * @param {Object} siteInfo { logo, city, address, phone, contact_us, whatsapp_no, facebook, instagram, whatsapp, twitter, youtube, telegram }
  * @param {string} [token] Optional JWT token override
  * @returns {Promise<Object>} Response object { status: number, message: string, errors?: Object }
  */
-export async function adminUpdateSiteInfo({ logo, city, address, phone, contact_us, whatsapp_no }, token = null) {
+export async function adminUpdateSiteInfo(
+  {
+    logo,
+    city,
+    address,
+    phone,
+    contact_us,
+    whatsapp_no,
+    facebook,
+    instagram,
+    whatsapp,
+    twitter,
+    youtube,
+    telegram,
+  },
+  token = null
+) {
   try {
     const payload = {
       logo: (logo || "").trim().slice(0, 250),
@@ -1045,6 +1214,13 @@ export async function adminUpdateSiteInfo({ logo, city, address, phone, contact_
       contact_us: (contact_us || "").trim().slice(0, 30),
       whatsapp_no: (whatsapp_no || "").trim().slice(0, 15),
     };
+
+    if (facebook !== undefined) payload.facebook = (facebook || "").trim();
+    if (instagram !== undefined) payload.instagram = (instagram || "").trim();
+    if (whatsapp !== undefined) payload.whatsapp = (whatsapp || "").trim();
+    if (twitter !== undefined) payload.twitter = (twitter || "").trim();
+    if (youtube !== undefined) payload.youtube = (youtube || "").trim();
+    if (telegram !== undefined) payload.telegram = (telegram || "").trim();
 
     const res = await apiClient.post(
       "/opxXxolN7m6CU/update_site_info",
@@ -1103,6 +1279,113 @@ export async function adminUploadImages(files, token = null) {
     return {
       success: false,
       message: err.response?.data?.message || err.message || "Image upload failed.",
+    };
+  }
+}
+
+/* ------------------ G. HERO SLIDESHOW CAROUSEL ------------------ */
+
+/**
+ * Add / Create Hero Slide (POST /opxXxolN7m6CU/add_hero_slide)
+ * @param {Object} slideData { title, description, image }
+ * @param {string} [token]
+ */
+export async function adminAddHeroSlide({ title, description, image }, token = null) {
+  try {
+    const payload = {
+      title: (title || "").trim().slice(0, 255),
+      description: (description || "").trim().slice(0, 1000),
+      image: (image || "").trim().slice(0, 255)
+    };
+
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/add_hero_slide",
+      payload,
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminAddHeroSlide:", err);
+    return {
+      status: 0,
+      success: false,
+      message: err.response?.data?.message || "Failed to add hero slide.",
+      errors: err.response?.data?.errors || null
+    };
+  }
+}
+
+/**
+ * List all hero slides for current subdomain (POST /opxXxolN7m6CU/get_all_hero_slide)
+ * @param {number} [pageNo]
+ * @param {number} [pageSize]
+ * @param {string} [token]
+ */
+export async function adminGetAllHeroSlide(pageNo = 0, pageSize = 10, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/get_all_hero_slide",
+      { pageNo: Math.max(0, pageNo), pageSize: Math.max(1, pageSize) },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminGetAllHeroSlide:", err);
+    return { status: 0, totalRecords: 0, data: [] };
+  }
+}
+
+/**
+ * Get single hero slide by ID (POST /opxXxolN7m6CU/get_single_hero_slide)
+ * @param {number|string} id
+ * @param {string} [token]
+ */
+export async function adminGetSingleHeroSlide(id, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/get_single_hero_slide",
+      { id: Number(id) },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminGetSingleHeroSlide:", err);
+    return { status: 0, message: "Hero slide not found" };
+  }
+}
+
+/**
+ * Update or soft-delete a hero slide (POST /opxXxolN7m6CU/update_hero_slide)
+ * @param {number|string} id
+ * @param {string} title
+ * @param {string} description
+ * @param {string} image
+ * @param {number} [status] 1 for active, 0 for soft-delete
+ * @param {string} [token]
+ */
+export async function adminUpdateHeroSlide(id, title, description, image, status = 1, token = null) {
+  try {
+    const payload = {
+      id: Number(id),
+      title: (title || "").trim().slice(0, 255),
+      description: (description || "").trim().slice(0, 1000),
+      image: (image || "").trim().slice(0, 255),
+      status: Number(status)
+    };
+
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/update_hero_slide",
+      payload,
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminUpdateHeroSlide:", err);
+    return {
+      status: 0,
+      success: false,
+      message: err.response?.data?.message || "Failed to update hero slide.",
+      errors: err.response?.data?.errors || null
     };
   }
 }

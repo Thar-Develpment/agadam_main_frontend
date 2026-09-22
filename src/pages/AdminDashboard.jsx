@@ -35,7 +35,17 @@ import {
   Building2,
   X,
   Sparkles,
+  Send,
+  Share2,
 } from "lucide-react";
+import {
+  FacebookIcon,
+  InstagramIcon,
+  WhatsappIcon,
+  TwitterIcon,
+  YoutubeIcon,
+  TelegramIcon,
+} from "../components/SocialIcons";
 import {
   adminAddCategory,
   adminGetAllCategories,
@@ -52,6 +62,10 @@ import {
   adminAddOurStory,
   adminGetAllOurStory,
   adminUpdateOurStory,
+  adminAddHeroSlide,
+  adminGetAllHeroSlide,
+  adminGetSingleHeroSlide,
+  adminUpdateHeroSlide,
   adminGetDashboardStats,
   adminUpdatePrice,
   getSiteInfo,
@@ -114,10 +128,12 @@ export default function AdminDashboard() {
   // 5. Our Story State
   const [stories, setStories] = useState([]);
   const [storyContent, setStoryContent] = useState("");
+  const [storyImage, setStoryImage] = useState("");
   const [storyPage, setStoryPage] = useState(0);
 
   // 6. Slideshow Carousel
   const [slides, setSlides] = useState([]);
+  const [slidePage, setSlidePage] = useState(0);
   const [newSlide, setNewSlide] = useState({
     title: "",
     subtitle: "",
@@ -137,6 +153,11 @@ export default function AdminDashboard() {
     email: "",
     whatsapp_no: "",
     whatsapp: "",
+    facebook: "",
+    instagram: "",
+    twitter: "",
+    youtube: "",
+    telegram: "",
   });
 
   // 8. Delete Confirmation Modal State
@@ -179,6 +200,10 @@ export default function AdminDashboard() {
 
     const localContact = localStorage.getItem(`aadagam_contact_info_${shopPrefix}`);
     const parsedContact = localContact ? JSON.parse(localContact) : {};
+    let parsedSocials = parsedContact.social_urls || {};
+    if (typeof parsedSocials === "string") {
+      try { parsedSocials = JSON.parse(parsedSocials); } catch (e) {}
+    }
     setContactInfo({
       logo: parsedContact.logo || "",
       city: parsedContact.city || "",
@@ -189,6 +214,11 @@ export default function AdminDashboard() {
       email: parsedContact.email || adminUser.email,
       whatsapp_no: parsedContact.whatsapp_no || parsedContact.whatsapp || mockShopInfo.whatsapp,
       whatsapp: parsedContact.whatsapp || mockShopInfo.whatsapp,
+      facebook: parsedContact.facebook || parsedSocials.facebook || "",
+      instagram: parsedContact.instagram || parsedSocials.instagram || "",
+      twitter: parsedContact.twitter || parsedSocials.twitter || "",
+      youtube: parsedContact.youtube || parsedSocials.youtube || "",
+      telegram: parsedContact.telegram || parsedSocials.telegram || "",
     });
 
     // Backend APIs
@@ -198,6 +228,7 @@ export default function AdminDashboard() {
     loadVideos(0);
     loadEnquiries(0);
     loadStories(0);
+    loadSlides(0);
     loadShowroomSiteInfo();
   }, [adminUser]);
 
@@ -208,6 +239,12 @@ export default function AdminDashboard() {
       const res = await getSiteInfo(shopPrefix);
       if (res && res.siteInfoData) {
         const d = res.siteInfoData;
+        let socialLinks = {};
+        if (d.social_urls) {
+          try {
+            socialLinks = typeof d.social_urls === "string" ? JSON.parse(d.social_urls) : d.social_urls;
+          } catch (e) {}
+        }
         setContactInfo((prev) => ({
           ...prev,
           logo: d.logo || prev.logo || "",
@@ -219,6 +256,11 @@ export default function AdminDashboard() {
           email: d.contact_us || prev.email || "",
           whatsapp_no: d.whatsapp_no || prev.whatsapp_no || prev.whatsapp || "",
           whatsapp: d.whatsapp_no || prev.whatsapp || "",
+          facebook: socialLinks?.facebook || d.facebook || prev.facebook || "",
+          instagram: socialLinks?.instagram || d.instagram || prev.instagram || "",
+          twitter: socialLinks?.twitter || d.twitter || prev.twitter || "",
+          youtube: socialLinks?.youtube || d.youtube || prev.youtube || "",
+          telegram: socialLinks?.telegram || d.telegram || prev.telegram || "",
         }));
       }
     } catch (err) {
@@ -282,6 +324,9 @@ export default function AdminDashboard() {
           loadVideos(videoPage);
           loadDashboardStats();
           triggerToast("Video uploaded and added to showcase!");
+        } else if (target === "story") {
+          setStoryImage(uploadedList[0]);
+          triggerToast("Story image uploaded! Click 'Save Story Narrative & Image' to apply.");
         } else if (target === "slideshow") {
           setNewSlide((prev) => ({ ...prev, desktopImg: uploadedList[0] }));
         } else if (target === "logo") {
@@ -533,8 +578,19 @@ export default function AdminDashboard() {
       const res = await adminGetAllOurStory(page, 10);
       if (res && res.status === 1 && Array.isArray(res.data)) {
         setStories(res.data);
-        if (res.data.length > 0 && !storyContent) {
-          setStoryContent(res.data[0].content || "");
+        if (res.data.length > 0) {
+          const story = res.data[0];
+          let text = story.content || "";
+          let img = story.image || story.image_url || "";
+          if (typeof text === "string" && text.startsWith("{")) {
+            try {
+              const parsed = JSON.parse(text);
+              text = parsed.body || parsed.content || text;
+              if (!img) img = parsed.image_url || parsed.image || "";
+            } catch (e) {}
+          }
+          if (!storyContent) setStoryContent(text);
+          if (!storyImage) setStoryImage(img);
         }
       } else {
         setStories([]);
@@ -551,14 +607,14 @@ export default function AdminDashboard() {
     setIsLoading(true);
     let res;
     if (stories.length > 0) {
-      res = await adminUpdateOurStory(stories[0].id, storyContent.trim(), 1);
+      res = await adminUpdateOurStory(stories[0].id, storyContent.trim(), 1, storyImage);
     } else {
-      res = await adminAddOurStory(storyContent.trim());
+      res = await adminAddOurStory(storyContent.trim(), storyImage);
     }
     setIsLoading(false);
 
     if (res.status === 1) {
-      triggerToast(res.message || "Our Story updated successfully!");
+      triggerToast(res.message || "Our Story and Image updated successfully!");
       loadStories(storyPage);
     } else {
       triggerToast(res.message || "Failed to update story", "error");
@@ -566,9 +622,44 @@ export default function AdminDashboard() {
   };
 
   /* ==========================================================================
-   * 6. CAROUSEL & CONTACT ACTIONS
+   * 6. CAROUSEL & SLIDESHOW CRUD HANDLERS
    * ========================================================================== */
-  const handleAddSlide = (e) => {
+  const loadSlides = async (page = 0) => {
+    try {
+      if (!adminUser) return;
+      const res = await adminGetAllHeroSlide(page, 20);
+      if (res && res.status === 1 && Array.isArray(res.data)) {
+        const mapped = res.data.map((s) => ({
+          id: s.id,
+          title: s.title || "",
+          subtitle: s.description || "",
+          description: s.description || "",
+          desktopImg: s.image || "",
+          mobileImg: s.image || "",
+          image: s.image || "",
+          status: s.status !== undefined ? Number(s.status) : 1,
+          created_at: s.created_at,
+          ctaLink: "#gallery",
+          ctaText: "Explore Collection",
+        }));
+        setSlides(mapped);
+        const shopPrefix = getShopPrefix(adminUser.domain);
+        localStorage.setItem(`aadagam_carousel_slides_${shopPrefix}`, JSON.stringify(mapped));
+      } else {
+        const shopPrefix = getShopPrefix(adminUser.domain);
+        const localSlides = localStorage.getItem(`aadagam_carousel_slides_${shopPrefix}`);
+        if (localSlides) {
+          setSlides(JSON.parse(localSlides));
+        } else {
+          setSlides(mockSlides);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load hero slides:", e);
+    }
+  };
+
+  const handleAddSlide = async (e) => {
     e.preventDefault();
     if (!newSlide.title.trim()) {
       triggerToast("Please provide a banner headline.", "error");
@@ -578,30 +669,48 @@ export default function AdminDashboard() {
       triggerToast("Please upload a banner image file.", "error");
       return;
     }
-    const updated = [
-      ...slides,
-      {
-        id: Date.now(),
-        title: newSlide.title.trim(),
-        subtitle: newSlide.subtitle.trim(),
-        desktopImg: newSlide.desktopImg,
-        mobileImg: newSlide.desktopImg,
-        ctaLink: "#gallery",
-        ctaText: "Explore Collection"
-      }
-    ];
-    setSlides(updated);
-    const shopPrefix = getShopPrefix(adminUser.domain);
-    localStorage.setItem(`aadagam_carousel_slides_${shopPrefix}`, JSON.stringify(updated));
-    triggerToast("New hero slide added!");
-    setNewSlide({ title: "", subtitle: "", desktopImg: "", ctaText: "Explore Collection", badge: "" });
+
+    setIsLoading(true);
+    const res = await adminAddHeroSlide({
+      title: newSlide.title.trim(),
+      description: (newSlide.subtitle || "").trim(),
+      image: newSlide.desktopImg.trim(),
+    });
+    setIsLoading(false);
+
+    if (res.status === 1 || res.success) {
+      triggerToast(res.message || "New hero slide added successfully!");
+      setNewSlide({ title: "", subtitle: "", desktopImg: "", ctaText: "Explore Collection", badge: "" });
+      loadSlides(slidePage);
+    } else {
+      triggerToast(res.message || "Failed to add hero slide.", "error");
+    }
+  };
+
+  const handleToggleSlideStatus = async (slide) => {
+    const nextStatus = slide.status === 1 ? 0 : 1;
+    setIsLoading(true);
+    const res = await adminUpdateHeroSlide(
+      slide.id,
+      slide.title,
+      slide.description || slide.subtitle || "",
+      slide.image || slide.desktopImg || "",
+      nextStatus
+    );
+    setIsLoading(false);
+    if (res.status === 1 || res.success) {
+      triggerToast(`Hero slide ${nextStatus === 1 ? "Activated" : "Deactivated"}`);
+      loadSlides(slidePage);
+    } else {
+      triggerToast(res.message || "Status update failed", "error");
+    }
   };
 
   const openDeleteModal = (type, item) => {
     setDeleteModal({
       isOpen: true,
       type,
-      item
+      item,
     });
   };
 
@@ -610,11 +719,21 @@ export default function AdminDashboard() {
     const { type, item } = deleteModal;
 
     if (type === "slide") {
-      const updated = slides.filter((s) => s.id !== item.id);
-      setSlides(updated);
-      const shopPrefix = getShopPrefix(adminUser.domain);
-      localStorage.setItem(`aadagam_carousel_slides_${shopPrefix}`, JSON.stringify(updated));
-      triggerToast("Hero slide removed.");
+      setIsLoading(true);
+      const res = await adminUpdateHeroSlide(
+        item.id,
+        item.title || "",
+        item.description || item.subtitle || "",
+        item.image || item.desktopImg || "",
+        0
+      );
+      setIsLoading(false);
+      if (res.status === 1 || res.success) {
+        triggerToast("Hero slide deleted successfully.");
+        loadSlides(slidePage);
+      } else {
+        triggerToast(res.message || "Failed to delete hero slide.", "error");
+      }
     } else if (type === "category") {
       setIsLoading(true);
       const categoryName = item.category_name || item.categoryName || item.name || "";
@@ -665,6 +784,13 @@ export default function AdminDashboard() {
     const contact_us = (contactInfo.contact_us || contactInfo.email || "").trim().slice(0, 30);
     const whatsapp_no = (contactInfo.whatsapp_no || contactInfo.whatsapp || phone).trim().slice(0, 15);
 
+    const facebook = (contactInfo.facebook || "").trim();
+    const instagram = (contactInfo.instagram || "").trim();
+    const twitter = (contactInfo.twitter || "").trim();
+    const youtube = (contactInfo.youtube || "").trim();
+    const telegram = (contactInfo.telegram || "").trim();
+    const whatsapp = (contactInfo.whatsapp || contactInfo.whatsapp_no || phone || "").trim();
+
     try {
       const res = await adminUpdateSiteInfo({
         logo: logo || "https://s3.in-west3.purestore.io/aadagam/images/logo.png",
@@ -673,13 +799,23 @@ export default function AdminDashboard() {
         phone,
         contact_us,
         whatsapp_no,
+        facebook,
+        instagram,
+        whatsapp: whatsapp ? (whatsapp.startsWith("http") || whatsapp.startsWith("wa.me") ? whatsapp : `https://wa.me/${whatsapp.replace(/[^0-9]/g, "")}`) : "",
+        twitter,
+        youtube,
+        telegram,
       });
 
       setIsLoading(false);
 
       if (res && (res.status === 1 || res.success === 1 || res.success === true)) {
         const shopPrefix = getShopPrefix(adminUser.domain);
-        localStorage.setItem(`aadagam_contact_info_${shopPrefix}`, JSON.stringify({ ...contactInfo, logo }));
+        const social_urls = { facebook, instagram, whatsapp, twitter, youtube, telegram };
+        localStorage.setItem(
+          `aadagam_contact_info_${shopPrefix}`,
+          JSON.stringify({ ...contactInfo, logo, social_urls, facebook, instagram, twitter, youtube, telegram })
+        );
         triggerToast(res.message || "Showroom contact and site info updated successfully!");
         loadShowroomSiteInfo();
       } else {
@@ -1678,46 +1814,151 @@ export default function AdminDashboard() {
            * =================================================================== */}
           {activeTab === "story" && (
             <div className="space-y-6 animate-fade-in">
-              <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm space-y-4">
+              <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm space-y-6">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h3 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
                       Our Story & Heritage Narrative
                     </h3>
                     <p className="text-xs text-stone-500 mt-1">
-                      Publish your showroom's founding history and artisan craftsmanship philosophy.
+                      Publish your showroom's founding history, artisan craftsmanship philosophy, and feature showcase image.
                     </p>
                   </div>
                   <button
                     onClick={() => loadStories(storyPage)}
                     className="p-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors shrink-0"
+                    title="Reload Story"
                   >
                     <RefreshCw className="w-4 h-4" />
                   </button>
                 </div>
 
-                <form onSubmit={handleSaveStory} className="space-y-4 pt-2">
+                <form onSubmit={handleSaveStory} className="space-y-5 pt-1">
+                  {/* Brand Story Narrative Textarea */}
                   <div>
-                    <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-2">
-                      Brand Story Narrative (Public Storefront Display)
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider">
+                        Brand Story Narrative (Public Storefront Display) <span className="text-rose-500">*</span>
+                      </label>
+                      <span className="text-[10px] text-stone-400 font-mono">
+                        {storyContent.length} chars
+                      </span>
+                    </div>
                     <textarea
-                      rows={8}
+                      rows={7}
                       value={storyContent}
                       onChange={(e) => setStoryContent(e.target.value)}
                       placeholder="Founded in 1988, our showroom has been crafting authentic heirloom gold and diamond treasures..."
-                      className="w-full p-4 bg-[#FAF9F5] border border-stone-300 rounded-2xl text-sm focus:outline-none focus:border-[#D4AF37] leading-relaxed"
+                      className="w-full p-4 bg-[#FAF9F5] border border-stone-300 rounded-2xl text-xs sm:text-sm focus:outline-none focus:border-[#D4AF37] leading-relaxed"
                       required
+                    />
+                  </div>
+
+                  {/* Story Feature Image Upload Section (Direct File Upload Only) */}
+                  <div className="p-4 sm:p-5 bg-[#FAF9F5] border border-stone-200 rounded-2xl space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                          <ImageIcon className="w-4 h-4 text-[#D4AF37]" />
+                          <span>Our Story Feature Image</span>
+                        </h4>
+                        <p className="text-xs text-stone-500 mt-0.5">
+                          Upload a showroom or craftsmanship photo displayed in the "Our Story" section on your storefront.
+                        </p>
+                      </div>
+                      {storyImage && (
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shrink-0">
+                          Image Ready
+                        </span>
+                      )}
+                    </div>
+
+                    {isUploading ? (
+                      <div className="flex flex-col items-center justify-center border-2 border-dashed border-[#D4AF37] bg-white rounded-2xl p-6 sm:p-8 text-center space-y-3">
+                        <Loader2 className="w-8 h-8 text-[#D4AF37] animate-spin" />
+                        <div className="space-y-1">
+                          <p className="text-xs font-bold text-stone-800">
+                            Uploading story image to cloud storage...
+                          </p>
+                          <p className="text-[11px] text-stone-500 font-light">
+                            Please wait while your high-resolution image is processed.
+                          </p>
+                        </div>
+                      </div>
+                    ) : storyImage ? (
+                      /* Preview of Uploaded Story Image */
+                      <div className="border border-stone-200 rounded-2xl p-3 sm:p-4 bg-white space-y-3">
+                        <div className="relative aspect-16/9 sm:aspect-21/9 max-h-64 w-full bg-stone-900 rounded-xl overflow-hidden shadow-inner group">
+                          <img
+                            src={storyImage}
+                            alt="Story Feature Image Preview"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute top-3 left-3">
+                            <span className="inline-flex items-center gap-1.5 bg-emerald-600/90 backdrop-blur-md text-white text-[10px] sm:text-[11px] font-bold px-2.5 sm:px-3 py-1 rounded-full shadow">
+                              <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                              Ready for Storefront
+                            </span>
+                          </div>
+                          <div className="absolute top-3 right-3 flex items-center gap-2">
+                            <label
+                              htmlFor="story-file-upload"
+                              className="inline-flex items-center gap-1.5 bg-stone-900/80 hover:bg-stone-900 text-white text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-lg backdrop-blur-md cursor-pointer transition-all shadow"
+                            >
+                              <Upload className="w-3.5 h-3.5 text-[#D4AF37]" />
+                              Change
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => setStoryImage("")}
+                              className="inline-flex items-center gap-1 bg-rose-600/90 hover:bg-rose-600 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg backdrop-blur-md transition-all shadow"
+                              title="Remove story image"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-stone-500 font-mono truncate px-1">
+                          File URL: {storyImage}
+                        </p>
+                      </div>
+                    ) : (
+                      /* Upload Dropzone Box */
+                      <label
+                        htmlFor="story-file-upload"
+                        className="flex flex-col items-center justify-center border-2 border-dashed border-stone-300 hover:border-[#D4AF37] hover:bg-white rounded-2xl p-6 sm:p-8 cursor-pointer transition-all group text-center space-y-3 bg-white"
+                      >
+                        <div className="w-12 h-12 rounded-2xl bg-[#D4AF37]/10 group-hover:bg-[#D4AF37]/20 border border-[#D4AF37]/30 flex items-center justify-center text-[#B8860B] transition-colors">
+                          <Upload className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs sm:text-sm font-bold text-stone-800 group-hover:text-[#B8860B] transition-colors">
+                            Click or Drag & Drop to Upload Story Image
+                          </p>
+                          <p className="text-[11px] text-stone-500 font-light">
+                            Supports PNG, JPG, WEBP (Max 50MB • Recommended 4:3 or 16:9 ratio)
+                          </p>
+                        </div>
+                      </label>
+                    )}
+
+                    <input
+                      id="story-file-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleDirectImageUpload(e, "story")}
+                      className="hidden"
+                      disabled={isUploading}
                     />
                   </div>
 
                   <button
                     type="submit"
-                    disabled={isLoading || !storyContent.trim()}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3 px-8 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all disabled:opacity-50 min-h-[44px]"
+                    disabled={isLoading || isUploading || !storyContent.trim()}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3.5 px-8 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all disabled:opacity-50 min-h-[44px]"
                   >
                     {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" /> : <Save className="w-4 h-4 text-[#D4AF37]" />}
-                    <span>Save Story Narrative</span>
+                    <span>Save Story Narrative & Image</span>
                   </button>
                 </form>
               </div>
@@ -1730,20 +1971,34 @@ export default function AdminDashboard() {
           {activeTab === "carousel" && (
             <div className="space-y-6 animate-fade-in">
               <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm space-y-4">
-                <h3 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
-                  Hero Banner Slideshow
-                </h3>
-                <p className="text-xs text-stone-500">
-                  Configure top rotating luxury promotional slides on your storefront.
-                </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
+                      Hero Banner Slideshow
+                    </h3>
+                    <p className="text-xs text-stone-500 mt-0.5">
+                      Configure top rotating luxury promotional slides on your storefront.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => loadSlides(slidePage)}
+                    className="inline-flex items-center gap-1.5 text-xs text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-lg transition-colors min-h-[36px]"
+                    title="Refresh slides from server"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Refresh</span>
+                  </button>
+                </div>
 
                 <form onSubmit={handleAddSlide} className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   <div>
                     <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-1">
-                      Banner Headline
+                      Banner Headline <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
+                      maxLength={255}
                       placeholder="e.g. Royal Bridal Heritage 2026"
                       value={newSlide.title}
                       onChange={(e) => setNewSlide({ ...newSlide, title: e.target.value })}
@@ -1757,7 +2012,8 @@ export default function AdminDashboard() {
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Ornate 22K Kundan & Polki Necklaces"
+                      maxLength={1000}
+                      placeholder="e.g. Discover timeless handcrafted bridal jewels"
                       value={newSlide.subtitle}
                       onChange={(e) => setNewSlide({ ...newSlide, subtitle: e.target.value })}
                       className="w-full px-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
@@ -1851,10 +2107,10 @@ export default function AdminDashboard() {
                   <div className="sm:col-span-2 pt-2">
                     <button
                       type="submit"
-                      disabled={isUploading || !newSlide.desktopImg}
+                      disabled={isLoading || isUploading || !newSlide.desktopImg}
                       className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3.5 px-7 rounded-xl text-xs uppercase tracking-wider transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
                     >
-                      <Plus className="w-4 h-4 text-[#D4AF37]" />
+                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" /> : <Plus className="w-4 h-4 text-[#D4AF37]" />}
                       <span>Add Hero Slide</span>
                     </button>
                   </div>
@@ -1862,30 +2118,79 @@ export default function AdminDashboard() {
               </div>
 
               {/* Slides Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {slides.map((s) => (
-                  <div
-                    key={s.id}
-                    className="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between"
-                  >
-                    <div className="aspect-21/9 w-full bg-stone-900 relative">
-                      <img src={s.desktopImg} alt={s.title} className="w-full h-full object-cover" />
-                    </div>
-                    <div className="p-4 flex items-center justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <h4 className="font-serif font-bold text-stone-900 text-sm truncate">{s.title}</h4>
-                        <p className="text-[11px] text-stone-500 font-light truncate max-w-xs">{s.subtitle}</p>
-                      </div>
-                      <button
-                        onClick={() => openDeleteModal("slide", s)}
-                        className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors shrink-0"
-                        title="Delete slide"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-xs font-bold uppercase tracking-wider text-stone-500">
+                    Active Slides ({slides.filter((s) => s.status !== 0).length})
+                  </span>
+                </div>
+
+                {slides.length === 0 ? (
+                  <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center text-stone-400 text-xs italic">
+                    No hero banner slides configured yet. Add your first promotional banner above!
                   </div>
-                ))}
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {slides.map((s) => (
+                      <div
+                        key={s.id}
+                        className={`bg-white border rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between transition-all ${
+                          s.status === 0 ? "opacity-60 border-stone-300 bg-stone-50" : "border-stone-200"
+                        }`}
+                      >
+                        <div className="aspect-21/9 w-full bg-stone-900 relative group overflow-hidden">
+                          <img
+                            src={s.desktopImg || s.image}
+                            alt={s.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.src = "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=800&q=80";
+                            }}
+                          />
+                          <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-md ${
+                                s.status !== 0
+                                  ? "bg-emerald-600/90 text-white shadow"
+                                  : "bg-rose-600/90 text-white shadow"
+                              }`}
+                            >
+                              {s.status !== 0 ? "Active" : "Inactive"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="p-4 flex items-center justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-serif font-bold text-stone-900 text-sm truncate">{s.title}</h4>
+                            <p className="text-[11px] text-stone-500 font-light truncate max-w-xs">{s.subtitle || s.description}</p>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {typeof s.id === "number" && s.id < 10000000000 && (
+                              <button
+                                onClick={() => handleToggleSlideStatus(s)}
+                                className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors ${
+                                  s.status !== 0
+                                    ? "text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200"
+                                    : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                                }`}
+                                title={s.status !== 0 ? "Deactivate Slide" : "Activate Slide"}
+                              >
+                                {s.status !== 0 ? "Disable" : "Enable"}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => openDeleteModal("slide", s)}
+                              className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors shrink-0"
+                              title="Delete slide"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -2120,6 +2425,137 @@ export default function AdminDashboard() {
                       className="w-full p-3.5 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37] leading-relaxed"
                       required
                     />
+                  </div>
+                </div>
+
+                {/* Showroom Social Media Channels Section */}
+                <div className="p-4 sm:p-5 bg-[#FAF9F5] border border-stone-200 rounded-2xl space-y-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                        <Share2 className="w-4 h-4 text-[#D4AF37]" />
+                        <span>Showroom Social Media Channels</span>
+                      </h4>
+                      <p className="text-xs text-stone-500 mt-0.5">
+                        Configure official social media URLs for your showroom. Active links will display as clickable icons in your storefront website footer. Leave blank to hide.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
+                    {/* Instagram */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-1">
+                        Instagram Profile URL
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-pink-500">
+                          <InstagramIcon className="w-4 h-4" />
+                        </div>
+                        <input
+                          type="url"
+                          placeholder="https://instagram.com/aadagamjewels"
+                          value={contactInfo.instagram || ""}
+                          onChange={(e) => setContactInfo({ ...contactInfo, instagram: e.target.value })}
+                          className="w-full pl-10 pr-3 py-2.5 bg-white border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Facebook */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-1">
+                        Facebook Page URL
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-blue-600">
+                          <FacebookIcon className="w-4 h-4" />
+                        </div>
+                        <input
+                          type="url"
+                          placeholder="https://facebook.com/aadagamjewels"
+                          value={contactInfo.facebook || ""}
+                          onChange={(e) => setContactInfo({ ...contactInfo, facebook: e.target.value })}
+                          className="w-full pl-10 pr-3 py-2.5 bg-white border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* WhatsApp */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-1">
+                        WhatsApp Link / Chat URL
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-600">
+                          <WhatsappIcon className="w-4 h-4" />
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="https://wa.me/919876543210"
+                          value={contactInfo.whatsapp || (contactInfo.whatsapp_no ? (contactInfo.whatsapp_no.startsWith("http") ? contactInfo.whatsapp_no : `https://wa.me/${contactInfo.whatsapp_no.replace(/[^0-9]/g, "")}`) : "")}
+                          onChange={(e) => setContactInfo({ ...contactInfo, whatsapp: e.target.value })}
+                          className="w-full pl-10 pr-3 py-2.5 bg-white border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* YouTube */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-1">
+                        YouTube Channel URL
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-rose-600">
+                          <YoutubeIcon className="w-4 h-4" />
+                        </div>
+                        <input
+                          type="url"
+                          placeholder="https://youtube.com/@aadagamjewels"
+                          value={contactInfo.youtube || ""}
+                          onChange={(e) => setContactInfo({ ...contactInfo, youtube: e.target.value })}
+                          className="w-full pl-10 pr-3 py-2.5 bg-white border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Twitter / X */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-1">
+                        Twitter / X Profile URL
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-800">
+                          <TwitterIcon className="w-4 h-4" />
+                        </div>
+                        <input
+                          type="url"
+                          placeholder="https://x.com/aadagamjewels"
+                          value={contactInfo.twitter || ""}
+                          onChange={(e) => setContactInfo({ ...contactInfo, twitter: e.target.value })}
+                          className="w-full pl-10 pr-3 py-2.5 bg-white border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Telegram */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-1">
+                        Telegram Channel / Username URL
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-sky-500">
+                          <TelegramIcon className="w-4 h-4" />
+                        </div>
+                        <input
+                          type="url"
+                          placeholder="https://t.me/aadagamjewels"
+                          value={contactInfo.telegram || ""}
+                          onChange={(e) => setContactInfo({ ...contactInfo, telegram: e.target.value })}
+                          className="w-full pl-10 pr-3 py-2.5 bg-white border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 

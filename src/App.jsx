@@ -4,6 +4,7 @@ import PlatformLandingPage from "./pages/PlatformLandingPage";
 import RegisterPage from "./pages/RegisterPage";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import {
   getContactInfo,
@@ -90,6 +91,27 @@ function ClientStorefrontPage() {
         const baseContact = localContact ? JSON.parse(localContact) : info;
         const liveSiteData = siteInfoRes?.siteInfoData || {};
 
+        let socialLinks = {};
+        if (liveSiteData.social_urls) {
+          try {
+            socialLinks = typeof liveSiteData.social_urls === "string"
+              ? JSON.parse(liveSiteData.social_urls)
+              : liveSiteData.social_urls;
+          } catch (e) {
+            console.warn("Could not parse social_urls:", e);
+          }
+        }
+        if (!socialLinks || typeof socialLinks !== "object" || Object.keys(socialLinks).length === 0) {
+          socialLinks = baseContact.social_urls || {
+            facebook: baseContact.facebook || "",
+            instagram: baseContact.instagram || "",
+            whatsapp: baseContact.whatsapp || "",
+            twitter: baseContact.twitter || "",
+            youtube: baseContact.youtube || "",
+            telegram: baseContact.telegram || "",
+          };
+        }
+
         setShopInfo({
           ...baseContact,
           name: liveSiteData.shop_name ? (liveSiteData.shop_name.toUpperCase() + " JEWELLERY") : (shopPrefix.toUpperCase() + " JEWELLERY"),
@@ -101,6 +123,13 @@ function ClientStorefrontPage() {
           phone: liveSiteData.phone || baseContact.phone || baseContact.phonePrimary || "+91 98765 43210",
           phonePrimary: liveSiteData.phone || baseContact.phonePrimary || "+91 98765 43210",
           whatsapp_no: liveSiteData.whatsapp_no || baseContact.whatsapp_no || baseContact.whatsapp || "",
+          social_urls: socialLinks,
+          facebook: socialLinks?.facebook || liveSiteData.facebook || baseContact.facebook || "",
+          instagram: socialLinks?.instagram || liveSiteData.instagram || baseContact.instagram || "",
+          whatsapp: socialLinks?.whatsapp || liveSiteData.whatsapp || baseContact.whatsapp || "",
+          twitter: socialLinks?.twitter || liveSiteData.twitter || baseContact.twitter || "",
+          youtube: socialLinks?.youtube || liveSiteData.youtube || baseContact.youtube || "",
+          telegram: socialLinks?.telegram || liveSiteData.telegram || baseContact.telegram || "",
         });
 
         // 2. Slides
@@ -303,6 +332,10 @@ function MainLayout() {
         <Route path="/admin" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
+        {/* Forgot Password & Password Reset */}
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/admin/forgot-password" element={<ForgotPasswordPage />} />
+
         {/* Standalone Onboarding Registration */}
         <Route path="/register" element={<RegisterPage />} />
 
@@ -326,6 +359,10 @@ function MainLayout() {
 
       {/* Page 4: Admin Sign In */}
       <Route path="/admin" element={<AdminLogin />} />
+
+      {/* Page 4.1: Forgot Password & Password Reset */}
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/admin/forgot-password" element={<ForgotPasswordPage />} />
 
       {/* Page 5: Admin Management Dashboard */}
       <Route path="/admin/dashboard" element={<AdminDashboard />} />

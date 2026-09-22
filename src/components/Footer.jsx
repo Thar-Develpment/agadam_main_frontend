@@ -1,17 +1,73 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { Gem, ArrowUp } from "lucide-react";
 import { formatIndianPhoneNumber, resolveFullImageUrl } from "../services/apiClient";
+import {
+  FacebookIcon,
+  InstagramIcon,
+  WhatsappIcon,
+  TwitterIcon,
+  YoutubeIcon,
+  TelegramIcon,
+} from "./SocialIcons";
 
 export default function Footer({ shopInfo }) {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Parse and extract social media URLs
+  const socialUrls = shopInfo?.social_urls || {};
+  const facebookUrl = socialUrls.facebook || shopInfo?.facebook || "";
+  const instagramUrl = socialUrls.instagram || shopInfo?.instagram || "";
+  const whatsappUrl = socialUrls.whatsapp || shopInfo?.whatsapp || "";
+  const twitterUrl = socialUrls.twitter || shopInfo?.twitter || "";
+  const youtubeUrl = socialUrls.youtube || shopInfo?.youtube || "";
+  const telegramUrl = socialUrls.telegram || shopInfo?.telegram || "";
+
+  const activeSocials = [
+    { name: "Instagram", url: instagramUrl, key: "instagram", color: "hover:text-pink-400 hover:border-pink-500/50 hover:bg-pink-500/10" },
+    { name: "Facebook", url: facebookUrl, key: "facebook", color: "hover:text-blue-400 hover:border-blue-500/50 hover:bg-blue-500/10" },
+    { name: "WhatsApp", url: whatsappUrl, key: "whatsapp", color: "hover:text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-500/10" },
+    { name: "YouTube", url: youtubeUrl, key: "youtube", color: "hover:text-red-400 hover:border-red-500/50 hover:bg-red-500/10" },
+    { name: "Twitter / X", url: twitterUrl, key: "twitter", color: "hover:text-white hover:border-stone-500/50 hover:bg-white/10" },
+    { name: "Telegram", url: telegramUrl, key: "telegram", color: "hover:text-sky-400 hover:border-sky-500/50 hover:bg-sky-500/10" },
+  ].filter((item) => typeof item.url === "string" && item.url.trim().length > 0);
+
+  const formatSocialHref = (item) => {
+    const raw = item.url.trim();
+    if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+    if (raw.startsWith("wa.me/")) return `https://${raw}`;
+    if (item.key === "whatsapp") return `https://wa.me/${raw.replace(/[^0-9]/g, "")}`;
+    if (item.key === "telegram" && !raw.startsWith("t.me/")) return `https://t.me/${raw.replace("@", "")}`;
+    if (raw.startsWith("t.me/")) return `https://${raw}`;
+    return `https://${raw}`;
+  };
+
+  const renderSocialIcon = (key) => {
+    switch (key) {
+      case "instagram":
+        return <InstagramIcon className="w-4 h-4" />;
+      case "facebook":
+        return <FacebookIcon className="w-4 h-4" />;
+      case "whatsapp":
+        return <WhatsappIcon className="w-4 h-4" />;
+      case "youtube":
+        return <YoutubeIcon className="w-4 h-4" />;
+      case "twitter":
+        return <TwitterIcon className="w-4 h-4" />;
+      case "telegram":
+        return <TelegramIcon className="w-4 h-4" />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <footer className="bg-stone-950 text-stone-300 border-t border-stone-800 pt-16 pb-8 text-left w-full overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-12 border-b border-stone-800">
-          {/* Brand Info */}
+          {/* Brand Info & Social Media Links */}
           <div className="lg:col-span-5 space-y-4">
             <div className="flex items-center gap-3">
               {shopInfo?.logo ? (
@@ -41,6 +97,30 @@ export default function Footer({ shopInfo }) {
             <p className="text-stone-400 text-xs sm:text-sm font-light leading-relaxed max-w-sm">
               {shopInfo?.subTagline || "Crafting exquisite gold, diamond, & antique polki treasures since 1988."} 100% BIS Hallmarked Purity & GIA Certified Solitaires.
             </p>
+
+            {/* Dynamic Social Media Links (Rendered only if configured) */}
+            {activeSocials.length > 0 && (
+              <div className="pt-2 space-y-2.5">
+                <span className="text-[11px] uppercase tracking-wider text-stone-400 font-semibold block">
+                  Follow Our Social Channels
+                </span>
+                <div className="flex items-center flex-wrap gap-2.5">
+                  {activeSocials.map((item) => (
+                    <a
+                      key={item.key}
+                      href={formatSocialHref(item)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`w-9 h-9 rounded-full bg-stone-900 border border-stone-800 text-stone-300 flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-sm ${item.color}`}
+                      title={`Visit our ${item.name} page`}
+                      aria-label={item.name}
+                    >
+                      {renderSocialIcon(item.key)}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Quick Navigation Links */}
@@ -78,6 +158,11 @@ export default function Footer({ shopInfo }) {
                 <a href="#contact" className="hover:text-[#D4AF37] transition-colors">
                   Showroom Contact & Enquiry
                 </a>
+              </li>
+              <li>
+                <Link to="/admin" className="hover:text-[#D4AF37] transition-colors">
+                  Admin Sign in
+                </Link>
               </li>
             </ul>
           </div>
