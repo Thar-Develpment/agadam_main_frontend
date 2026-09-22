@@ -1,5 +1,5 @@
 import React from "react";
-import { Sparkles, Quote, Gem } from "lucide-react";
+import { Sparkles, Gem } from "lucide-react";
 import { getTenantSubdomain, getShopPrefix, resolveFullImageUrl } from "../services/apiClient";
 import { parseStoryContent } from "../services/api";
 
@@ -82,16 +82,12 @@ export default function AboutSection({ aboutContent, galleryImages = [], shopInf
             </div>
           </div>
 
-          {/* Right Column: Universal Showroom Masterpiece Card with Gallery Image */}
+          {/* Right Column: Showroom Masterpiece Card with Our Story Image */}
           <div className="lg:col-span-5">
             <div className="bg-stone-900 text-white rounded-3xl p-6 sm:p-8 shadow-2xl relative border border-[#D4AF37]/30">
-              <div className="absolute top-6 right-6 text-[#D4AF37]/20">
-                <Quote className="w-16 h-16" />
-              </div>
-
-              <div className="relative z-10 space-y-6">
-                {/* Real Showroom Gallery Image */}
-                <div className="aspect-4/3 rounded-2xl overflow-hidden border-2 border-[#D4AF37]/40 relative group">
+              <div className="relative z-10 space-y-5">
+                {/* Real Showroom Gallery / Our Story Image */}
+                <div className="aspect-4/3 rounded-2xl overflow-hidden border-2 border-[#D4AF37]/40 relative group shadow-inner">
                   <img
                     src={showcaseImage}
                     alt={showcaseTitle}
@@ -102,23 +98,38 @@ export default function AboutSection({ aboutContent, galleryImages = [], shopInf
                   </div>
                 </div>
 
-                <blockquote className="font-serif italic text-base sm:text-lg text-stone-200 leading-relaxed">
-                  "Jewellery is not merely an ornament; it is a sacred record of love, heritage, and emotion passed from one generation to the next."
-                </blockquote>
-
-                <div className="pt-2 border-t border-stone-800 flex items-center justify-between">
-                  <div>
-                    <h4 className="font-serif font-bold text-[#D4AF37] text-lg">
+                {/* Showroom Brand Info & Logo Footer */}
+                <div className="pt-2 border-t border-stone-800/80 flex items-center justify-between gap-4">
+                  <div className="text-left">
+                    <h4 className="font-serif font-bold text-[#D4AF37] text-lg sm:text-xl tracking-wide">
                       {shopName}
                     </h4>
-                    <div className="flex items-center gap-2 mt-1">
-                      <img src="/bis_916_hallmark.png" alt="BIS 916 Hallmark" className="h-5 object-contain bg-white/95 px-1 py-0.5 rounded shadow-xs" />
-                      <p className="text-xs uppercase tracking-wider text-stone-300 font-semibold">
-                        100% BIS Hallmarked Purity Guarantee
-                      </p>
-                    </div>
+                    <span className="text-[11px] text-stone-400 uppercase tracking-widest block font-medium mt-0.5">
+                      {shopInfo?.tagline || "Fine Jewels & Diamonds"}
+                    </span>
                   </div>
-                  <Gem className="w-6 h-6 text-[#D4AF37] shrink-0" />
+
+                  {/* Showroom Logo if uploaded, otherwise Diamond/Gem Icon */}
+                  {shopInfo?.logo ? (
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white border border-[#D4AF37] p-1 flex items-center justify-center shadow-lg shrink-0 overflow-hidden">
+                      <img
+                        src={resolveFullImageUrl(shopInfo.logo)}
+                        alt={shopName}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                          if (e.target.nextSibling) e.target.nextSibling.style.display = "flex";
+                        }}
+                      />
+                      <div className="hidden w-full h-full rounded-full bg-stone-900 items-center justify-center">
+                        <Gem className="w-5 h-5 text-[#D4AF37]" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-11 h-11 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/40 flex items-center justify-center shadow-md shrink-0">
+                      <Gem className="w-6 h-6 text-[#D4AF37]" />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
