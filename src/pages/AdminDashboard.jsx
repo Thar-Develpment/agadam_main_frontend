@@ -62,6 +62,7 @@ import {
   adminAddOurStory,
   adminGetAllOurStory,
   adminUpdateOurStory,
+  parseStoryContent,
   adminAddHeroSlide,
   adminGetAllHeroSlide,
   adminGetSingleHeroSlide,
@@ -580,17 +581,12 @@ export default function AdminDashboard() {
         setStories(res.data);
         if (res.data.length > 0) {
           const story = res.data[0];
-          let text = story.content || "";
-          let img = story.image || story.image_url || "";
-          if (typeof text === "string" && text.startsWith("{")) {
-            try {
-              const parsed = JSON.parse(text);
-              text = parsed.body || parsed.content || text;
-              if (!img) img = parsed.image_url || parsed.image || "";
-            } catch (e) {}
-          }
-          if (!storyContent) setStoryContent(text);
-          if (!storyImage) setStoryImage(img);
+          const { storyText, imageUrl } = parseStoryContent(
+            story.content || story.strContent || "",
+            story.image || story.image_url || ""
+          );
+          setStoryContent(storyText || "");
+          setStoryImage(imageUrl || "");
         }
       } else {
         setStories([]);

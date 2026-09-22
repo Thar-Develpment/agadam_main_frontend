@@ -1,6 +1,7 @@
 import React from "react";
 import { Sparkles, Quote, Gem } from "lucide-react";
-import { getTenantSubdomain, getShopPrefix } from "../services/apiClient";
+import { getTenantSubdomain, getShopPrefix, resolveFullImageUrl } from "../services/apiClient";
+import { parseStoryContent } from "../services/api";
 
 export default function AboutSection({ aboutContent, galleryImages = [], shopInfo = null }) {
   if (!aboutContent) return null;
@@ -10,26 +11,33 @@ export default function AboutSection({ aboutContent, galleryImages = [], shopInf
   const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
   const brandNameOnly = shopName.replace(/\s+JEWELLERY/gi, "").trim();
 
-  // Priority: 1. Custom uploaded Our Story image from admin panel, 2. First gallery image, 3. Luxury default fallback
-  const customStoryImage = aboutContent.image || aboutContent.imageUrl;
+  // Parse raw content if it contains JSON payload
+  let rawText = "";
+  if (Array.isArray(aboutContent.historyParagraphs) && aboutContent.historyParagraphs.length > 0) {
+    rawText = aboutContent.historyParagraphs.join("\n\n");
+  } else if (typeof aboutContent.historyParagraphs === "string") {
+    rawText = aboutContent.historyParagraphs;
+  } else if (typeof aboutContent.content === "string") {
+    rawText = aboutContent.content;
+  }
+
+  const parsed = parseStoryContent(rawText, aboutContent.image || aboutContent.imageUrl);
+  const cleanStoryText = parsed.storyText || rawText;
+  const customStoryImage = parsed.imageUrl || (aboutContent.image ? resolveFullImageUrl(aboutContent.image) : null) || (aboutContent.imageUrl ? resolveFullImageUrl(aboutContent.imageUrl) : null);
+
   const showcaseItem = galleryImages && galleryImages.length > 0 ? galleryImages[0] : null;
   const showcaseImage =
     customStoryImage ||
-    showcaseItem?.imageUrl ||
+    (showcaseItem?.imageUrl ? resolveFullImageUrl(showcaseItem.imageUrl) : null) ||
     "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=800&q=80";
   const showcaseTitle = customStoryImage
     ? `${brandNameOnly} Heritage & Craft`
     : showcaseItem?.title || `${brandNameOnly} Signature Collection`;
 
   // Process history paragraphs (handling single strings with line breaks or array of paragraphs)
-  const rawParagraphs = Array.isArray(aboutContent.historyParagraphs)
-    ? aboutContent.historyParagraphs
-    : [aboutContent.historyParagraphs || ""];
-
-  const allParagraphs = rawParagraphs
-    .flatMap((p) => (typeof p === "string" ? p.split(/\r?\n\r?\n/) : [p]))
-    .map((p) => (typeof p === "string" ? p.trim() : p))
-    .filter(Boolean);
+  const allParagraphs = cleanStoryText
+    ? cleanStoryText.split(/\r?\n\r?\n/).map((p) => p.trim()).filter(Boolean)
+    : [];
 
   // Dynamically replace default brand names in history paragraphs with the current shop's name
   const formattedParagraphs = allParagraphs.map((paragraph) => {

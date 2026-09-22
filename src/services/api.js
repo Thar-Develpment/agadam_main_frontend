@@ -1,4 +1,4 @@
-import { apiClient, getTenantSubdomain, getShopPrefix, parseJwt } from "./apiClient";
+import { apiClient, getTenantSubdomain, getShopPrefix, parseJwt, resolveFullImageUrl } from "./apiClient";
 import {
   mockShopInfo,
   mockSlides,
@@ -255,6 +255,68 @@ export async function getVideos() {
 }
 
 /**
+ * Safely unpacks story content and image from raw API responses
+ * Handles: plain text, single JSON, double-stringified JSON, escaped quote strings
+ */
+export function parseStoryContent(rawContent, rawImage = null) {
+  let storyText = rawContent || "";
+  let headingText = null;
+  let imageUrl = rawImage || null;
+
+  let current = storyText;
+  for (let i = 0; i < 4; i++) {
+    if (typeof current === "string") {
+      let trimmed = current.trim();
+      // Remove surrounding quotes if it is a quoted string that wraps JSON
+      if (trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length > 2) {
+        try {
+          trimmed = JSON.parse(trimmed);
+        } catch (e) {
+          if (trimmed.startsWith('"{') || trimmed.startsWith('"[')) {
+            trimmed = trimmed.slice(1, -1).replace(/\\"/g, '"');
+          }
+        }
+      }
+
+      if (typeof trimmed === "string" && (trimmed.startsWith("{") || trimmed.startsWith("["))) {
+        try {
+          current = JSON.parse(trimmed);
+        } catch (e) {
+          try {
+            current = JSON.parse(trimmed.replace(/\\"/g, '"'));
+          } catch (e2) {
+            break;
+          }
+        }
+      } else if (typeof trimmed === "object" && trimmed !== null) {
+        current = trimmed;
+      } else {
+        current = trimmed;
+        break;
+      }
+    } else {
+      break;
+    }
+  }
+
+  if (typeof current === "object" && current !== null && !Array.isArray(current)) {
+    storyText = current.body !== undefined ? current.body : (current.content !== undefined ? current.content : (current.text || current.story || ""));
+    headingText = current.heading || current.title || null;
+    if (!imageUrl) {
+      imageUrl = current.image_url || current.image || current.imageUrl || null;
+    }
+  } else if (typeof current === "string") {
+    storyText = current;
+  }
+
+  return {
+    storyText: typeof storyText === "string" ? storyText.trim() : "",
+    headingText,
+    imageUrl: imageUrl ? resolveFullImageUrl(imageUrl) : null,
+  };
+}
+
+/**
  * Fetch About Us story & content from backend `/user/our_stories`
  * @returns {Promise<Object>} About content object
  */
@@ -266,32 +328,21 @@ export async function getAboutContent() {
 
     if (res.data && res.data.status === 1 && Array.isArray(res.data.data) && res.data.data.length > 0) {
       const activeStory = res.data.data.find((story) => story.status === 1) || res.data.data[0];
-      let storyText = activeStory.content || activeStory.strContent || "";
-      let headingText = null;
-      let imageUrl = activeStory.image || activeStory.image_url || activeStory.imageUrl || null;
-
-      if (typeof storyText === "string" && (storyText.startsWith("{") || storyText.startsWith("["))) {
-        try {
-          const parsed = JSON.parse(storyText);
-          storyText = parsed.body || parsed.content || parsed.text || storyText;
-          headingText = parsed.heading || parsed.title || null;
-          if (!imageUrl) {
-            imageUrl = parsed.image_url || parsed.image || parsed.imageUrl || null;
-          }
-        } catch (e) {
-          // Keep raw string if not JSON
-        }
-      }
+      const { storyText, headingText, imageUrl } = parseStoryContent(
+        activeStory.content || activeStory.strContent || "",
+        activeStory.image || activeStory.image_url || activeStory.imageUrl || null
+      );
 
       // If user provided custom content, split into paragraphs if multiple lines
       const userParagraphs = typeof storyText === "string" && storyText.trim()
-        ? storyText.split(/\r?\n\r?\n/).map(s => s.trim()).filter(Boolean)
-        : [storyText];
+        ? storyText.split(/\r?\n\r?\n/).map((s) => s.trim()).filter(Boolean)
+        : [];
 
       return {
         title: headingText || "Our Heritage & Passion for Perfection",
-        historyParagraphs: userParagraphs.length > 0 ? userParagraphs : [storyText],
+        historyParagraphs: userParagraphs.length > 0 ? userParagraphs : (mockAboutContent.historyParagraphs || [""]),
         image: imageUrl || null,
+        imageUrl: imageUrl || null,
       };
     }
     return mockAboutContent;
@@ -1043,15 +1094,8 @@ export async function adminAddOurStory(content, image = "", token = null) {
     const rawText = typeof content === "string" ? content.trim() : "";
     const imageUrl = (image || "").trim();
 
-    // Format content JSON string containing heading, body, image_url as per backend specification
-    const contentObj = {
-      heading: "Our Heritage & Craftsmanship",
-      body: rawText,
-      image_url: imageUrl
-    };
-
     const payload = {
-      content: JSON.stringify(contentObj),
+      content: rawText,
       image: imageUrl
     };
 
@@ -1100,15 +1144,9 @@ export async function adminUpdateOurStory(id, content, status = 1, image = "", t
     const rawText = typeof content === "string" ? content.trim() : "";
     const imageUrl = (image || "").trim();
 
-    const contentObj = {
-      heading: "Our Heritage & Craftsmanship",
-      body: rawText,
-      image_url: imageUrl
-    };
-
     const payload = {
       id: Number(id),
-      content: JSON.stringify(contentObj),
+      content: rawText,
       status: Number(status),
       image: imageUrl
     };
