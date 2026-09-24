@@ -13,7 +13,7 @@ import { getTenantSubdomain, getShopPrefix, resolveFullImageUrl } from "../servi
 const drawShopLogoBadge = (ctx, centerX, centerY, radius, shopLogoImg, shopName, scale = 1) => {
   ctx.save();
   
-  if (shopLogoImg && shopLogoImg.complete && shopLogoImg.naturalWidth > 0) {
+  if (shopLogoImg && shopLogoImg.complete && shopLogoImg.naturalWidth > 0 && shopLogoImg.isCorsClean !== false) {
     ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
     ctx.shadowBlur = 8 * scale;
 
@@ -151,7 +151,7 @@ const loadSingleImage = (url) => {
 const drawRealBIS916Hallmark = (ctx, centerX, centerY, scale = 1, style = "gold", hallmarkImg = null) => {
   ctx.save();
   
-  if (hallmarkImg && hallmarkImg.complete && hallmarkImg.naturalWidth > 0) {
+  if (hallmarkImg && hallmarkImg.complete && hallmarkImg.naturalWidth > 0 && hallmarkImg.isCorsClean !== false) {
     const aspect = hallmarkImg.naturalWidth / hallmarkImg.naturalHeight;
     const drawW = 230 * scale;
     const drawH = drawW / aspect;
@@ -1332,14 +1332,20 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
         if (!ctx) return resolve(null);
 
-        let activeShopLogo = loadedShopLogo;
+        let activeShopLogo = (loadedShopLogo && loadedShopLogo.isCorsClean !== false) ? loadedShopLogo : null;
         const targetShopLogoUrl = shopInfo?.logo || shopInfo?.logoUrl;
-        if ((!activeShopLogo || !activeShopLogo.complete || activeShopLogo.naturalWidth === 0) && targetShopLogoUrl) {
-          activeShopLogo = await loadSingleImage(targetShopLogoUrl);
+        if (!activeShopLogo && targetShopLogoUrl) {
+          const loaded = await loadSingleImage(targetShopLogoUrl);
+          if (loaded && loaded.isCorsClean !== false) {
+            activeShopLogo = loaded;
+          }
         }
-        let activeHallmarkLogo = loadedHallmarkLogo;
-        if (!activeHallmarkLogo || !activeHallmarkLogo.complete || activeHallmarkLogo.naturalWidth === 0) {
-          activeHallmarkLogo = await loadSingleImage("/bis_916_hallmark.png");
+        let activeHallmarkLogo = (loadedHallmarkLogo && loadedHallmarkLogo.isCorsClean !== false) ? loadedHallmarkLogo : null;
+        if (!activeHallmarkLogo) {
+          const loaded = await loadSingleImage("/bis_916_hallmark.png");
+          if (loaded && loaded.isCorsClean !== false) {
+            activeHallmarkLogo = loaded;
+          }
         }
 
         const activeSubdomain = getTenantSubdomain();
@@ -1348,7 +1354,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
         if (bgImageUrl) {
           const bgImg = await loadSingleImage(bgImageUrl);
-          if (bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
+          if (bgImg && bgImg.complete && bgImg.naturalWidth > 0 && bgImg.isCorsClean !== false) {
             const imgAspect = bgImg.naturalWidth / bgImg.naturalHeight;
             const canvasAspect = canvas.width / canvas.height;
             let drawW, drawH, drawX, drawY;
@@ -1527,14 +1533,20 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
     try {
       // 1. Preload Shop Logo & Hallmark Logo
-      let activeShopLogo = loadedShopLogo;
+      let activeShopLogo = (loadedShopLogo && loadedShopLogo.isCorsClean !== false) ? loadedShopLogo : null;
       const targetShopLogoUrl = shopInfo?.logo || shopInfo?.logoUrl;
-      if ((!activeShopLogo || !activeShopLogo.complete || activeShopLogo.naturalWidth === 0) && targetShopLogoUrl) {
-        activeShopLogo = await loadSingleImage(targetShopLogoUrl);
+      if (!activeShopLogo && targetShopLogoUrl) {
+        const loaded = await loadSingleImage(targetShopLogoUrl);
+        if (loaded && loaded.isCorsClean !== false) {
+          activeShopLogo = loaded;
+        }
       }
-      let activeHallmarkLogo = loadedHallmarkLogo;
-      if (!activeHallmarkLogo || !activeHallmarkLogo.complete || activeHallmarkLogo.naturalWidth === 0) {
-        activeHallmarkLogo = await loadSingleImage("/bis_916_hallmark.png");
+      let activeHallmarkLogo = (loadedHallmarkLogo && loadedHallmarkLogo.isCorsClean !== false) ? loadedHallmarkLogo : null;
+      if (!activeHallmarkLogo) {
+        const loaded = await loadSingleImage("/bis_916_hallmark.png");
+        if (loaded && loaded.isCorsClean !== false) {
+          activeHallmarkLogo = loaded;
+        }
       }
 
       setDownloadProgress(10);
