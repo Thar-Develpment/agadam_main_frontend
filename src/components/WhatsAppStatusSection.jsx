@@ -86,7 +86,7 @@ const loadSingleImage = (url) => {
     if (!url) return resolve(null);
     const fullUrl = resolveFullImageUrl(url);
 
-    // 1. Try loading with crossOrigin = "anonymous" for clean canvas export
+    // Stage 1: Try direct anonymous CORS image load
     const img = new window.Image();
     img.crossOrigin = "anonymous";
     img.src = fullUrl;
@@ -95,15 +95,41 @@ const loadSingleImage = (url) => {
       img.isCorsClean = true;
       resolve(img);
     };
-    img.onerror = () => {
-      // 2. Fallback: Load standard Image without crossOrigin so dynamic logo ALWAYS displays on screen
-      const fallbackImg = new window.Image();
-      fallbackImg.src = fullUrl;
-      fallbackImg.onload = () => {
-        fallbackImg.isCorsClean = false;
-        resolve(fallbackImg);
-      };
-      fallbackImg.onerror = () => resolve(null);
+
+    img.onerror = async () => {
+      // Stage 2: Fetch binary blob and convert to local blob: URL (local domain origin = same-origin & untainted!)
+      try {
+        const res = await fetch(fullUrl);
+        if (!res.ok) throw new Error("Fetch failed");
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        const blobImg = new window.Image();
+        blobImg.crossOrigin = "anonymous";
+        blobImg.src = blobUrl;
+
+        blobImg.onload = () => {
+          blobImg.isCorsClean = true; // Local Blob URL is same-origin & untainted!
+          resolve(blobImg);
+        };
+        blobImg.onerror = () => {
+          const fallbackImg = new window.Image();
+          fallbackImg.src = fullUrl;
+          fallbackImg.onload = () => {
+            fallbackImg.isCorsClean = false;
+            resolve(fallbackImg);
+          };
+          fallbackImg.onerror = () => resolve(null);
+        };
+      } catch (e) {
+        const fallbackImg = new window.Image();
+        fallbackImg.src = fullUrl;
+        fallbackImg.onload = () => {
+          fallbackImg.isCorsClean = false;
+          resolve(fallbackImg);
+        };
+        fallbackImg.onerror = () => resolve(null);
+      }
     };
   });
 };
@@ -1350,25 +1376,41 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
         drawStatusOverlay(ctx, canvas.width, canvas.height, shopNameStr, templateId, activeShopLogo, livePrices, shopInfo, activeHallmarkLogo);
 
-        if (canvas.toBlob) {
-          canvas.toBlob((blob) => {
-            if (blob) {
-              const blobUrl = URL.createObjectURL(blob);
-              resolve({ blobUrl, shopName: shopNameStr, cardNum });
-            } else {
-              try {
-                resolve({ blobUrl: canvas.toDataURL("image/png"), shopName: shopNameStr, cardNum });
-              } catch (e) {
-                resolve(null);
+        const exportCanvas = () => {
+          return new Promise((resExp) => {
+            try {
+              if (canvas.toBlob) {
+                canvas.toBlob((blob) => {
+                  if (blob) {
+                    resExp(URL.createObjectURL(blob));
+                  } else {
+                    try {
+                      resExp(canvas.toDataURL("image/png"));
+                    } catch (e) {
+                      resExp(null);
+                    }
+                  }
+                }, "image/png");
+              } else {
+                resExp(canvas.toDataURL("image/png"));
               }
+            } catch (e) {
+              resExp(null);
             }
-          }, "image/png");
+          });
+        };
+
+        let resultUrl = await exportCanvas();
+        if (!resultUrl && activeShopLogo) {
+          // If canvas export failed due to non-CORS logo, re-draw using luxury gold monogram emblem
+          drawStatusOverlay(ctx, canvas.width, canvas.height, shopNameStr, templateId, null, livePrices, shopInfo, activeHallmarkLogo);
+          resultUrl = await exportCanvas();
+        }
+
+        if (resultUrl) {
+          resolve({ blobUrl: resultUrl, shopName: shopNameStr, cardNum });
         } else {
-          try {
-            resolve({ blobUrl: canvas.toDataURL("image/png"), shopName: shopNameStr, cardNum });
-          } catch (e) {
-            resolve(null);
-          }
+          resolve(null);
         }
       } catch (e) {
         console.warn("Canvas blob error:", e);
