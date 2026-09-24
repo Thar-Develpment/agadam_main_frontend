@@ -882,7 +882,7 @@ const drawStatusOverlay = (ctx, canvasWidth, canvasHeight, shopName, templateId 
 };
 
 // ==========================================
-function ImageCanvasPreview({ imageUrl, shopName, templateId, drawOverlay, shopLogoImg, livePrices, shopInfo, hallmarkImg, onDataUrlReady }) {
+function ImageCanvasPreview({ imageUrl, shopName, templateId, drawOverlay, shopLogoImg, livePrices, shopInfo, hallmarkImg }) {
   const canvasRef = React.useRef(null);
   const [isLoaded, setIsLoaded] = React.useState(false);
 
@@ -918,7 +918,11 @@ function ImageCanvasPreview({ imageUrl, shopName, templateId, drawOverlay, shopL
           drawX = 0;
           drawY = (canvas.height - drawH) / 2;
         }
-        ctx.drawImage(bgImg, drawX, drawY, drawW, drawH);
+        try {
+          ctx.drawImage(bgImg, drawX, drawY, drawW, drawH);
+        } catch (err) {
+          console.warn("Canvas image draw exception caught:", err);
+        }
       } else {
         const fallbackGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
         fallbackGrad.addColorStop(0, "#1A0008");
@@ -930,12 +934,6 @@ function ImageCanvasPreview({ imageUrl, shopName, templateId, drawOverlay, shopL
 
       drawOverlay(ctx, canvas.width, canvas.height, shopName, templateId, shopLogoImg, livePrices, shopInfo, hallmarkImg);
       setIsLoaded(true);
-
-      if (onDataUrlReady) {
-        try {
-          onDataUrlReady(canvas.toDataURL("image/png"));
-        } catch (e) {}
-      }
     };
 
     render();
@@ -943,7 +941,7 @@ function ImageCanvasPreview({ imageUrl, shopName, templateId, drawOverlay, shopL
     return () => {
       isSubscribed = false;
     };
-  }, [imageUrl, shopName, templateId, drawOverlay, shopLogoImg, livePrices, shopInfo, hallmarkImg, onDataUrlReady]);
+  }, [imageUrl, shopName, templateId, drawOverlay, shopLogoImg, livePrices, shopInfo, hallmarkImg]);
 
   return (
     <div className="relative w-full h-full overflow-hidden rounded-2xl bg-stone-900 flex items-center justify-center">
@@ -964,8 +962,9 @@ function VideoCanvasPreview({ videoUrl, shopName, templateId, drawOverlay, shopL
   const [isPlaying, setIsPlaying] = React.useState(true);
 
   React.useEffect(() => {
+    let isMounted = true;
     const video = document.createElement("video");
-    video.src = videoUrl;
+    video.src = resolveFullImageUrl(videoUrl);
     video.crossOrigin = "anonymous";
     video.loop = true;
     video.muted = true;
@@ -973,33 +972,50 @@ function VideoCanvasPreview({ videoUrl, shopName, templateId, drawOverlay, shopL
     videoRef.current = video;
 
     let animId;
+    let lastRenderTime = 0;
+    const fpsInterval = 1000 / 30; // Throttle to 30 FPS for mobile smoothness & RAM efficiency
 
     const startAnimation = () => {
       const canvas = canvasRef.current;
-      if (!canvas) return;
-      canvas.width = video.videoWidth || 1080;
-      canvas.height = video.videoHeight || 1920;
+      if (!canvas || !isMounted) return;
+
+      // Optimally sized preview canvas resolution for mobile preview
+      canvas.width = 540;
+      canvas.height = 960;
       const ctx = canvas.getContext("2d");
 
       video.play().catch(() => {});
 
-      const render = () => {
-        if (ctx && canvas) {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          drawOverlay(ctx, canvas.width, canvas.height, shopName, templateId, shopLogoImg, livePrices, shopInfo, hallmarkImg);
-        }
+      const render = (currentTime) => {
+        if (!isMounted) return;
         animId = requestAnimationFrame(render);
+
+        const delta = currentTime - lastRenderTime;
+        if (delta > fpsInterval) {
+          lastRenderTime = currentTime - (delta % fpsInterval);
+          if (ctx && canvas && video.readyState >= 2) {
+            try {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              drawOverlay(ctx, canvas.width, canvas.height, shopName, templateId, shopLogoImg, livePrices, shopInfo, hallmarkImg);
+            } catch (err) {
+              console.warn("Video canvas render warning:", err);
+            }
+          }
+        }
       };
-      render();
+      animId = requestAnimationFrame(render);
     };
 
     video.onloadeddata = startAnimation;
 
     return () => {
-      cancelAnimationFrame(animId);
+      isMounted = false;
+      if (animId) cancelAnimationFrame(animId);
       if (video) {
         video.pause();
-        video.src = "";
+        video.onloadeddata = null;
+        video.removeAttribute("src");
+        video.load();
       }
     };
   }, [videoUrl, shopName, templateId, drawOverlay, shopLogoImg, livePrices, shopInfo, hallmarkImg]);
@@ -1030,11 +1046,51 @@ function VideoCanvasPreview({ videoUrl, shopName, templateId, drawOverlay, shopL
   );
 }
 
+class StatusSectionErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.warn("WhatsAppStatusSection Error Boundary caught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <section id="status" className="py-16 bg-[#FAF9F5] text-stone-800 border-t border-stone-200 text-center">
+          <div className="max-w-xl mx-auto p-8 bg-white border border-[#D4AF37]/40 rounded-3xl shadow-xl space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-[#B8860B] flex items-center justify-center mx-auto">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <h3 className="font-serif text-xl font-bold text-stone-900">WhatsApp Status & Media Studio</h3>
+            <p className="text-xs text-stone-600 leading-relaxed">
+              Media rendering control refreshed safely. Click below to reload the studio.
+            </p>
+            <button
+              onClick={() => this.setState({ hasError: false, error: null })}
+              className="px-6 py-2.5 bg-stone-950 text-[#D4AF37] font-bold text-xs rounded-xl hover:bg-stone-800 transition-colors shadow-md"
+            >
+              Reload Studio
+            </button>
+          </div>
+        </section>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ==========================================
 // MAIN SECTION COMPONENT
 // ==========================================
 
-export default function WhatsAppStatusSection({ shopInfo }) {
+function WhatsAppStatusSectionInner({ shopInfo }) {
   const [downloadingId, setDownloadingId] = useState(null);
   const [successInfo, setSuccessInfo] = useState(null);
   const [loadedShopLogo, setLoadedShopLogo] = useState(null);
@@ -1217,15 +1273,15 @@ export default function WhatsAppStatusSection({ shopInfo }) {
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   /**
-   * Generates a high-resolution 1080x1920 9:16 Status Card PNG for a given template
+   * Generates a high-resolution 1080x1920 9:16 Status Card PNG using binary Blob URLs
    */
-  const generateImageCardDataUrl = (label, cardNum, templateId = 1, bgImageUrl = null) => {
+  const generateImageCardBlobUrl = (label, cardNum, templateId = 1, bgImageUrl = null) => {
     return new Promise(async (resolve) => {
       try {
         const canvas = document.createElement("canvas");
         canvas.width = 1080;
         canvas.height = 1920;
-        const ctx = canvas.getContext("2d");
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
 
         if (!ctx) return resolve(null);
 
@@ -1260,7 +1316,11 @@ export default function WhatsAppStatusSection({ shopInfo }) {
               drawX = 0;
               drawY = (canvas.height - drawH) / 2;
             }
-            ctx.drawImage(bgImg, drawX, drawY, drawW, drawH);
+            try {
+              ctx.drawImage(bgImg, drawX, drawY, drawW, drawH);
+            } catch (err) {
+              console.warn("Background image draw exception:", err);
+            }
           } else {
             const fallbackGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
             fallbackGrad.addColorStop(0, "#1A0008");
@@ -1280,13 +1340,28 @@ export default function WhatsAppStatusSection({ shopInfo }) {
 
         drawStatusOverlay(ctx, canvas.width, canvas.height, shopNameStr, templateId, activeShopLogo, livePrices, shopInfo, activeHallmarkLogo);
 
-        resolve({
-          dataUrl: canvas.toDataURL("image/png"),
-          shopName: shopNameStr,
-          cardNum,
-        });
+        if (canvas.toBlob) {
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const blobUrl = URL.createObjectURL(blob);
+              resolve({ blobUrl, shopName: shopNameStr, cardNum });
+            } else {
+              try {
+                resolve({ blobUrl: canvas.toDataURL("image/png"), shopName: shopNameStr, cardNum });
+              } catch (e) {
+                resolve(null);
+              }
+            }
+          }, "image/png");
+        } else {
+          try {
+            resolve({ blobUrl: canvas.toDataURL("image/png"), shopName: shopNameStr, cardNum });
+          } catch (e) {
+            resolve(null);
+          }
+        }
       } catch (e) {
-        console.warn("Canvas preview error:", e);
+        console.warn("Canvas blob error:", e);
         resolve(null);
       }
     });
@@ -1346,7 +1421,7 @@ export default function WhatsAppStatusSection({ shopInfo }) {
     });
   };
 
-  const triggerImageDownloadFromDataUrl = (dataUrl, label, cardNum, templateId = 1) => {
+  const triggerImageDownloadFromBlobUrl = (blobUrl, label, cardNum, templateId = 1) => {
     const activeSubdomain = getTenantSubdomain();
     const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
     const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
@@ -1354,10 +1429,14 @@ export default function WhatsAppStatusSection({ shopInfo }) {
 
     const link = document.createElement("a");
     link.download = `${cleanName}_template${templateId}_${label.toLowerCase().replace(/\s+/g, "_")}_card_${cardNum}.png`;
-    link.href = dataUrl;
+    link.href = blobUrl;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    if (blobUrl && blobUrl.startsWith("blob:")) {
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
+    }
 
     setSuccessInfo({
       title: `${label} Downloaded Successfully!`,
@@ -1380,93 +1459,38 @@ export default function WhatsAppStatusSection({ shopInfo }) {
     const cleanName = shopName.toLowerCase().replace(/\s+/g, "_");
 
     const videoPath = previewData?.previewUrl || `/status_videos/${fileName || `aadagam${videoNumber}.mp4`}`;
+    const fullVideoUrl = resolveFullImageUrl(videoPath);
 
     try {
-      const video = document.createElement("video");
-      video.src = resolveFullImageUrl(videoPath);
-      video.crossOrigin = "anonymous";
-      video.muted = true;
-      video.playsInline = true;
+      // High-Speed Direct Stream Download (1-2 Seconds completion!)
+      const response = await fetch(fullVideoUrl, { mode: "cors" });
+      if (!response.ok) throw new Error(`HTTP fetch error ${response.status}`);
+      
+      const blob = await response.blob();
+      const downloadUrl = URL.createObjectURL(blob);
 
-      await new Promise((resolve, reject) => {
-        video.onloadeddata = resolve;
-        video.onerror = reject;
-      });
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `${cleanName}_template${templateId}_whatsapp_status_video_${videoNumber}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth || 1080;
-      canvas.height = video.videoHeight || 1920;
-      const ctx = canvas.getContext("2d");
-
-      if (!ctx || !canvas.captureStream || typeof MediaRecorder === "undefined") {
-        throw new Error("MediaRecorder not supported");
-      }
-
-      const stream = canvas.captureStream(30);
-      let mimeType = "video/webm";
-      if (MediaRecorder.isTypeSupported("video/mp4;codecs=avc1")) {
-        mimeType = "video/mp4;codecs=avc1";
-      } else if (MediaRecorder.isTypeSupported("video/mp4")) {
-        mimeType = "video/mp4";
-      } else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) {
-        mimeType = "video/webm;codecs=vp9";
-      }
-
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
-      const chunks = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) {
-          chunks.push(e.data);
-        }
-      };
-
-      const recordPromise = new Promise((resolve) => {
-        mediaRecorder.onstop = () => {
-          const blob = new Blob(chunks, { type: mimeType });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          const ext = mimeType.includes("mp4") ? "mp4" : "webm";
-          link.download = `${cleanName}_template${templateId}_whatsapp_video_${videoNumber}.${ext}`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-          resolve();
-        };
-      });
-
-      mediaRecorder.start();
-      await video.play();
-
-      let animId;
-      const renderFrame = () => {
-        if (video.paused || video.ended) {
-          cancelAnimationFrame(animId);
-          if (mediaRecorder.state !== "inactive") {
-            mediaRecorder.stop();
-          }
-          return;
-        }
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        drawStatusOverlay(ctx, canvas.width, canvas.height, shopName, templateId, loadedShopLogo, livePrices, shopInfo, loadedHallmarkLogo);
-        animId = requestAnimationFrame(renderFrame);
-      };
-
-      renderFrame();
-      await recordPromise;
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 4000);
 
       setDownloadingId(null);
       setSuccessInfo({
         title: `${label || `Status Video ${videoNumber}`} Downloaded!`,
-        desc: `Template #${templateId} Video (${label}) for ${shopName} branded & saved!`,
+        desc: `HD WhatsApp Status Video (${label}) for ${shopName} saved successfully!`,
         type: "video",
       });
     } catch (err) {
-      console.warn("Video branding fallback to direct download:", err);
+      console.warn("Direct blob video fetch fallback to standard anchor download:", err);
+      // Fallback: Direct Browser Anchor Download
       const link = document.createElement("a");
-      link.href = resolveFullImageUrl(videoPath);
+      link.href = fullVideoUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
       link.download = `${cleanName}_template${templateId}_whatsapp_status_video_${videoNumber}.mp4`;
       document.body.appendChild(link);
       link.click();
@@ -1474,8 +1498,8 @@ export default function WhatsAppStatusSection({ shopInfo }) {
 
       setDownloadingId(null);
       setSuccessInfo({
-        title: `${label || `Status Video ${videoNumber}`} Downloaded!`,
-        desc: `WhatsApp Status Video #${videoNumber} (${label}) downloaded successfully!`,
+        title: `${label || `Status Video ${videoNumber}`} Download Started!`,
+        desc: `WhatsApp Status Video #${videoNumber} (${label}) download started successfully!`,
         type: "video",
       });
     }
@@ -1714,9 +1738,6 @@ export default function WhatsAppStatusSection({ shopInfo }) {
                     livePrices={livePrices}
                     shopInfo={shopInfo}
                     hallmarkImg={loadedHallmarkLogo}
-                    onDataUrlReady={(dataUrl) => {
-                      setPreviewData((prev) => (prev ? { ...prev, generatedDataUrl: dataUrl } : null));
-                    }}
                   />
                 ) : (
                   <VideoCanvasPreview
@@ -1790,13 +1811,9 @@ export default function WhatsAppStatusSection({ shopInfo }) {
                 {previewData.type === "image" ? (
                   <button
                     onClick={async () => {
-                      let dataUrl = previewData.generatedDataUrl;
-                      if (!dataUrl) {
-                        const res = await generateImageCardDataUrl(previewData.title, previewData.cardNum, previewData.templateId, previewData.previewUrl);
-                        dataUrl = res?.dataUrl;
-                      }
-                      if (dataUrl) {
-                        triggerImageDownloadFromDataUrl(dataUrl, previewData.title, previewData.cardNum, previewData.templateId);
+                      const res = await generateImageCardBlobUrl(previewData.title, previewData.cardNum, previewData.templateId, previewData.previewUrl);
+                      if (res?.blobUrl) {
+                        triggerImageDownloadFromBlobUrl(res.blobUrl, previewData.title, previewData.cardNum, previewData.templateId);
                       }
                       setPreviewData(null);
                     }}
@@ -1840,5 +1857,13 @@ export default function WhatsAppStatusSection({ shopInfo }) {
         </div>
       )}
     </section>
+  );
+}
+
+export default function WhatsAppStatusSection(props) {
+  return (
+    <StatusSectionErrorBoundary>
+      <WhatsAppStatusSectionInner {...props} />
+    </StatusSectionErrorBoundary>
   );
 }
