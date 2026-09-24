@@ -97,22 +97,32 @@ const loadSingleImage = (url) => {
     };
 
     img.onerror = async () => {
-      // Stage 2: Fetch binary blob and convert to local blob: URL (local domain origin = same-origin & untainted!)
+      // Stage 2: Fetch binary blob and convert to Base64 Data URL (Data URLs NEVER taint canvas!)
       try {
         const res = await fetch(fullUrl);
         if (!res.ok) throw new Error("Fetch failed");
         const blob = await res.blob();
-        const blobUrl = URL.createObjectURL(blob);
 
-        const blobImg = new window.Image();
-        blobImg.crossOrigin = "anonymous";
-        blobImg.src = blobUrl;
-
-        blobImg.onload = () => {
-          blobImg.isCorsClean = true; // Local Blob URL is same-origin & untainted!
-          resolve(blobImg);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const dataImg = new window.Image();
+          dataImg.crossOrigin = "anonymous";
+          dataImg.onload = () => {
+            dataImg.isCorsClean = true; // Base64 Data URL is 100% untainted on canvas!
+            resolve(dataImg);
+          };
+          dataImg.onerror = () => {
+            const fallbackImg = new window.Image();
+            fallbackImg.src = fullUrl;
+            fallbackImg.onload = () => {
+              fallbackImg.isCorsClean = false;
+              resolve(fallbackImg);
+            };
+            fallbackImg.onerror = () => resolve(null);
+          };
+          dataImg.src = reader.result;
         };
-        blobImg.onerror = () => {
+        reader.onerror = () => {
           const fallbackImg = new window.Image();
           fallbackImg.src = fullUrl;
           fallbackImg.onload = () => {
@@ -121,6 +131,7 @@ const loadSingleImage = (url) => {
           };
           fallbackImg.onerror = () => resolve(null);
         };
+        reader.readAsDataURL(blob);
       } catch (e) {
         const fallbackImg = new window.Image();
         fallbackImg.src = fullUrl;
