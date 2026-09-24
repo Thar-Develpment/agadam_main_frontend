@@ -403,23 +403,23 @@ const drawTemplate1_RoyalHeritage = (ctx, W, H, shopName, shopLogoImg, livePrice
   ctx.fillStyle = goldGrad; ctx.fillRect(0, 0, W, 7 * sy);
 
   // Header content
-  drawOrnamentalRule(ctx, 55 * sx, 55 * sy, W - 110 * sx, "#D4AF37", sc);
-  drawShopLogoBadge(ctx, cx, 120 * sy, 50 * sc, shopLogoImg, shopName, sc);
+  drawOrnamentalRule(ctx, 55 * sx, 42 * sy, W - 110 * sx, "#D4AF37", sc);
+  drawShopLogoBadge(ctx, cx, 125 * sy, 65 * sc, shopLogoImg, shopName, sc);
 
   ctx.shadowColor = "rgba(212,175,55,0.6)"; ctx.shadowBlur = 18 * sc;
-  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(58 * sc)}px Georgia, serif`;
-  ctx.textAlign = "center"; ctx.fillText(shopName, cx, 215 * sy); ctx.shadowBlur = 0;
+  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(62 * sc)}px Georgia, serif`;
+  ctx.textAlign = "center"; ctx.fillText(shopName, cx, 255 * sy); ctx.shadowBlur = 0;
 
   ctx.fillStyle = "#D4AF37"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
-  ctx.fillText("JEWELLERS & DIAMONDS", cx, 250 * sy);
+  ctx.fillText("JEWELLERS & DIAMONDS", cx, 292 * sy);
 
-  drawOrnamentalRule(ctx, 55 * sx, 275 * sy, W - 110 * sx, "#D4AF37", sc);
+  drawOrnamentalRule(ctx, 55 * sx, 315 * sy, W - 110 * sx, "#D4AF37", sc);
 
   // BIGGER DATE (No emoji)
   ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(34 * sc)}px Georgia, serif`;
-  ctx.textAlign = "center"; ctx.fillText(dateStr, cx, 325 * sy);
+  ctx.textAlign = "center"; ctx.fillText(dateStr, cx, 360 * sy);
 
-  drawOrnamentalRule(ctx, 70 * sx, 365 * sy, W - 140 * sx, "#D4AF37", sc);
+  drawOrnamentalRule(ctx, 70 * sx, 395 * sy, W - 140 * sx, "#D4AF37", sc);
 
   // === SIDE-BY-SIDE CARDS: GOLD (LEFT) & SILVER (RIGHT) AT BOTTOM (Y = 1240px) ===
   const cardY = 1240 * sy, cardH = 270 * sy, cardW = 480 * sx;
@@ -532,25 +532,25 @@ const drawTemplate2_ModernMinimalist = (ctx, W, H, shopName, shopLogoImg, livePr
   ctx.fillStyle = slvGrad; ctx.fillRect(0, 0, W, 6 * sy);
 
   // Header content
-  drawShopLogoBadge(ctx, cx, 110 * sy, 50 * sc, shopLogoImg, shopName, sc);
+  drawShopLogoBadge(ctx, cx, 125 * sy, 65 * sc, shopLogoImg, shopName, sc);
 
   ctx.shadowColor = "rgba(100,180,255,0.5)"; ctx.shadowBlur = 22 * sc;
-  ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(58 * sc)}px Georgia, serif`;
-  ctx.textAlign = "center"; ctx.fillText(shopName, cx, 205 * sy); ctx.shadowBlur = 0;
+  ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(62 * sc)}px Georgia, serif`;
+  ctx.textAlign = "center"; ctx.fillText(shopName, cx, 255 * sy); ctx.shadowBlur = 0;
 
   ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
-  ctx.fillText("BOUTIQUE FINE JEWELLERY", cx, 240 * sy);
+  ctx.fillText("BOUTIQUE FINE JEWELLERY", cx, 292 * sy);
 
   const acLine = ctx.createLinearGradient(100 * sx, 0, W - 100 * sx, 0);
   acLine.addColorStop(0, "rgba(126,184,255,0)"); acLine.addColorStop(0.5, "rgba(200,225,255,0.85)"); acLine.addColorStop(1, "rgba(126,184,255,0)");
   ctx.strokeStyle = acLine; ctx.lineWidth = 1.5 * sc;
-  ctx.beginPath(); ctx.moveTo(100 * sx, 265 * sy); ctx.lineTo(W - 100 * sx, 265 * sy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(100 * sx, 315 * sy); ctx.lineTo(W - 100 * sx, 315 * sy); ctx.stroke();
 
   // BIGGER DATE (No emoji)
   ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(34 * sc)}px Georgia, serif`;
-  ctx.textAlign = "center"; ctx.fillText(dateStr, cx, 320 * sy);
+  ctx.textAlign = "center"; ctx.fillText(dateStr, cx, 360 * sy);
 
-  ctx.beginPath(); ctx.moveTo(100 * sx, 360 * sy); ctx.lineTo(W - 100 * sx, 360 * sy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(100 * sx, 395 * sy); ctx.lineTo(W - 100 * sx, 395 * sy); ctx.stroke();
 
   // === SIDE-BY-SIDE CARDS (PLACED BELOW, AT Y = 1240px) ===
   const cardY = 1240 * sy, cardH = 270 * sy, cardW = 480 * sx;
@@ -670,22 +670,22 @@ const drawTemplate3_BridalEmerald = (ctx, W, H, shopName, shopLogoImg, livePrice
   ctx.fillStyle = topGoldGrad; ctx.fillRect(0, 0, W, 7 * sy);
 
   // Header content
-  drawShopLogoBadge(ctx, cx, 120 * sy, 50 * sc, shopLogoImg, shopName, sc);
+  drawShopLogoBadge(ctx, cx, 125 * sy, 65 * sc, shopLogoImg, shopName, sc);
 
   ctx.shadowColor = "rgba(212,175,55,0.55)"; ctx.shadowBlur = 16 * sc;
-  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(58 * sc)}px Georgia, serif`;
-  ctx.textAlign = "center"; ctx.fillText(shopName, cx, 215 * sy); ctx.shadowBlur = 0;
+  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(62 * sc)}px Georgia, serif`;
+  ctx.textAlign = "center"; ctx.fillText(shopName, cx, 255 * sy); ctx.shadowBlur = 0;
 
   ctx.fillStyle = "#6EE7B7"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
-  ctx.fillText("BRIDAL & TRADITIONAL JEWELLERY", cx, 250 * sy);
+  ctx.fillText("BRIDAL & TRADITIONAL JEWELLERY", cx, 292 * sy);
 
-  drawOrnamentalRule(ctx, 65 * sx, 275 * sy, W - 130 * sx, "#D4AF37", sc);
+  drawOrnamentalRule(ctx, 65 * sx, 315 * sy, W - 130 * sx, "#D4AF37", sc);
 
   // BIGGER DATE (No emoji)
   ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(34 * sc)}px Georgia, serif`;
-  ctx.textAlign = "center"; ctx.fillText(dateStr, cx, 325 * sy);
+  ctx.textAlign = "center"; ctx.fillText(dateStr, cx, 360 * sy);
 
-  drawOrnamentalRule(ctx, 70 * sx, 365 * sy, W - 140 * sx, "#D4AF37", sc);
+  drawOrnamentalRule(ctx, 70 * sx, 395 * sy, W - 140 * sx, "#D4AF37", sc);
 
   // === SIDE-BY-SIDE CARDS (PLACED BELOW, AT Y = 1240px) ===
   const cardY = 1240 * sy, cardH = 270 * sy, cardW = 480 * sx;
@@ -806,22 +806,22 @@ const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrice
   ctx.fillStyle = roseBar; ctx.fillRect(lsW, 0, W - lsW * 2, 6 * sy);
 
   // Header content
-  drawShopLogoBadge(ctx, cx, 110 * sy, 50 * sc, shopLogoImg, shopName, sc);
+  drawShopLogoBadge(ctx, cx, 125 * sy, 65 * sc, shopLogoImg, shopName, sc);
 
   ctx.shadowColor = "rgba(212,145,106,0.45)"; ctx.shadowBlur = 18 * sc;
-  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(58 * sc)}px Georgia, serif`;
-  ctx.textAlign = "center"; ctx.fillText(shopName, cx, 205 * sy); ctx.shadowBlur = 0;
+  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(62 * sc)}px Georgia, serif`;
+  ctx.textAlign = "center"; ctx.fillText(shopName, cx, 255 * sy); ctx.shadowBlur = 0;
 
   ctx.fillStyle = "#D4916A"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
-  ctx.fillText("SOLITAIRE & FINE JEWELLERY", cx, 240 * sy);
+  ctx.fillText("SOLITAIRE & FINE JEWELLERY", cx, 292 * sy);
 
-  drawOrnamentalRule(ctx, 75 * sx, 265 * sy, W - 150 * sx, "#C08050", sc);
+  drawOrnamentalRule(ctx, 75 * sx, 315 * sy, W - 150 * sx, "#C08050", sc);
 
   // BIGGER DATE (No emoji)
   ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(34 * sc)}px Georgia, serif`;
-  ctx.textAlign = "center"; ctx.fillText(dateStr, cx, 320 * sy);
+  ctx.textAlign = "center"; ctx.fillText(dateStr, cx, 360 * sy);
 
-  drawOrnamentalRule(ctx, 70 * sx, 360 * sy, W - 140 * sx, "#D4916A", sc);
+  drawOrnamentalRule(ctx, 70 * sx, 395 * sy, W - 140 * sx, "#D4916A", sc);
 
   // === SIDE-BY-SIDE CARDS (PLACED BELOW, AT Y = 1240px) ===
   const cardY = 1240 * sy, cardH = 270 * sy, cardW = 480 * sx;
