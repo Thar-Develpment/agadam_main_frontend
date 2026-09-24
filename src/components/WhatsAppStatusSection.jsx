@@ -1469,7 +1469,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
   const handleVideoDownloadItem = async (videoNumber, label, fileName, templateId = 1) => {
     setDownloadingId(`video-${videoNumber}`);
-    setDownloadProgress(20);
+    setDownloadProgress(2);
     setSuccessInfo(null);
 
     const activeSubdomain = getTenantSubdomain();
@@ -1481,40 +1481,207 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
     const fullVideoUrl = resolveFullImageUrl(videoPath);
 
     try {
-      setDownloadProgress(50);
-      const response = await fetch(fullVideoUrl, { mode: "cors" });
-      if (!response.ok) throw new Error("Fetch failed");
-      const blob = await response.blob();
-      setDownloadProgress(90);
-      const downloadUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = `${cleanName}_template${templateId}_whatsapp_status_video_${videoNumber}.mp4`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(downloadUrl), 3000);
-      setDownloadProgress(100);
-    } catch (err) {
-      console.warn("Video direct download fallback link:", err);
-      const link = document.createElement("a");
-      link.href = fullVideoUrl;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.download = `${cleanName}_template${templateId}_whatsapp_status_video_${videoNumber}.mp4`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setDownloadProgress(100);
-    }
+      // 1. Preload Shop Logo & Hallmark Logo
+      let activeShopLogo = loadedShopLogo;
+      const targetShopLogoUrl = shopInfo?.logo || shopInfo?.logoUrl;
+      if ((!activeShopLogo || !activeShopLogo.complete || activeShopLogo.naturalWidth === 0) && targetShopLogoUrl) {
+        activeShopLogo = await loadSingleImage(targetShopLogoUrl);
+      }
+      let activeHallmarkLogo = loadedHallmarkLogo;
+      if (!activeHallmarkLogo || !activeHallmarkLogo.complete || activeHallmarkLogo.naturalWidth === 0) {
+        activeHallmarkLogo = await loadSingleImage("/bis_916_hallmark.png");
+      }
 
-    setDownloadingId(null);
-    setDownloadProgress(0);
-    setSuccessInfo({
-      title: `${label || `Status Video ${videoNumber}`} Downloaded!`,
-      desc: `WhatsApp Status Video #${videoNumber} (${label}) saved successfully as MP4!`,
-      type: "video",
-    });
+      setDownloadProgress(10);
+
+      // 2. Setup Video Element
+      const video = document.createElement("video");
+      video.src = fullVideoUrl;
+      video.crossOrigin = "anonymous";
+      video.muted = false;
+      video.volume = 1.0;
+      video.playsInline = true;
+
+      await new Promise((resolve, reject) => {
+        video.onloadeddata = resolve;
+        video.onerror = reject;
+      });
+
+      setDownloadProgress(20);
+
+      // 3. Create Canvas for Branded Overlay Rendering
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth || 720;
+      canvas.height = video.videoHeight || 1280;
+      const ctx = canvas.getContext("2d");
+
+      if (!ctx || !canvas.captureStream || typeof MediaRecorder === "undefined") {
+        throw new Error("MediaRecorder streaming not supported on this browser");
+      }
+
+      // Draw initial frame
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      drawStatusOverlay(ctx, canvas.width, canvas.height, shopNameStr, templateId, activeShopLogo, livePrices, shopInfo, activeHallmarkLogo);
+
+      const canvasStream = canvas.captureStream(30);
+      const compositeStream = new MediaStream();
+
+      // Add visual track from canvas
+      const canvasVideoTrack = canvasStream.getVideoTracks()[0];
+      if (canvasVideoTrack) {
+        compositeStream.addTrack(canvasVideoTrack);
+      }
+
+      // Route Audio using Web Audio API Destination Node
+      let audioCtx = null;
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+          if (audioCtx.state === "suspended") {
+            await audioCtx.resume();
+          }
+          const source = audioCtx.createMediaElementSource(video);
+          const audioDest = audioCtx.createMediaStreamDestination();
+          source.connect(audioDest);
+
+          if (audioDest.stream && audioDest.stream.getAudioTracks().length > 0) {
+            audioDest.stream.getAudioTracks().forEach((track) => compositeStream.addTrack(track));
+          }
+        }
+      } catch (audioErr) {
+        console.warn("Could not route silent audio stream:", audioErr);
+      }
+
+      // Determine Best Supported MIME Type & Matching File Extension
+      let mimeType = "video/webm";
+      let ext = "webm";
+
+      if (MediaRecorder.isTypeSupported("video/mp4;codecs=avc1.42E01E,mp4a.40.2")) {
+        mimeType = "video/mp4;codecs=avc1.42E01E,mp4a.40.2";
+        ext = "mp4";
+      } else if (MediaRecorder.isTypeSupported("video/mp4;codecs=avc1")) {
+        mimeType = "video/mp4;codecs=avc1";
+        ext = "mp4";
+      } else if (MediaRecorder.isTypeSupported("video/mp4")) {
+        mimeType = "video/mp4";
+        ext = "mp4";
+      } else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")) {
+        mimeType = "video/webm;codecs=vp9,opus";
+        ext = "webm";
+      } else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")) {
+        mimeType = "video/webm;codecs=vp8,opus";
+        ext = "webm";
+      } else if (MediaRecorder.isTypeSupported("video/webm")) {
+        mimeType = "video/webm";
+        ext = "webm";
+      }
+
+      const recorderOptions = { mimeType };
+      if (MediaRecorder.isTypeSupported(mimeType)) {
+        recorderOptions.videoBitsPerSecond = 3500000;
+      }
+
+      const mediaRecorder = new MediaRecorder(compositeStream, recorderOptions);
+      const chunks = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+
+      const recordPromise = new Promise((resolve) => {
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: mimeType });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `${cleanName}_template${templateId}_branded_whatsapp_reel_${videoNumber}.${ext}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          setTimeout(() => URL.revokeObjectURL(url), 3000);
+          resolve();
+        };
+      });
+
+      mediaRecorder.start();
+      await video.play();
+
+      let animId;
+      const duration = video.duration || 10;
+
+      const renderFrame = () => {
+        if (video.paused || video.ended) {
+          cancelAnimationFrame(animId);
+          setDownloadProgress(100);
+          if (mediaRecorder.state !== "inactive") {
+            mediaRecorder.stop();
+          }
+          return;
+        }
+
+        const pct = Math.min(99, Math.round((video.currentTime / duration) * 100));
+        setDownloadProgress(pct);
+
+        try {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          drawStatusOverlay(ctx, canvas.width, canvas.height, shopNameStr, templateId, activeShopLogo, livePrices, shopInfo, activeHallmarkLogo);
+        } catch (e) {
+          console.warn("Canvas overlay render frame error:", e);
+        }
+        animId = requestAnimationFrame(renderFrame);
+      };
+
+      renderFrame();
+      await recordPromise;
+
+      if (audioCtx) {
+        audioCtx.close().catch(() => {});
+      }
+
+      setDownloadingId(null);
+      setDownloadProgress(0);
+      setSuccessInfo({
+        title: `${label || `Status Video ${videoNumber}`} Branded & Saved!`,
+        desc: `Custom Template #${templateId} Video for ${shopNameStr} branded with Live Rates, Logo & Showroom Emblem!`,
+        type: "video",
+      });
+    } catch (err) {
+      console.warn("Video branding fallback to direct MP4 download:", err);
+      setDownloadProgress(90);
+      try {
+        const response = await fetch(fullVideoUrl, { mode: "cors" });
+        if (!response.ok) throw new Error("Fetch failed");
+        const blob = await response.blob();
+        const downloadUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = `${cleanName}_template${templateId}_whatsapp_status_video_${videoNumber}.mp4`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(downloadUrl), 3000);
+      } catch (e) {
+        const link = document.createElement("a");
+        link.href = fullVideoUrl;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.download = `${cleanName}_template${templateId}_whatsapp_status_video_${videoNumber}.mp4`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      setDownloadingId(null);
+      setDownloadProgress(0);
+      setSuccessInfo({
+        title: `${label || `Status Video ${videoNumber}`} Downloaded!`,
+        desc: `WhatsApp Status Video #${videoNumber} (${label}) saved successfully!`,
+        type: "video",
+      });
+    }
 
     setTimeout(() => {
       setSuccessInfo((prev) => (prev?.title?.includes(`Status Video ${videoNumber}`) ? null : prev));
