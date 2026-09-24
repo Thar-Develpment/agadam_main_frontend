@@ -86,32 +86,18 @@ const loadSingleImage = (url) => {
     if (!url) return resolve(null);
     const fullUrl = resolveFullImageUrl(url);
 
+    // 1. Try loading with crossOrigin = "anonymous" for clean canvas export
     const img = new window.Image();
     img.crossOrigin = "anonymous";
     img.src = fullUrl;
 
     img.onload = () => resolve(img);
-    img.onerror = async () => {
-      // Safe Fallback for cross-origin images without CORS headers:
-      // Try fetching as Blob -> Convert to Base64 Data URL (Base64 data URLs NEVER taint canvas!)
-      try {
-        const res = await fetch(fullUrl, { mode: "cors" });
-        if (!res.ok) throw new Error("CORS fetch failed");
-        const blob = await res.blob();
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const dataImg = new window.Image();
-          dataImg.onload = () => resolve(dataImg);
-          dataImg.onerror = () => resolve(null);
-          dataImg.src = reader.result;
-        };
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(blob);
-      } catch (e) {
-        console.warn("Cross-origin image could not be loaded into canvas safely:", fullUrl);
-        // Resolving null ensures canvas falls back to luxury vector monogram instead of tainting!
-        resolve(null);
-      }
+    img.onerror = () => {
+      // 2. Fallback: Load standard Image without crossOrigin so dynamic logo ALWAYS displays
+      const fallbackImg = new window.Image();
+      fallbackImg.src = fullUrl;
+      fallbackImg.onload = () => resolve(fallbackImg);
+      fallbackImg.onerror = () => resolve(null);
     };
   });
 };
