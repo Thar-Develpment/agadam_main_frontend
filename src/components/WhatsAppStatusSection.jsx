@@ -1480,18 +1480,36 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
       setDownloadProgress(10);
 
-      // 2. Setup Video Element
+      // 2. Setup Video Element with safe CORS fallback to ensure branded video recording never fails
       const video = document.createElement("video");
-      video.src = fullVideoUrl;
-      video.crossOrigin = "anonymous";
       video.muted = false;
       video.volume = 1.0;
       video.playsInline = true;
 
-      await new Promise((resolve, reject) => {
-        video.onloadeddata = resolve;
-        video.onerror = reject;
-      });
+      const loadVideoWithFallback = (url) => {
+        return new Promise((resolve) => {
+          let hasAttemptedFallback = false;
+          video.crossOrigin = "anonymous";
+          video.src = url;
+
+          const handleLoaded = () => resolve(true);
+          const handleError = () => {
+            if (!hasAttemptedFallback) {
+              hasAttemptedFallback = true;
+              video.removeAttribute("crossOrigin");
+              video.src = url;
+              video.load();
+            } else {
+              resolve(false);
+            }
+          };
+
+          video.onloadeddata = handleLoaded;
+          video.onerror = handleError;
+        });
+      };
+
+      await loadVideoWithFallback(fullVideoUrl);
 
       setDownloadProgress(20);
 
