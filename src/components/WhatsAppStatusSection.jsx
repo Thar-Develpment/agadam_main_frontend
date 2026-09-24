@@ -85,16 +85,33 @@ const loadSingleImage = (url) => {
   return new Promise((resolve) => {
     if (!url) return resolve(null);
     const fullUrl = resolveFullImageUrl(url);
+
     const img = new window.Image();
     img.crossOrigin = "anonymous";
     img.src = fullUrl;
+
     img.onload = () => resolve(img);
-    img.onerror = () => {
-      // Fallback preloading without crossOrigin in case CORS header is missing
-      const imgNoCors = new window.Image();
-      imgNoCors.src = fullUrl;
-      imgNoCors.onload = () => resolve(imgNoCors);
-      imgNoCors.onerror = () => resolve(null);
+    img.onerror = async () => {
+      // Safe Fallback for cross-origin images without CORS headers:
+      // Try fetching as Blob -> Convert to Base64 Data URL (Base64 data URLs NEVER taint canvas!)
+      try {
+        const res = await fetch(fullUrl, { mode: "cors" });
+        if (!res.ok) throw new Error("CORS fetch failed");
+        const blob = await res.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const dataImg = new window.Image();
+          dataImg.onload = () => resolve(dataImg);
+          dataImg.onerror = () => resolve(null);
+          dataImg.src = reader.result;
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      } catch (e) {
+        console.warn("Cross-origin image could not be loaded into canvas safely:", fullUrl);
+        // Resolving null ensures canvas falls back to luxury vector monogram instead of tainting!
+        resolve(null);
+      }
     };
   });
 };
@@ -1491,11 +1508,20 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
       canvas.height = video.videoHeight || 1920;
       const ctx = canvas.getContext("2d");
 
-      if (!ctx || !canvas.captureStream || typeof MediaRecorder === "undefined") {
-        throw new Error("MediaRecorder API not supported on this device/browser");
+      // Platform Detection for iOS / Safari:
+      // iOS Safari MediaRecorder drops canvas video tracks in compositeStream, producing audio-only recordings.
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+      if (isIOS || isSafari || !ctx || !canvas.captureStream || typeof MediaRecorder === "undefined") {
+        throw new Error("Canvas video recording stream unsupported on this device/browser platform");
       }
 
       const canvasStream = canvas.captureStream(30);
+      if (!canvasStream || canvasStream.getVideoTracks().length === 0) {
+        throw new Error("No video tracks found in canvas stream");
+      }
+
       const compositeStream = new MediaStream();
 
       // Add visual track from canvas
@@ -1507,6 +1533,9 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (AudioContextClass) {
           audioCtx = new AudioContextClass();
+          if (audioCtx.state === "suspended") {
+            await audioCtx.resume();
+          }
           const source = audioCtx.createMediaElementSource(video);
           const audioDest = audioCtx.createMediaStreamDestination();
           // Connect ONLY to audioDest (MediaRecorder stream), NOT to audioCtx.destination (speakers)!
@@ -1514,13 +1543,6 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
           if (audioDest.stream && audioDest.stream.getAudioTracks().length > 0) {
             audioDest.stream.getAudioTracks().forEach((track) => compositeStream.addTrack(track));
-          }
-        } else {
-          const videoStream = typeof video.captureStream === "function" 
-            ? video.captureStream() 
-            : (typeof video.mozCaptureStream === "function" ? video.mozCaptureStream() : null);
-          if (videoStream && videoStream.getAudioTracks().length > 0) {
-            videoStream.getAudioTracks().forEach((track) => compositeStream.addTrack(track));
           }
         }
       } catch (audioErr) {
@@ -1560,6 +1582,13 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
           resolve();
         };
       });
+
+      // Speed up hidden video playback for faster canvas recording (cuts download wait time in half)
+      try {
+        video.playbackRate = 2.0;
+      } catch (e) {
+        // Fallback to 1.0x if browser restricts playbackRate
+      }
 
       mediaRecorder.start();
       await video.play();
