@@ -1092,6 +1092,7 @@ class StatusSectionErrorBoundary extends React.Component {
 
 function WhatsAppStatusSectionInner({ shopInfo }) {
   const [downloadingId, setDownloadingId] = useState(null);
+  const [downloadProgress, setDownloadProgress] = useState(0);
   const [successInfo, setSuccessInfo] = useState(null);
   const [loadedShopLogo, setLoadedShopLogo] = useState(null);
   const [loadedHallmarkLogo, setLoadedHallmarkLogo] = useState(null);
@@ -1451,55 +1452,152 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
   const handleVideoDownloadItem = async (videoNumber, label, fileName, templateId = 1) => {
     setDownloadingId(`video-${videoNumber}`);
+    setDownloadProgress(0);
     setSuccessInfo(null);
 
     const activeSubdomain = getTenantSubdomain();
     const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
-    const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
-    const cleanName = shopName.toLowerCase().replace(/\s+/g, "_");
+    const shopNameStr = (shopInfo?.name || defaultShopName).toUpperCase();
+    const cleanName = shopNameStr.toLowerCase().replace(/\s+/g, "_");
 
     const videoPath = previewData?.previewUrl || `/status_videos/${fileName || `aadagam${videoNumber}.mp4`}`;
     const fullVideoUrl = resolveFullImageUrl(videoPath);
 
     try {
-      // High-Speed Direct Stream Download (1-2 Seconds completion!)
-      const response = await fetch(fullVideoUrl, { mode: "cors" });
-      if (!response.ok) throw new Error(`HTTP fetch error ${response.status}`);
-      
-      const blob = await response.blob();
-      const downloadUrl = URL.createObjectURL(blob);
+      let activeShopLogo = loadedShopLogo;
+      const targetShopLogoUrl = shopInfo?.logo || shopInfo?.logoUrl;
+      if ((!activeShopLogo || !activeShopLogo.complete || activeShopLogo.naturalWidth === 0) && targetShopLogoUrl) {
+        activeShopLogo = await loadSingleImage(targetShopLogoUrl);
+      }
+      let activeHallmarkLogo = loadedHallmarkLogo;
+      if (!activeHallmarkLogo || !activeHallmarkLogo.complete || activeHallmarkLogo.naturalWidth === 0) {
+        activeHallmarkLogo = await loadSingleImage("/bis_916_hallmark.png");
+      }
 
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = `${cleanName}_template${templateId}_whatsapp_status_video_${videoNumber}.mp4`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const video = document.createElement("video");
+      video.src = fullVideoUrl;
+      video.crossOrigin = "anonymous";
+      video.muted = true;
+      video.playsInline = true;
 
-      setTimeout(() => URL.revokeObjectURL(downloadUrl), 4000);
+      await new Promise((resolve, reject) => {
+        video.onloadeddata = resolve;
+        video.onerror = reject;
+      });
+
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth || 1080;
+      canvas.height = video.videoHeight || 1920;
+      const ctx = canvas.getContext("2d");
+
+      if (!ctx || !canvas.captureStream || typeof MediaRecorder === "undefined") {
+        throw new Error("MediaRecorder API not supported on this device/browser");
+      }
+
+      const stream = canvas.captureStream(30);
+      let mimeType = "video/webm";
+      if (MediaRecorder.isTypeSupported("video/mp4;codecs=avc1")) {
+        mimeType = "video/mp4;codecs=avc1";
+      } else if (MediaRecorder.isTypeSupported("video/mp4")) {
+        mimeType = "video/mp4";
+      } else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) {
+        mimeType = "video/webm;codecs=vp9";
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      const chunks = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+
+      const recordPromise = new Promise((resolve) => {
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: mimeType });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          const ext = mimeType.includes("mp4") ? "mp4" : "webm";
+          link.download = `${cleanName}_template${templateId}_branded_whatsapp_reel_${videoNumber}.${ext}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          setTimeout(() => URL.revokeObjectURL(url), 3000);
+          resolve();
+        };
+      });
+
+      mediaRecorder.start();
+      await video.play();
+
+      let animId;
+      const duration = video.duration || 10;
+
+      const renderFrame = () => {
+        if (video.paused || video.ended) {
+          cancelAnimationFrame(animId);
+          setDownloadProgress(100);
+          if (mediaRecorder.state !== "inactive") {
+            mediaRecorder.stop();
+          }
+          return;
+        }
+
+        const pct = Math.min(99, Math.round((video.currentTime / duration) * 100));
+        setDownloadProgress(pct);
+
+        try {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          drawStatusOverlay(ctx, canvas.width, canvas.height, shopNameStr, templateId, activeShopLogo, livePrices, shopInfo, activeHallmarkLogo);
+        } catch (e) {
+          console.warn("Canvas overlay draw error in video branding:", e);
+        }
+        animId = requestAnimationFrame(renderFrame);
+      };
+
+      renderFrame();
+      await recordPromise;
 
       setDownloadingId(null);
+      setDownloadProgress(0);
       setSuccessInfo({
-        title: `${label || `Status Video ${videoNumber}`} Downloaded!`,
-        desc: `HD WhatsApp Status Video (${label}) for ${shopName} saved successfully!`,
+        title: `${label || `Status Video ${videoNumber}`} Branded & Saved!`,
+        desc: `Custom Template #${templateId} Video for ${shopNameStr} branded with Live Rates & Showroom Emblem!`,
         type: "video",
       });
     } catch (err) {
-      console.warn("Direct blob video fetch fallback to standard anchor download:", err);
-      // Fallback: Direct Browser Anchor Download
-      const link = document.createElement("a");
-      link.href = fullVideoUrl;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.download = `${cleanName}_template${templateId}_whatsapp_status_video_${videoNumber}.mp4`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      console.warn("Video branding fallback to direct download:", err);
+      setDownloadProgress(99);
+      try {
+        const response = await fetch(fullVideoUrl, { mode: "cors" });
+        if (!response.ok) throw new Error("Fetch failed");
+        const blob = await response.blob();
+        const downloadUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = `${cleanName}_template${templateId}_whatsapp_status_video_${videoNumber}.mp4`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(downloadUrl), 3000);
+      } catch (e) {
+        const link = document.createElement("a");
+        link.href = fullVideoUrl;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.download = `${cleanName}_template${templateId}_whatsapp_status_video_${videoNumber}.mp4`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
 
       setDownloadingId(null);
+      setDownloadProgress(0);
       setSuccessInfo({
-        title: `${label || `Status Video ${videoNumber}`} Download Started!`,
-        desc: `WhatsApp Status Video #${videoNumber} (${label}) download started successfully!`,
+        title: `${label || `Status Video ${videoNumber}`} Downloaded!`,
+        desc: `WhatsApp Status Video #${videoNumber} (${label}) saved successfully!`,
         type: "video",
       });
     }
@@ -1785,13 +1883,6 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
                     <span className="font-bold text-emerald-400">{loadedShopLogo ? "Loaded (Custom)" : "Default Luxury Emblem"}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs border-b border-stone-800 pb-2">
-                    <span className="text-stone-400">Hallmark Seal:</span>
-                    <span className="font-bold text-[#D4AF37] flex items-center gap-1.5">
-                      <img src="/bis_916_hallmark.png" alt="Official BIS 916 Hallmark" className="h-5 object-contain bg-white/90 px-1 py-0.5 rounded" />
-                      <span>BIS 916 Official</span>
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs border-b border-stone-800 pb-2">
                     <span className="text-stone-400">Live Gold Rate (22K):</span>
                     <span className="font-number font-bold text-amber-300 text-sm">{livePrices.gold22k} /g</span>
                   </div>
@@ -1826,20 +1917,25 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
                   <button
                     onClick={() => {
                       handleVideoDownloadItem(previewData.videoNumber, previewData.title, previewData.fileName, previewData.templateId);
-                      setPreviewData(null);
                     }}
                     disabled={downloadingId !== null}
-                    className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 via-emerald-700 to-emerald-800 hover:from-emerald-700 hover:to-emerald-900 text-white font-bold py-3.5 px-6 rounded-2xl text-xs sm:text-sm tracking-wider uppercase shadow-lg shadow-emerald-900/20 hover:scale-[1.01] transition-all disabled:opacity-60 cursor-pointer"
+                    className="w-full relative overflow-hidden inline-flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 via-emerald-700 to-emerald-800 hover:from-emerald-700 hover:to-emerald-900 text-white font-bold py-3.5 px-6 rounded-2xl text-xs sm:text-sm tracking-wider uppercase shadow-lg shadow-emerald-900/20 hover:scale-[1.01] transition-all disabled:opacity-90 cursor-pointer"
                   >
                     {downloadingId ? (
                       <>
-                        <Loader2 className="w-4 h-4 animate-spin text-emerald-200" />
-                        <span>Branding & Downloading Video...</span>
+                        <div 
+                          className="absolute left-0 top-0 bottom-0 bg-emerald-500/40 transition-all duration-200"
+                          style={{ width: `${downloadProgress}%` }}
+                        />
+                        <div className="relative z-10 flex items-center justify-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin text-emerald-200" />
+                          <span>Downloading... {downloadProgress}%</span>
+                        </div>
                       </>
                     ) : (
                       <>
                         <Download className="w-4 h-4 text-emerald-200" />
-                        <span>Download Template #{previewData.templateId} Video</span>
+                        <span>Download Template #{previewData.templateId} Video (Branded Reel)</span>
                       </>
                     )}
                   </button>
