@@ -91,12 +91,18 @@ const loadSingleImage = (url) => {
     img.crossOrigin = "anonymous";
     img.src = fullUrl;
 
-    img.onload = () => resolve(img);
+    img.onload = () => {
+      img.isCorsClean = true;
+      resolve(img);
+    };
     img.onerror = () => {
-      // 2. Fallback: Load standard Image without crossOrigin so dynamic logo ALWAYS displays
+      // 2. Fallback: Load standard Image without crossOrigin so dynamic logo ALWAYS displays on screen
       const fallbackImg = new window.Image();
       fallbackImg.src = fullUrl;
-      fallbackImg.onload = () => resolve(fallbackImg);
+      fallbackImg.onload = () => {
+        fallbackImg.isCorsClean = false;
+        resolve(fallbackImg);
+      };
       fallbackImg.onerror = () => resolve(null);
     };
   });
@@ -1523,9 +1529,12 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
         throw new Error("MediaRecorder streaming not supported on this browser");
       }
 
+      // For video canvas recording, ensure logo is CORS-clean to prevent canvas tainting from blocking video stream
+      const videoLogoOverlay = (activeShopLogo && activeShopLogo.isCorsClean !== false) ? activeShopLogo : null;
+
       // Draw initial frame
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      drawStatusOverlay(ctx, canvas.width, canvas.height, shopNameStr, templateId, activeShopLogo, livePrices, shopInfo, activeHallmarkLogo);
+      drawStatusOverlay(ctx, canvas.width, canvas.height, shopNameStr, templateId, videoLogoOverlay, livePrices, shopInfo, activeHallmarkLogo);
 
       const canvasStream = canvas.captureStream(30);
       const compositeStream = new MediaStream();
@@ -1631,7 +1640,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
         try {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          drawStatusOverlay(ctx, canvas.width, canvas.height, shopNameStr, templateId, activeShopLogo, livePrices, shopInfo, activeHallmarkLogo);
+          drawStatusOverlay(ctx, canvas.width, canvas.height, shopNameStr, templateId, videoLogoOverlay, livePrices, shopInfo, activeHallmarkLogo);
         } catch (e) {
           console.warn("Canvas overlay render frame error:", e);
         }
