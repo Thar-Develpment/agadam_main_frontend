@@ -1477,7 +1477,8 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
       const video = document.createElement("video");
       video.src = fullVideoUrl;
       video.crossOrigin = "anonymous";
-      video.muted = true;
+      video.muted = false;
+      video.volume = 1.0;
       video.playsInline = true;
 
       await new Promise((resolve, reject) => {
@@ -1494,7 +1495,25 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
         throw new Error("MediaRecorder API not supported on this device/browser");
       }
 
-      const stream = canvas.captureStream(30);
+      const canvasStream = canvas.captureStream(30);
+      const compositeStream = new MediaStream();
+
+      // Add visual track from canvas
+      canvasStream.getVideoTracks().forEach((track) => compositeStream.addTrack(track));
+
+      // Capture audio track from source video element
+      try {
+        const videoStream = typeof video.captureStream === "function" 
+          ? video.captureStream() 
+          : (typeof video.mozCaptureStream === "function" ? video.mozCaptureStream() : null);
+        
+        if (videoStream && videoStream.getAudioTracks().length > 0) {
+          videoStream.getAudioTracks().forEach((track) => compositeStream.addTrack(track));
+        }
+      } catch (audioErr) {
+        console.warn("Could not extract video audio track:", audioErr);
+      }
+
       let mimeType = "video/webm";
       if (MediaRecorder.isTypeSupported("video/mp4;codecs=avc1")) {
         mimeType = "video/mp4;codecs=avc1";
@@ -1504,7 +1523,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
         mimeType = "video/webm;codecs=vp9";
       }
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      const mediaRecorder = new MediaRecorder(compositeStream, { mimeType });
       const chunks = [];
 
       mediaRecorder.ondataavailable = (e) => {
