@@ -1501,17 +1501,30 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
       // Add visual track from canvas
       canvasStream.getVideoTracks().forEach((track) => compositeStream.addTrack(track));
 
-      // Capture audio track from source video element
+      // Route audio to destination stream using Web Audio API (silent on page speakers, full audio in recorded file)
+      let audioCtx = null;
       try {
-        const videoStream = typeof video.captureStream === "function" 
-          ? video.captureStream() 
-          : (typeof video.mozCaptureStream === "function" ? video.mozCaptureStream() : null);
-        
-        if (videoStream && videoStream.getAudioTracks().length > 0) {
-          videoStream.getAudioTracks().forEach((track) => compositeStream.addTrack(track));
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+          const source = audioCtx.createMediaElementSource(video);
+          const audioDest = audioCtx.createMediaStreamDestination();
+          // Connect ONLY to audioDest (MediaRecorder stream), NOT to audioCtx.destination (speakers)!
+          source.connect(audioDest);
+
+          if (audioDest.stream && audioDest.stream.getAudioTracks().length > 0) {
+            audioDest.stream.getAudioTracks().forEach((track) => compositeStream.addTrack(track));
+          }
+        } else {
+          const videoStream = typeof video.captureStream === "function" 
+            ? video.captureStream() 
+            : (typeof video.mozCaptureStream === "function" ? video.mozCaptureStream() : null);
+          if (videoStream && videoStream.getAudioTracks().length > 0) {
+            videoStream.getAudioTracks().forEach((track) => compositeStream.addTrack(track));
+          }
         }
       } catch (audioErr) {
-        console.warn("Could not extract video audio track:", audioErr);
+        console.warn("Could not extract silent audio stream:", audioErr);
       }
 
       let mimeType = "video/webm";
@@ -1578,6 +1591,9 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
       renderFrame();
       await recordPromise;
+      if (audioCtx) {
+        audioCtx.close().catch(() => {});
+      }
 
       setDownloadingId(null);
       setDownloadProgress(0);
