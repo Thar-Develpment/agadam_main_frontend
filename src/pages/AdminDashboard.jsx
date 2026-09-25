@@ -2297,7 +2297,7 @@ export default function AdminDashboard() {
                         City <span className="text-rose-500">*</span>
                       </label>
                       <span className="text-[10px] text-stone-400 font-mono">
-                        {(contactInfo.city || "").length}/30 max
+                        {(contactInfo.city || "").length}/250 max
                       </span>
                     </div>
                     <div className="relative">
@@ -2306,7 +2306,7 @@ export default function AdminDashboard() {
                       </div>
                       <input
                         type="text"
-                        maxLength={30}
+                        maxLength={250}
                         placeholder="e.g. Chennai"
                         value={contactInfo.city || ""}
                         onChange={(e) => setContactInfo({ ...contactInfo, city: e.target.value })}
