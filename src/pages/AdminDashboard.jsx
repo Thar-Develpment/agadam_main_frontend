@@ -774,7 +774,7 @@ export default function AdminDashboard() {
     setIsLoading(true);
 
     const logo = (contactInfo.logo || "").trim().slice(0, 250);
-    const city = (contactInfo.city || "").trim().slice(0, 30);
+    const city = (contactInfo.city || "").trim().slice(0, 250);
     const address = (contactInfo.address || "").trim().slice(0, 1500);
     const phone = (contactInfo.phone || contactInfo.phonePrimary || "").trim().slice(0, 15);
     const contact_us = (contactInfo.contact_us || contactInfo.email || "").trim().slice(0, 30);

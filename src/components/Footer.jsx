@@ -170,10 +170,10 @@ export default function Footer({ shopInfo }) {
           {/* Address & Contact Summary */}
           <div className="lg:col-span-4 space-y-3">
             <h4 className="font-serif font-bold text-white text-base tracking-wider uppercase">
-              Flagship Boutique
+              Showroom Location
             </h4>
             <p className="text-xs sm:text-sm text-stone-400 font-light leading-relaxed">
-              {shopInfo?.address || (shopInfo?.city ? `Main Commercial Avenue, ${shopInfo.city}` : "Flagship Boutique, Jewellery Quarter")}
+              {shopInfo?.address || (shopInfo?.city ? `Main Commercial Avenue, ${shopInfo.city}` : "Jewellery Quarter, Main Commercial Avenue")}
             </p>
             <div className="pt-2 text-xs text-stone-500 font-mono space-y-1">
               <p>Primary: {formatIndianPhoneNumber(shopInfo?.phonePrimary || shopInfo?.phone, "+91 98765 43210")}</p>

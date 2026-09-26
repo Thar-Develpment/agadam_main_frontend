@@ -13,7 +13,7 @@ import {
 export default function ContactSection({ shopInfo }) {
   const address =
     shopInfo?.address ||
-    (shopInfo?.city ? `Main Commercial Avenue, ${shopInfo.city}` : "Flagship Boutique, Jewellery Quarter");
+    (shopInfo?.city ? `Main Commercial Avenue, ${shopInfo.city}` : "Main Commercial Avenue, Jewellery Quarter");
   const phone = formatIndianPhoneNumber(shopInfo?.phone || shopInfo?.phonePrimary, "+91 99520 54493");
   const email = shopInfo?.contact_us || shopInfo?.email || "contact@aadagam.com";
   const rawWhatsApp = shopInfo?.whatsapp_no || shopInfo?.whatsapp || shopInfo?.phone || phone;
@@ -58,7 +58,7 @@ export default function ContactSection({ shopInfo }) {
                     </div>
                     <div>
                       <span className="block font-bold text-xs uppercase text-stone-400 tracking-wider">
-                        Flagship Store {shopInfo?.city ? `• ${shopInfo.city}` : ""}
+                        {shopInfo?.city || "Store Location"}
                       </span>
                       <p className="text-sm text-stone-800 font-medium leading-relaxed mt-1 whitespace-pre-line">
                         {address}

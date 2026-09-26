@@ -1254,7 +1254,7 @@ export async function adminUpdateSiteInfo(
   try {
     const payload = {
       logo: (logo || "").trim().slice(0, 250),
-      city: (city || "").trim().slice(0, 30),
+      city: (city || "").trim().slice(0, 250),
       address: (address || "").trim().slice(0, 1500),
       phone: (phone || "").trim().slice(0, 15),
       contact_us: (contact_us || "").trim().slice(0, 30),
