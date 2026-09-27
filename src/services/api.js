@@ -51,11 +51,10 @@ export async function getSlides() {
     const shop_name = getShopPrefix(subdomain);
     const shopPrefix = shop_name;
 
-    // 1. Always call backend hero slides API for this showroom subdomain
+    // 1. Call the public storefront endpoint: POST /user/get_all_hero_slide
     let resData = null;
     try {
-      const res = await apiClient.post("/opxXxolN7m6CU/get_all_hero_slide", {
-        shop_name,
+      const res = await apiClient.post("/user/get_all_hero_slide", {
         subdomain,
         pageNo: 0,
         pageSize: 10,
@@ -65,7 +64,18 @@ export async function getSlides() {
         resData = res.data.data;
       }
     } catch (e) {
-      console.warn("Could not fetch hero slides from backend:", e);
+      console.warn("Could not fetch /user/get_all_hero_slide, trying admin endpoint fallback:", e);
+      try {
+        const adminRes = await apiClient.post("/opxXxolN7m6CU/get_all_hero_slide", {
+          subdomain,
+          shop_name,
+          pageNo: 0,
+          pageSize: 10,
+        });
+        if (adminRes.data && adminRes.data.status === 1 && Array.isArray(adminRes.data.data) && adminRes.data.data.length > 0) {
+          resData = adminRes.data.data;
+        }
+      } catch (adminErr) {}
     }
 
     if (resData && resData.length > 0) {
@@ -1405,6 +1415,7 @@ export async function adminUploadImages(files, token = null) {
       "/opxXxolN7m6CU/upload",
       formData,
       {
+        timeout: 0,
         headers: {
           ...getAuthHeader(token),
           "Content-Type": "multipart/form-data",

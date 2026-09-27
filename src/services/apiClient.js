@@ -30,7 +30,7 @@ const API_BASE_URL = resolveApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000,
+  timeout: 0, // No artificial timeout limit so slow network connections and large uploads complete reliably
   headers: {
     "Content-Type": "application/json",
   },
