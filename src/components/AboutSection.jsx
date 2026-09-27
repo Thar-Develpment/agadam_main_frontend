@@ -21,18 +21,21 @@ export default function AboutSection({ aboutContent, galleryImages = [], shopInf
     rawText = aboutContent.content;
   }
 
-  const parsed = parseStoryContent(rawText, aboutContent.image || aboutContent.imageUrl);
+  // Extract story image from all possible field paths (admin panel uploads to "image" field)
+  const rawStoryImage = aboutContent.image || aboutContent.imageUrl || aboutContent.image_url || aboutContent.storyImage || null;
+  const parsed = parseStoryContent(rawText, rawStoryImage);
   const cleanStoryText = parsed.storyText || rawText;
-  const customStoryImage = parsed.imageUrl || (aboutContent.image ? resolveFullImageUrl(aboutContent.image) : null) || (aboutContent.imageUrl ? resolveFullImageUrl(aboutContent.imageUrl) : null);
+  const customStoryImage =
+    parsed.imageUrl ||
+    (rawStoryImage ? resolveFullImageUrl(rawStoryImage) : null);
 
-  const showcaseItem = galleryImages && galleryImages.length > 0 ? galleryImages[0] : null;
+  // Story image from admin panel takes priority; gallery image is fallback only
   const showcaseImage =
     customStoryImage ||
-    (showcaseItem?.imageUrl ? resolveFullImageUrl(showcaseItem.imageUrl) : null) ||
     "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=800&q=80";
   const showcaseTitle = customStoryImage
     ? `${brandNameOnly} Heritage & Craft`
-    : showcaseItem?.title || `${brandNameOnly} Signature Collection`;
+    : `${brandNameOnly} Signature Collection`;
 
   // Process history paragraphs (handling single strings with line breaks or array of paragraphs)
   const allParagraphs = cleanStoryText

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Download, Sparkles, Video, Image, CheckCircle2, Loader2, X, Play } from "lucide-react";
-import { getSiteInfo, getBasicAssets, getAboutContent } from "../services/api";
+import { getSiteInfo, getBasicAssets } from "../services/api";
 import { getTenantSubdomain, getShopPrefix, resolveFullImageUrl } from "../services/apiClient";
 
 // ==========================================
@@ -1225,9 +1225,6 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
     ]
   });
 
-  // Story image uploaded from Admin Panel's "Our Story" section
-  const [storyImageUrl, setStoryImageUrl] = useState("");
-
   const [livePrices, setLivePrices] = useState({
     gold22k: "\u20b97,195",
     silver999: "\u20b994.50",
@@ -1268,10 +1265,9 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
   useEffect(() => {
     async function loadData() {
       try {
-        const [siteRes, assetsRes, aboutRes] = await Promise.all([
+        const [siteRes, assetsRes] = await Promise.all([
           getSiteInfo(),
           getBasicAssets(),
-          getAboutContent(),
         ]);
 
         if (siteRes && siteRes.success === 1 && Array.isArray(siteRes.priceData)) {
@@ -1298,11 +1294,6 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
             images: assetsRes.image?.data || [],
             videos: assetsRes.video?.data || [],
           });
-        }
-
-        // Use the story image uploaded from Admin Panel's "Our Story" section
-        if (aboutRes && (aboutRes.image || aboutRes.imageUrl)) {
-          setStoryImageUrl(aboutRes.image || aboutRes.imageUrl || "");
         }
       } catch (err) {
         console.warn("Error loading WhatsApp status assets/prices:", err);
@@ -1532,11 +1523,8 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
     const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
     const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
 
-    // Use the story image from admin panel's "Our Story" section as the background
-    let selectedAssetUrl = storyImageUrl || "";
-
-    // Fallback to gallery images only if no story image is set
-    if (!selectedAssetUrl && basicAssets.images && basicAssets.images.length > 0) {
+    let selectedAssetUrl = "";
+    if (basicAssets.images && basicAssets.images.length > 0) {
       const randIdx = Math.floor(Math.random() * basicAssets.images.length);
       const imgObj = basicAssets.images[randIdx];
       selectedAssetUrl = typeof imgObj === "string" ? imgObj : (imgObj?.url || imgObj?.image || imgObj?.src || "");
