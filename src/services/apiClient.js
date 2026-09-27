@@ -52,12 +52,23 @@ export function resolveFullImageUrl(url) {
     return clean;
   }
 
-  const baseUrl = API_BASE_URL.replace(/\/+$/, "");
-  if (clean.startsWith("/")) {
-    return `${baseUrl}${clean}`;
+  const pathToCheck = clean.startsWith("/") ? clean : `/${clean}`;
+  const isFrontendStatic = 
+    pathToCheck.startsWith("/logo_without_backround") ||
+    pathToCheck.startsWith("/aadagam") ||
+    pathToCheck.startsWith("/bis_916") ||
+    pathToCheck.startsWith("/status_videos") ||
+    pathToCheck.startsWith("/gold_bullion") ||
+    pathToCheck.startsWith("/silver_bullion") ||
+    pathToCheck.startsWith("/favicon") ||
+    pathToCheck.startsWith("/icons");
+
+  if (isFrontendStatic) {
+    return pathToCheck;
   }
 
-  return `${baseUrl}/${clean}`;
+  const baseUrl = API_BASE_URL.replace(/\/+$/, "");
+  return clean.startsWith("/") ? `${baseUrl}${clean}` : `${baseUrl}/${clean}`;
 }
 
 // Request Interceptor: Automatically attach JWT token if available in storage

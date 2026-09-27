@@ -8,69 +8,76 @@ import { getTenantSubdomain, getShopPrefix, resolveFullImageUrl } from "../servi
 // ==========================================
 
 /**
- * Draws the Shop Logo inside a circular badge or fallback luxury shop monogram emblem on Canvas
+ * Draws the Shop Logo inside a luxury metallic gold medallion badge or monogram emblem on Canvas
  */
 const drawShopLogoBadge = (ctx, centerX, centerY, radius, shopLogoImg, shopName, scale = 1) => {
   ctx.save();
   
-  if (shopLogoImg && shopLogoImg.complete && shopLogoImg.naturalWidth > 0) {
-    ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
-    ctx.shadowBlur = 8 * scale;
+  // Outer Metallic Gold Gradient Ring
+  ctx.shadowColor = "rgba(0, 0, 0, 0.55)";
+  ctx.shadowBlur = 12 * scale;
 
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  const outerGoldGrad = ctx.createLinearGradient(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
+  outerGoldGrad.addColorStop(0, "#78590F");
+  outerGoldGrad.addColorStop(0.3, "#D4AF37");
+  outerGoldGrad.addColorStop(0.7, "#FFF6D4");
+  outerGoldGrad.addColorStop(1, "#9E7B15");
+
+  ctx.fillStyle = outerGoldGrad;
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  if (shopLogoImg && shopLogoImg.complete && shopLogoImg.naturalWidth > 0) {
+    // Inner Soft Ivory Background Badge for Clean Logo Visibility
+    const innerRadius = radius - 3.5 * scale;
     ctx.fillStyle = "#FFFFFF";
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
     ctx.fill();
-    
+
+    // Clip & Render Logo
     ctx.save();
     ctx.beginPath();
-    ctx.arc(centerX, centerY, radius - 3 * scale, 0, Math.PI * 2);
+    ctx.arc(centerX, centerY, innerRadius - 2 * scale, 0, Math.PI * 2);
     ctx.clip();
     
     const aspect = shopLogoImg.naturalWidth / shopLogoImg.naturalHeight;
-    let drawW = radius * 1.65;
+    let drawW = innerRadius * 1.68;
     let drawH = drawW / aspect;
-    if (drawH > radius * 1.65) {
-      drawH = radius * 1.65;
+    if (drawH > innerRadius * 1.68) {
+      drawH = innerRadius * 1.68;
       drawW = drawH * aspect;
     }
     ctx.drawImage(shopLogoImg, centerX - drawW / 2, centerY - drawH / 2, drawW, drawH);
     ctx.restore();
 
-    ctx.strokeStyle = "#D4AF37";
-    ctx.lineWidth = 3.5 * scale;
+    // Subtle Gold Inner Rim
+    ctx.strokeStyle = "rgba(212, 175, 55, 0.85)";
+    ctx.lineWidth = 2 * scale;
     ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
     ctx.stroke();
   } else {
-    // Luxury Shop Monogram Emblem Medallion (Fallback when shop image logo is not set)
-    ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
-    ctx.shadowBlur = 10 * scale;
-
-    // Outer Gold Medallion Gradient
-    const goldGrad = ctx.createLinearGradient(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
-    goldGrad.addColorStop(0, "#78590F");
-    goldGrad.addColorStop(0.5, "#D4AF37");
-    goldGrad.addColorStop(1, "#FFF6D4");
-    ctx.fillStyle = goldGrad;
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Inner Obsidian Background
+    // Luxury Shop Monogram Crest Medallion (Fallback when shop image logo is not set)
+    const innerRadius = radius - 4 * scale;
     const innerGrad = ctx.createLinearGradient(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
-    innerGrad.addColorStop(0, "#261B02");
-    innerGrad.addColorStop(1, "#0D0801");
+    innerGrad.addColorStop(0, "#241804");
+    innerGrad.addColorStop(1, "#0A0601");
     ctx.fillStyle = innerGrad;
     ctx.beginPath();
-    ctx.arc(centerX, centerY, radius - 4 * scale, 0, Math.PI * 2);
+    ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
     ctx.fill();
+
     ctx.strokeStyle = "#FDE68A";
     ctx.lineWidth = 1.8 * scale;
     ctx.stroke();
 
-    // Shop Initial Monogram Letter
+    // Monogram Initial Letter
     const shopInitial = (shopName || "S").trim().charAt(0).toUpperCase();
+    ctx.shadowColor = "rgba(212, 175, 55, 0.7)";
+    ctx.shadowBlur = 8 * scale;
     ctx.fillStyle = "#FDE68A";
     ctx.font = `bold ${Math.round(radius * 1.05)}px Georgia, serif`;
     ctx.textAlign = "center";
@@ -82,7 +89,7 @@ const drawShopLogoBadge = (ctx, centerX, centerY, radius, shopLogoImg, shopName,
 };
 
 const loadSingleImage = (url) => {
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
     if (!url) return resolve(null);
     const fullUrl = resolveFullImageUrl(url);
 
@@ -98,67 +105,202 @@ const loadSingleImage = (url) => {
       return;
     }
 
-    // Stage 1: Try direct anonymous CORS image load
-    const img = new window.Image();
-    img.crossOrigin = "anonymous";
-    img.src = fullUrl;
+    // Stage 1: Try direct fetch to convert to Base64 Data URL (Data URLs NEVER taint canvas!)
+    try {
+      let blob = null;
+      try {
+        const res = await fetch(fullUrl, { mode: "cors" });
+        if (res.ok) blob = await res.blob();
+      } catch (e) {}
 
-    img.onload = () => {
-      img.isCorsClean = true;
-      resolve(img);
-    };
-
-    img.onerror = async () => {
-      // Stage 2: Fetch via CORS proxies or direct fetch to convert to Base64 Data URL (Base64 Data URLs NEVER taint canvas!)
-      const proxyCandidates = [
-        fullUrl,
-        `https://images.weserv.nl/?url=${encodeURIComponent(fullUrl.replace(/^https?:\/\//, ""))}`,
-        `https://corsproxy.io/?${encodeURIComponent(fullUrl)}`,
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(fullUrl)}`
-      ];
-
-      for (const pUrl of proxyCandidates) {
+      if (!blob && fullUrl.startsWith("/")) {
         try {
-          const res = await fetch(pUrl);
-          if (res.ok) {
-            const blob = await res.blob();
-            const dataUrl = await new Promise((resReader) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resReader(reader.result);
-              reader.onerror = () => resReader(null);
-              reader.readAsDataURL(blob);
-            });
-
-            if (dataUrl) {
-              const dataImg = new window.Image();
-              const loaded = await new Promise((resImg) => {
-                dataImg.onload = () => {
-                  dataImg.isCorsClean = true;
-                  resImg(dataImg);
-                };
-                dataImg.onerror = () => resImg(null);
-                dataImg.src = dataUrl;
-              });
-              if (loaded) {
-                return resolve(loaded);
-              }
-            }
-          }
-        } catch (e) {
-          // Try next proxy candidate
-        }
+          const res = await fetch(window.location.origin + fullUrl);
+          if (res.ok) blob = await res.blob();
+        } catch (e) {}
       }
 
-      // Stage 3: Fallback direct load (guarantees preview canvas always renders the logo image)
-      const fallbackImg = new window.Image();
-      fallbackImg.onload = () => {
-        fallbackImg.isCorsClean = true;
-        resolve(fallbackImg);
-      };
-      fallbackImg.onerror = () => resolve(null);
-      fallbackImg.src = fullUrl;
+      if (blob) {
+        const dataUrl = await new Promise((resReader) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resReader(reader.result);
+          reader.onerror = () => resReader(null);
+          reader.readAsDataURL(blob);
+        });
+
+        if (dataUrl) {
+          const dataImg = new window.Image();
+          const loaded = await new Promise((resImg) => {
+            dataImg.onload = () => {
+              dataImg.isCorsClean = true;
+              resImg(dataImg);
+            };
+            dataImg.onerror = () => resImg(null);
+            dataImg.src = dataUrl;
+          });
+          if (loaded) return resolve(loaded);
+        }
+      }
+    } catch (e) {}
+
+    // Stage 2: Try direct anonymous CORS image load
+    try {
+      const img = new window.Image();
+      img.crossOrigin = "anonymous";
+      img.src = fullUrl;
+      const loadedImg = await new Promise((resImg) => {
+        img.onload = () => {
+          img.isCorsClean = true;
+          resImg(img);
+        };
+        img.onerror = () => resImg(null);
+      });
+      if (loadedImg) return resolve(loadedImg);
+    } catch (e) {}
+
+    // Stage 3: Fetch via CORS proxies to convert to Base64 Data URL (with PNG format output)
+    const cleanUrl = fullUrl.replace(/^https?:\/\//, "");
+    const fullEncoded = encodeURIComponent(fullUrl);
+    const proxyCandidates = [
+      `https://wsrv.nl/?url=${fullEncoded}&output=png`,
+      `https://images.weserv.nl/?url=${fullEncoded}&output=png`,
+      `https://wsrv.nl/?url=${cleanUrl}&output=png`,
+      `https://images.weserv.nl/?url=${cleanUrl}&output=png`,
+      `https://api.codetabs.com/v1/proxy?quest=${fullEncoded}`,
+      `https://corsproxy.io/?${fullEncoded}`,
+      `https://api.allorigins.win/raw?url=${fullEncoded}`
+    ];
+
+    for (const pUrl of proxyCandidates) {
+      try {
+        const res = await fetch(pUrl);
+        if (res.ok) {
+          const blob = await res.blob();
+          const dataUrl = await new Promise((resReader) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resReader(reader.result);
+            reader.onerror = () => resReader(null);
+            reader.readAsDataURL(blob);
+          });
+
+          if (dataUrl) {
+            const dataImg = new window.Image();
+            const loaded = await new Promise((resImg) => {
+              dataImg.onload = () => {
+                dataImg.isCorsClean = true;
+                resImg(dataImg);
+              };
+              dataImg.onerror = () => resImg(null);
+              dataImg.src = dataUrl;
+            });
+            if (loaded) return resolve(loaded);
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Stage 4: Fallback direct load
+    const fallbackImg = new window.Image();
+    fallbackImg.onload = () => {
+      fallbackImg.isCorsClean = true;
+      resolve(fallbackImg);
     };
+    fallbackImg.onerror = () => resolve(null);
+    fallbackImg.src = fullUrl;
   });
+};
+
+/**
+  * Robust logo loader that tries primary URL first and falls back to main site logo options
+  */
+const loadLogoWithFallback = async (primaryUrl) => {
+  const candidates = [
+    primaryUrl,
+    "/logo_without_backround.png",
+    "/aadagam-logo-icon.png",
+    "/aadagam-logo.png",
+    "/logo.png"
+  ].filter(Boolean);
+
+  for (const url of candidates) {
+    const img = await loadSingleImage(url);
+    if (img && img.complete && img.naturalWidth > 0) {
+      return img;
+    }
+  }
+  return null;
+};
+
+/**
+ * Draws crisp, professional Vector Icon Badges (Phone & Pin) on Canvas — No OS Emoji reliance!
+ */
+const drawVectorIconBadge = (ctx, centerX, centerY, radius, type, scale, accentColor = "#D4AF37") => {
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = 8 * scale;
+
+  // Outer Gold Pill / Circle Badge
+  const goldGrad = ctx.createLinearGradient(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
+  goldGrad.addColorStop(0, "#D4AF37");
+  goldGrad.addColorStop(0.5, "#FFF6D4");
+  goldGrad.addColorStop(1, "#8A6B0E");
+
+  ctx.fillStyle = "rgba(18, 12, 5, 0.9)";
+  ctx.strokeStyle = goldGrad;
+  ctx.lineWidth = 2 * scale;
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = accentColor;
+  ctx.strokeStyle = accentColor;
+
+  if (type === "phone") {
+    // Vector Phone Handset
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    const s = (radius * 0.9) / 24;
+    ctx.scale(s, s);
+    ctx.beginPath();
+    ctx.moveTo(-6, -9);
+    ctx.bezierCurveTo(-8, -9, -9, -7, -9, -5);
+    ctx.bezierCurveTo(-9, 3, -3, 9, 5, 9);
+    ctx.bezierCurveTo(7, 9, 9, 8, 9, 6);
+    ctx.lineTo(7, 2);
+    ctx.bezierCurveTo(6, 1, 4, 1, 3, 2);
+    ctx.lineTo(1.5, 3.5);
+    ctx.bezierCurveTo(-1.5, 1.5, -2.5, 0.5, -4.5, -2.5);
+    ctx.lineTo(-3, -4);
+    ctx.bezierCurveTo(-2, -5, -2, -6.5, -3, -7.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  } else if (type === "pin") {
+    // Vector Location Map Pin Marker
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    const s = (radius * 0.9) / 24;
+    ctx.scale(s, s);
+    ctx.beginPath();
+    ctx.arc(0, -3, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(0, 9);
+    ctx.lineTo(-5.5, -2);
+    ctx.bezierCurveTo(-5.5, -5, 5.5, -5, 5.5, -2);
+    ctx.closePath();
+    ctx.fill();
+    // Inner dot
+    ctx.fillStyle = "rgba(18, 12, 5, 0.95)";
+    ctx.beginPath();
+    ctx.arc(0, -3, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.restore();
 };
 
 /**
@@ -169,7 +311,7 @@ const drawRealBIS916Hallmark = (ctx, centerX, centerY, scale = 1, style = "gold"
   
   if (hallmarkImg && hallmarkImg.complete && hallmarkImg.naturalWidth > 0 && hallmarkImg.isCorsClean !== false) {
     const aspect = hallmarkImg.naturalWidth / hallmarkImg.naturalHeight;
-    const drawW = 230 * scale;
+    const drawW = 210 * scale;
     const drawH = drawW / aspect;
     const drawX = centerX - drawW / 2;
     const drawY = centerY - drawH / 2;
@@ -182,13 +324,13 @@ const drawRealBIS916Hallmark = (ctx, centerX, centerY, scale = 1, style = "gold"
     const badgeH = drawH + padY * 2;
 
     ctx.save();
-    ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
     ctx.shadowBlur = 10 * scale;
 
     if (style === "emerald") {
       const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeW, badgeY + badgeH);
-      grad.addColorStop(0, "rgba(4, 47, 36, 0.98)");
-      grad.addColorStop(1, "rgba(2, 44, 34, 0.98)");
+      grad.addColorStop(0, "rgba(4, 38, 28, 0.98)");
+      grad.addColorStop(1, "rgba(2, 24, 18, 0.98)");
       ctx.fillStyle = grad;
       ctx.strokeStyle = "#D4AF37";
     } else if (style === "dark") {
@@ -201,7 +343,6 @@ const drawRealBIS916Hallmark = (ctx, centerX, centerY, scale = 1, style = "gold"
       ctx.fillStyle = "rgba(255, 255, 255, 0.96)";
       ctx.strokeStyle = "#D4AF37";
     } else {
-      // Luxury Gold Background for the Official 916 Hallmark Logo
       const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeW, badgeY + badgeH);
       grad.addColorStop(0, "rgba(255, 255, 255, 0.98)");
       grad.addColorStop(1, "rgba(254, 243, 199, 0.96)");
@@ -209,10 +350,10 @@ const drawRealBIS916Hallmark = (ctx, centerX, centerY, scale = 1, style = "gold"
       ctx.strokeStyle = "#D4AF37";
     }
 
-    ctx.lineWidth = 3 * scale;
+    ctx.lineWidth = 2.5 * scale;
     ctx.beginPath();
     if (ctx.roundRect) {
-      ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 16 * scale);
+      ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 14 * scale);
     } else {
       ctx.rect(badgeX, badgeY, badgeW, badgeH);
     }
@@ -225,25 +366,28 @@ const drawRealBIS916Hallmark = (ctx, centerX, centerY, scale = 1, style = "gold"
     return;
   }
 
-  // Vector Fallback if Image is loading
-  const w = 220 * scale;
-  const h = 72 * scale;
+  // Pure Vector Fallback if Image is loading
+  const w = 210 * scale;
+  const h = 68 * scale;
   const left = centerX - w / 2;
   const top = centerY - h / 2;
 
-  ctx.fillStyle = "rgba(26, 22, 16, 0.96)";
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = 10 * scale;
+  ctx.fillStyle = "rgba(24, 18, 10, 0.96)";
   ctx.strokeStyle = "#D4AF37";
-  ctx.lineWidth = 3 * scale;
+  ctx.lineWidth = 2.5 * scale;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(left, top, w, h, 16 * scale);
+  if (ctx.roundRect) ctx.roundRect(left, top, w, h, 14 * scale);
   else ctx.rect(left, top, w, h);
   ctx.fill();
   ctx.stroke();
+  ctx.shadowBlur = 0;
 
   // BIS Triangle mark
-  const triCenterX = left + 40 * scale;
-  const triCenterY = centerY - 2 * scale;
-  const triSize = 20 * scale;
+  const triCenterX = left + 36 * scale;
+  const triCenterY = centerY - 1 * scale;
+  const triSize = 18 * scale;
 
   ctx.fillStyle = "#D4AF37";
   ctx.beginPath();
@@ -253,17 +397,16 @@ const drawRealBIS916Hallmark = (ctx, centerX, centerY, scale = 1, style = "gold"
   ctx.closePath();
   ctx.fill();
 
-  ctx.fillStyle = "#FFFFFF";
-  ctx.font = `900 ${Math.round(30 * scale)}px Cinzel, serif`;
+  ctx.fillStyle = "#FFF6D4";
+  ctx.font = `bold ${Math.round(28 * scale)}px Georgia, serif`;
   ctx.textAlign = "left";
-  ctx.fillText("916", left + 72 * scale, centerY + 5 * scale);
+  ctx.fillText("916", left + 68 * scale, centerY + 6 * scale);
 
   ctx.restore();
 };
 
 // ==========================================
 // 4 DISTINCT ELEGANT FULL-CANVAS TEMPLATE RENDERERS
-// (Each template is fully self-contained, no background image needed)
 // ==========================================
 
 /**
@@ -312,8 +455,8 @@ const roundRect = (ctx, x, y, w, h, r) => {
 const drawOrnamentalRule = (ctx, x, y, w, color, scale) => {
   ctx.save();
   ctx.strokeStyle = color;
-  ctx.lineWidth = 1.5 * scale;
-  ctx.globalAlpha = 0.7;
+  ctx.lineWidth = 1.2 * scale;
+  ctx.globalAlpha = 0.65;
   ctx.beginPath();
   ctx.moveTo(x, y);
   ctx.lineTo(x + w * 0.44, y);
@@ -322,10 +465,11 @@ const drawOrnamentalRule = (ctx, x, y, w, color, scale) => {
   ctx.moveTo(x + w * 0.56, y);
   ctx.lineTo(x + w, y);
   ctx.stroke();
-  // Diamond
+
+  // Center Diamond Accents
   ctx.globalAlpha = 1;
   ctx.fillStyle = color;
-  const ds = 5 * scale;
+  const ds = 4 * scale;
   ctx.beginPath();
   ctx.moveTo(x + w / 2, y - ds);
   ctx.lineTo(x + w / 2 + ds, y);
@@ -337,7 +481,7 @@ const drawOrnamentalRule = (ctx, x, y, w, color, scale) => {
 };
 
 /**
- * Helper to wrap and draw physical showroom address text on canvas
+ * Helper to wrap and draw physical showroom address text on canvas (Clean, no emoji injection)
  */
 const drawShowroomAddress = (ctx, addressText, startX, startY, maxWidth, lineHeight, maxLines = 2) => {
   if (!addressText) return;
@@ -350,14 +494,12 @@ const drawShowroomAddress = (ctx, addressText, startX, startY, maxWidth, lineHei
   for (let i = 0; i < words.length; i++) {
     const word = words[i];
     const testLine = currentLine ? `${currentLine} ${word}` : word;
-    const prefix = (lines.length === 0 && !currentLine) ? "\uD83D\uDCCD " : "";
-    const testWidth = ctx.measureText(prefix + testLine).width;
+    const testWidth = ctx.measureText(testLine).width;
     
     if (testWidth > maxWidth && currentLine) {
       lines.push(currentLine);
       currentLine = word;
       if (lines.length === maxLines - 1) {
-        // Last allowed line: collect remaining words and truncate with ellipsis if needed
         const remainingWords = words.slice(i);
         let lastLine = "";
         for (const remWord of remainingWords) {
@@ -382,189 +524,157 @@ const drawShowroomAddress = (ctx, addressText, startX, startY, maxWidth, lineHei
   }
 
   lines.forEach((line, index) => {
-    const textToDraw = index === 0 ? `\uD83D\uDCCD ${line}` : `   ${line}`;
-    ctx.fillText(textToDraw, startX, startY + index * lineHeight);
+    ctx.fillText(line, startX, startY + index * lineHeight);
   });
-};
-
-/** Draw the 3-column rate table */
-const drawRatePanel = (ctx, x, y, w, h, rates, bgColor1, bgColor2, borderColor, labelColor, valueColor, dividerColor, scale) => {
-  ctx.save();
-  const bg = ctx.createLinearGradient(x, y, x, y + h);
-  bg.addColorStop(0, bgColor1);
-  bg.addColorStop(1, bgColor2);
-  ctx.shadowColor = "rgba(0,0,0,0.5)";
-  ctx.shadowBlur = 16 * scale;
-  ctx.fillStyle = bg;
-  ctx.beginPath();
-  roundRect(ctx, x, y, w, h, 18 * scale);
-  ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.strokeStyle = borderColor;
-  ctx.lineWidth = 2.5 * scale;
-  ctx.beginPath();
-  roundRect(ctx, x, y, w, h, 18 * scale);
-  ctx.stroke();
-
-  const col = w / 3;
-  ctx.strokeStyle = dividerColor;
-  ctx.lineWidth = 1.5 * scale;
-  ctx.globalAlpha = 0.4;
-  ctx.setLineDash([5 * scale, 5 * scale]);
-  for (let i = 1; i <= 2; i++) {
-    ctx.beginPath();
-    ctx.moveTo(x + col * i, y + 18 * scale);
-    ctx.lineTo(x + col * i, y + h - 18 * scale);
-    ctx.stroke();
-  }
-  ctx.setLineDash([]);
-  ctx.globalAlpha = 1;
-
-  const cols = [
-    { cx: x + col * 0.5, label: "1GM  22K", value: rates.gold1gStr },
-    { cx: x + col * 1.5, label: "8GM  22K", value: rates.gold8gStr },
-    { cx: x + col * 2.5, label: "1GM SILVER", value: rates.silver1gStr },
-  ];
-
-  cols.forEach(({ cx, label, value }) => {
-    ctx.textAlign = "center";
-    ctx.fillStyle = labelColor;
-    ctx.font = `bold ${Math.round(17 * scale)}px Arial, sans-serif`;
-    ctx.fillText(label, cx, y + h * 0.28);
-    ctx.fillStyle = valueColor;
-    ctx.font = `bold ${Math.round(40 * scale)}px Georgia, serif`;
-    ctx.fillText(value, cx, y + h * 0.78);
-  });
-
-  ctx.restore();
 };
 
 // ==============================
-// TEMPLATE 1: Royal Maroon & Gold
+// TEMPLATE 1: Royal Heritage (Maroon & Gold)
 // ==============================
 const drawTemplate1_RoyalHeritage = (ctx, W, H, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null) => {
   ctx.save();
   const sx = W / 1080, sy = H / 1920, sc = Math.min(sx, sy);
   const cx = W / 2;
   const now = new Date();
-  const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase();
+  const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
   const rates = getFormattedRates(livePrices);
   const phone = shopInfo?.phonePrimary || shopInfo?.phone || "+91 99520 54493";
   const address = shopInfo?.address || shopInfo?.city || "Tuticorin";
 
-  // TRANSLUCENT OVERLAY (allows background image/video to be sharp & clear)
-  ctx.fillStyle = "rgba(10, 0, 4, 0.20)";
+  // Light base overlay allowing product image to shine through
+  ctx.fillStyle = "rgba(12, 2, 6, 0.18)";
   ctx.fillRect(0, 0, W, H);
 
-  // Top header dark scrim gradient
-  const topScrim = ctx.createLinearGradient(0, 0, 0, 410 * sy);
-  topScrim.addColorStop(0, "rgba(25, 2, 8, 0.95)");
-  topScrim.addColorStop(0.75, "rgba(25, 2, 8, 0.75)");
-  topScrim.addColorStop(1, "rgba(10, 0, 4, 0)");
+  // TOP HEADER: Soft Glassmorphic Gradient Scrim
+  const topScrim = ctx.createLinearGradient(0, 0, 0, 240 * sy);
+  topScrim.addColorStop(0, "rgba(22, 4, 10, 0.96)");
+  topScrim.addColorStop(0.7, "rgba(22, 4, 10, 0.82)");
+  topScrim.addColorStop(1, "rgba(12, 2, 6, 0)");
   ctx.fillStyle = topScrim;
-  ctx.fillRect(0, 0, W, 410 * sy);
+  ctx.fillRect(0, 0, W, 240 * sy);
 
-  // Top gold line
+  // Top Edge Gold Bar
   const goldGrad = ctx.createLinearGradient(0, 0, W, 0);
   goldGrad.addColorStop(0, "rgba(212,175,55,0.2)"); goldGrad.addColorStop(0.5, "#D4AF37"); goldGrad.addColorStop(1, "rgba(212,175,55,0.2)");
-  ctx.fillStyle = goldGrad; ctx.fillRect(0, 0, W, 7 * sy);
+  ctx.fillStyle = goldGrad; ctx.fillRect(0, 0, W, 6 * sy);
 
-  // Header content
-  drawOrnamentalRule(ctx, 55 * sx, 42 * sy, W - 110 * sx, "#D4AF37", sc);
-  drawShopLogoBadge(ctx, cx, 125 * sy, 65 * sc, shopLogoImg, shopName, sc);
+  // --- HEADER: TOP-LEFT LOGO MEDALLION, SHOP NAME, TOP-RIGHT DATE ---
+  const logoRadius = 48 * sc;
+  const logoCenterX = 55 * sx + logoRadius; // ~ 103 * sx
+  const logoCenterY = 40 * sy + logoRadius; // ~ 88 * sy
+  drawShopLogoBadge(ctx, logoCenterX, logoCenterY, logoRadius, shopLogoImg, shopName, sc);
 
-  ctx.shadowColor = "rgba(212,175,55,0.6)"; ctx.shadowBlur = 18 * sc;
-  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(62 * sc)}px Georgia, serif`;
-  ctx.textAlign = "center"; ctx.fillText(shopName, cx, 255 * sy); ctx.shadowBlur = 0;
+  const textStartX = logoCenterX + logoRadius + 20 * sx;
+  ctx.save();
+  ctx.textAlign = "left";
+  ctx.shadowColor = "rgba(212,175,55,0.6)"; ctx.shadowBlur = 14 * sc;
+  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(44 * sc)}px Georgia, serif`;
+  ctx.fillText(shopName, textStartX, logoCenterY - 4 * sy); ctx.shadowBlur = 0;
 
-  ctx.fillStyle = "#D4AF37"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
-  ctx.fillText("JEWELLERS & DIAMONDS", cx, 292 * sy);
+  ctx.fillStyle = "#D4AF37"; ctx.font = `bold ${Math.round(16 * sc)}px Arial, sans-serif`;
+  ctx.fillText("SOLITAIRE & FINE JEWELLERY", textStartX, logoCenterY + 28 * sy);
+  ctx.restore();
 
-  drawOrnamentalRule(ctx, 55 * sx, 315 * sy, W - 110 * sx, "#D4AF37", sc);
+  // Top Right Date
+  ctx.save();
+  ctx.textAlign = "right";
+  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 8 * sc;
+  ctx.fillStyle = "#FDE68A"; ctx.font = `bold ${Math.round(24 * sc)}px Georgia, serif`;
+  ctx.fillText(dateStr, W - 50 * sx, logoCenterY + 4 * sy);
+  ctx.restore();
 
-  // BIGGER DATE (No emoji)
-  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(34 * sc)}px Georgia, serif`;
-  ctx.textAlign = "center"; ctx.fillText(dateStr, cx, 360 * sy);
+  drawOrnamentalRule(ctx, 40 * sx, 195 * sy, W - 80 * sx, "#D4AF37", sc);
 
-  drawOrnamentalRule(ctx, 70 * sx, 395 * sy, W - 140 * sx, "#D4AF37", sc);
-
-  // === SIDE-BY-SIDE CARDS: GOLD (LEFT) & SILVER (RIGHT) AT BOTTOM (Y = 1240px) ===
-  const cardY = 1240 * sy, cardH = 270 * sy, cardW = 480 * sx;
+  // === SIDE-BY-SIDE RATE CARDS (GOLD LEFT & SILVER RIGHT) AT Y = 1240px ===
+  const cardY = 1240 * sy, cardH = 260 * sy, cardW = 480 * sx;
   const leftX = 40 * sx, leftCx = leftX + cardW / 2;
   const rightX = 560 * sx, rightCx = rightX + cardW / 2;
 
-  // LEFT CARD: GOLD 22K (1g only)
+  // LEFT CARD: GOLD 22K (1g)
   ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 16 * sc;
+  ctx.shadowColor = "rgba(0,0,0,0.65)"; ctx.shadowBlur = 18 * sc;
   const gPanel = ctx.createLinearGradient(leftX, cardY, leftX, cardY + cardH);
-  gPanel.addColorStop(0, "rgba(70,15,8,0.92)"); gPanel.addColorStop(1, "rgba(35,4,4,0.95)");
+  gPanel.addColorStop(0, "rgba(45, 10, 8, 0.94)"); gPanel.addColorStop(1, "rgba(20, 4, 4, 0.96)");
   ctx.fillStyle = gPanel; ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.fill();
-  ctx.shadowBlur = 0; ctx.strokeStyle = "#D4AF37"; ctx.lineWidth = 2 * sc;
+  ctx.shadowBlur = 0; ctx.strokeStyle = "#D4AF37"; ctx.lineWidth = 2.2 * sc;
   ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
   ctx.restore();
 
-  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
-  ctx.textAlign = "center"; ctx.fillText("TODAY'S 22K GOLD RATE", leftCx, cardY + 42 * sy);
-  ctx.fillStyle = "#D4AF37"; ctx.font = `bold ${Math.round(15 * sc)}px Arial, sans-serif`;
-  ctx.fillText("PER 1 GRAM", leftCx, cardY + 70 * sy);
+  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(19 * sc)}px Arial, sans-serif`;
+  ctx.textAlign = "center"; ctx.fillText("TODAY'S 22K GOLD RATE", leftCx, cardY + 40 * sy);
+  ctx.fillStyle = "#D4AF37"; ctx.font = `bold ${Math.round(14 * sc)}px Arial, sans-serif`;
+  ctx.fillText("PER 1 GRAM", leftCx, cardY + 66 * sy);
 
-  drawOrnamentalRule(ctx, leftX + 40 * sx, cardY + 95 * sy, cardW - 80 * sx, "rgba(212,175,55,0.5)", sc);
+  drawOrnamentalRule(ctx, leftX + 40 * sx, cardY + 90 * sy, cardW - 80 * sx, "rgba(212,175,55,0.45)", sc);
 
-  ctx.shadowColor = "rgba(212,175,55,0.9)"; ctx.shadowBlur = 24 * sc;
-  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(72 * sc)}px Georgia, serif`;
-  ctx.fillText(rates.gold1gStr, leftCx, cardY + 195 * sy); ctx.shadowBlur = 0;
+  ctx.shadowColor = "rgba(212,175,55,0.7)"; ctx.shadowBlur = 18 * sc;
+  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(64 * sc)}px Georgia, serif`;
+  ctx.fillText(rates.gold1gStr, leftCx, cardY + 186 * sy); ctx.shadowBlur = 0;
 
-  // RIGHT CARD: SILVER 999 (1g only)
+  // RIGHT CARD: SILVER 999 (1g)
   ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 16 * sc;
+  ctx.shadowColor = "rgba(0,0,0,0.65)"; ctx.shadowBlur = 18 * sc;
   const sPanel = ctx.createLinearGradient(rightX, cardY, rightX, cardY + cardH);
-  sPanel.addColorStop(0, "rgba(25,30,40,0.92)"); sPanel.addColorStop(1, "rgba(12,15,22,0.95)");
+  sPanel.addColorStop(0, "rgba(20, 24, 34, 0.94)"); sPanel.addColorStop(1, "rgba(10, 12, 18, 0.96)");
   ctx.fillStyle = sPanel; ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.fill();
-  ctx.shadowBlur = 0; ctx.strokeStyle = "#CBD5E1"; ctx.lineWidth = 2 * sc;
+  ctx.shadowBlur = 0; ctx.strokeStyle = "#CBD5E1"; ctx.lineWidth = 2.2 * sc;
   ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
   ctx.restore();
 
-  ctx.fillStyle = "#CBD5E1"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
-  ctx.textAlign = "center"; ctx.fillText("TODAY'S 999 FINE SILVER", rightCx, cardY + 42 * sy);
-  ctx.fillStyle = "#94A3B8"; ctx.font = `bold ${Math.round(15 * sc)}px Arial, sans-serif`;
-  ctx.fillText("PER 1 GRAM", rightCx, cardY + 70 * sy);
+  ctx.fillStyle = "#CBD5E1"; ctx.font = `bold ${Math.round(19 * sc)}px Arial, sans-serif`;
+  ctx.textAlign = "center"; ctx.fillText("TODAY'S 999 FINE SILVER", rightCx, cardY + 40 * sy);
+  ctx.fillStyle = "#94A3B8"; ctx.font = `bold ${Math.round(14 * sc)}px Arial, sans-serif`;
+  ctx.fillText("PER 1 GRAM", rightCx, cardY + 66 * sy);
 
-  drawOrnamentalRule(ctx, rightX + 40 * sx, cardY + 95 * sy, cardW - 80 * sx, "rgba(203,213,225,0.5)", sc);
+  drawOrnamentalRule(ctx, rightX + 40 * sx, cardY + 90 * sy, cardW - 80 * sx, "rgba(203,213,225,0.45)", sc);
 
-  ctx.shadowColor = "rgba(226,232,240,0.85)"; ctx.shadowBlur = 24 * sc;
-  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(72 * sc)}px Georgia, serif`;
-  ctx.fillText(rates.silver1gStr, rightCx, cardY + 195 * sy); ctx.shadowBlur = 0;
+  ctx.shadowColor = "rgba(226,232,240,0.7)"; ctx.shadowBlur = 18 * sc;
+  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(64 * sc)}px Georgia, serif`;
+  ctx.fillText(rates.silver1gStr, rightCx, cardY + 186 * sy); ctx.shadowBlur = 0;
 
-  // === FOOTER (1600px to H) ===
-  const fY = 1600 * sy;
-  drawOrnamentalRule(ctx, 60 * sx, fY, W - 120 * sx, "#D4AF37", sc);
+  // === FOOTER: SEAMLESS VIGNETTE SCRIM, ENLARGED HIGH-CONTRAST PHONE & ADDRESS ===
+  const fY = 1530 * sy;
+  const fGrad = ctx.createLinearGradient(0, fY, 0, H);
+  fGrad.addColorStop(0, "rgba(12, 2, 6, 0)");
+  fGrad.addColorStop(0.2, "rgba(20, 4, 8, 0.88)");
+  fGrad.addColorStop(1, "rgba(10, 1, 3, 0.98)");
+  ctx.fillStyle = fGrad; ctx.fillRect(0, fY, W, H - fY);
 
-  const fGrad = ctx.createLinearGradient(0, fY + 10 * sy, 0, H);
-  fGrad.addColorStop(0, "rgba(0,0,0,0)"); fGrad.addColorStop(0.2, "rgba(45,5,5,0.95)"); fGrad.addColorStop(1, "rgba(12,1,1,0.99)");
-  ctx.fillStyle = fGrad; ctx.fillRect(0, fY + 10 * sy, W, H - (fY + 10 * sy));
+  drawOrnamentalRule(ctx, 40 * sx, fY + 30 * sy, W - 80 * sx, "#D4AF37", sc);
 
-  // LEFT BOTTOM: Phone & Showroom Address
-  const phoneX = 60 * sx;
+  // Phone Vector Icon Badge & Text
+  const iconR = 20 * sc;
+  const phoneX = 60 * sx + iconR;
+  const phoneY = fY + 85 * sy;
+  drawVectorIconBadge(ctx, phoneX, phoneY, iconR, "phone", sc, "#FFE566");
+
+  ctx.save();
   ctx.textAlign = "left";
-  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(25 * sc)}px Arial, sans-serif`;
-  ctx.fillText("\uD83D\uDCDE " + phone, phoneX, fY + 100 * sy);
-  ctx.fillStyle = "#E2C97E"; ctx.font = `${Math.round(20 * sc)}px Arial, sans-serif`;
-  drawShowroomAddress(ctx, address, phoneX, fY + 142 * sy, W - 430 * sx, 28 * sy, 2);
+  ctx.shadowColor = "rgba(255, 229, 102, 0.7)"; ctx.shadowBlur = 14 * sc;
+  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(36 * sc)}px Arial, sans-serif`;
+  ctx.fillText(phone, phoneX + iconR + 16 * sx, phoneY + 12 * sy);
+  ctx.restore();
 
-  // RIGHT BOTTOM: BIS 916 Hallmark Emblem
-  if (hallmarkImg && hallmarkImg.complete && hallmarkImg.naturalWidth > 0) {
-    drawRealBIS916Hallmark(ctx, W - 160 * sx, fY + 132 * sy, sc * 0.78, "gold", hallmarkImg);
-  } else {
-    ctx.fillStyle = "#D4AF37"; ctx.font = `bold ${Math.round(18 * sc)}px Arial, sans-serif`;
-    ctx.textAlign = "right"; ctx.fillText("BIS 916 HALLMARKED", W - 40 * sx, fY + 132 * sy);
-  }
+  // Showroom Address Vector Icon Badge & Text
+  const pinX = 60 * sx + iconR;
+  const pinY = phoneY + 56 * sy;
+  drawVectorIconBadge(ctx, pinX, pinY, iconR, "pin", sc, "#D4AF37");
 
-  // BOTTOM CENTER: Tagline
+  ctx.save();
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(24 * sc)}px Arial, sans-serif`;
+  drawShowroomAddress(ctx, address, pinX + iconR + 16 * sx, pinY + 8 * sy, W - 440 * sx, 32 * sy, 2);
+  ctx.restore();
+
+  // Right Bottom: BIS 916 Hallmark Badge
+  drawRealBIS916Hallmark(ctx, W - 150 * sx, fY + 115 * sy, sc * 0.82, "gold", hallmarkImg);
+
+  // Bottom Center: Tagline
   ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(255,229,128,0.75)"; ctx.font = `italic ${Math.round(23 * sc)}px Georgia, serif`;
-  ctx.fillText('"Where Luxury Meets Tradition"', cx, fY + 250 * sy);
+  ctx.fillStyle = "rgba(255,229,128,0.9)"; ctx.font = `italic ${Math.round(22 * sc)}px Georgia, serif`;
+  ctx.fillText('"Where Luxury Meets Tradition"', cx, H - 30 * sy);
 
-  ctx.fillStyle = goldGrad; ctx.fillRect(0, H - 7 * sy, W, 7 * sy);
+  ctx.fillStyle = goldGrad; ctx.fillRect(0, H - 6 * sy, W, 6 * sy);
   ctx.restore();
 };
 
@@ -576,131 +686,148 @@ const drawTemplate2_ModernMinimalist = (ctx, W, H, shopName, shopLogoImg, livePr
   const sx = W / 1080, sy = H / 1920, sc = Math.min(sx, sy);
   const cx = W / 2;
   const now = new Date();
-  const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase();
+  const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
   const rates = getFormattedRates(livePrices);
   const phone = shopInfo?.phonePrimary || shopInfo?.phone || "+91 99520 54493";
   const address = shopInfo?.address || shopInfo?.city || "Tuticorin";
 
-  // TRANSLUCENT OVERLAY
-  ctx.fillStyle = "rgba(2, 6, 20, 0.20)";
+  ctx.fillStyle = "rgba(2, 6, 20, 0.18)";
   ctx.fillRect(0, 0, W, H);
 
-  // Top header dark scrim gradient
-  const topScrim2 = ctx.createLinearGradient(0, 0, 0, 410 * sy);
-  topScrim2.addColorStop(0, "rgba(4, 18, 72, 0.95)");
-  topScrim2.addColorStop(0.75, "rgba(4, 18, 72, 0.75)");
+  // TOP HEADER: Soft Scrim Gradient
+  const topScrim2 = ctx.createLinearGradient(0, 0, 0, 240 * sy);
+  topScrim2.addColorStop(0, "rgba(4, 18, 64, 0.96)");
+  topScrim2.addColorStop(0.7, "rgba(4, 18, 64, 0.82)");
   topScrim2.addColorStop(1, "rgba(2, 6, 20, 0)");
   ctx.fillStyle = topScrim2;
-  ctx.fillRect(0, 0, W, 410 * sy);
+  ctx.fillRect(0, 0, W, 240 * sy);
 
   // Silver top line
   const slvGrad = ctx.createLinearGradient(0, 0, W, 0);
   slvGrad.addColorStop(0, "rgba(180,200,255,0)"); slvGrad.addColorStop(0.5, "rgba(220,235,255,0.9)"); slvGrad.addColorStop(1, "rgba(180,200,255,0)");
   ctx.fillStyle = slvGrad; ctx.fillRect(0, 0, W, 6 * sy);
 
-  // Header content
-  drawShopLogoBadge(ctx, cx, 125 * sy, 65 * sc, shopLogoImg, shopName, sc);
+  // --- HEADER: TOP-LEFT LOGO MEDALLION, SHOP NAME, TOP-RIGHT DATE ---
+  const logoRadius = 48 * sc;
+  const logoCenterX = 55 * sx + logoRadius;
+  const logoCenterY = 40 * sy + logoRadius;
+  drawShopLogoBadge(ctx, logoCenterX, logoCenterY, logoRadius, shopLogoImg, shopName, sc);
 
-  ctx.shadowColor = "rgba(100,180,255,0.5)"; ctx.shadowBlur = 22 * sc;
-  ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(62 * sc)}px Georgia, serif`;
-  ctx.textAlign = "center"; ctx.fillText(shopName, cx, 255 * sy); ctx.shadowBlur = 0;
+  const textStartX = logoCenterX + logoRadius + 20 * sx;
+  ctx.save();
+  ctx.textAlign = "left";
+  ctx.shadowColor = "rgba(126,184,255,0.6)"; ctx.shadowBlur = 14 * sc;
+  ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(44 * sc)}px Georgia, serif`;
+  ctx.fillText(shopName, textStartX, logoCenterY - 4 * sy); ctx.shadowBlur = 0;
 
-  ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
-  ctx.fillText("BOUTIQUE FINE JEWELLERY", cx, 292 * sy);
+  ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(16 * sc)}px Arial, sans-serif`;
+  ctx.fillText("BOUTIQUE FINE JEWELLERY", textStartX, logoCenterY + 28 * sy);
+  ctx.restore();
 
-  const acLine = ctx.createLinearGradient(100 * sx, 0, W - 100 * sx, 0);
+  // Top Right Date
+  ctx.save();
+  ctx.textAlign = "right";
+  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 8 * sc;
+  ctx.fillStyle = "#A5CFFF"; ctx.font = `bold ${Math.round(24 * sc)}px Georgia, serif`;
+  ctx.fillText(dateStr, W - 50 * sx, logoCenterY + 4 * sy);
+  ctx.restore();
+
+  const acLine = ctx.createLinearGradient(40 * sx, 0, W - 40 * sx, 0);
   acLine.addColorStop(0, "rgba(126,184,255,0)"); acLine.addColorStop(0.5, "rgba(200,225,255,0.85)"); acLine.addColorStop(1, "rgba(126,184,255,0)");
-  ctx.strokeStyle = acLine; ctx.lineWidth = 1.5 * sc;
-  ctx.beginPath(); ctx.moveTo(100 * sx, 315 * sy); ctx.lineTo(W - 100 * sx, 315 * sy); ctx.stroke();
+  ctx.strokeStyle = acLine; ctx.lineWidth = 1.2 * sc;
+  ctx.beginPath(); ctx.moveTo(40 * sx, 195 * sy); ctx.lineTo(W - 40 * sx, 195 * sy); ctx.stroke();
 
-  // BIGGER DATE (No emoji)
-  ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(34 * sc)}px Georgia, serif`;
-  ctx.textAlign = "center"; ctx.fillText(dateStr, cx, 360 * sy);
-
-  ctx.beginPath(); ctx.moveTo(100 * sx, 395 * sy); ctx.lineTo(W - 100 * sx, 395 * sy); ctx.stroke();
-
-  // === SIDE-BY-SIDE CARDS (PLACED BELOW, AT Y = 1240px) ===
-  const cardY = 1240 * sy, cardH = 270 * sy, cardW = 480 * sx;
+  // === SIDE-BY-SIDE RATE CARDS AT Y = 1240px ===
+  const cardY = 1240 * sy, cardH = 260 * sy, cardW = 480 * sx;
   const leftX = 40 * sx, leftCx = leftX + cardW / 2;
   const rightX = 560 * sx, rightCx = rightX + cardW / 2;
 
-  // LEFT CARD: GOLD 22K (1g only)
+  // LEFT CARD: GOLD 22K
   ctx.save();
-  ctx.shadowColor = "rgba(0,100,255,0.3)"; ctx.shadowBlur = 16 * sc;
+  ctx.shadowColor = "rgba(0,100,255,0.3)"; ctx.shadowBlur = 18 * sc;
   const gPanel2 = ctx.createLinearGradient(leftX, cardY, leftX, cardY + cardH);
-  gPanel2.addColorStop(0, "rgba(6,25,90,0.92)"); gPanel2.addColorStop(1, "rgba(3,14,55,0.95)");
+  gPanel2.addColorStop(0, "rgba(6, 25, 80, 0.94)"); gPanel2.addColorStop(1, "rgba(3, 12, 45, 0.96)");
   ctx.fillStyle = gPanel2; ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.fill();
-  ctx.shadowBlur = 0; ctx.strokeStyle = "#7EB8FF"; ctx.lineWidth = 2 * sc;
+  ctx.shadowBlur = 0; ctx.strokeStyle = "#7EB8FF"; ctx.lineWidth = 2.2 * sc;
   ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
   ctx.restore();
 
-  ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
-  ctx.textAlign = "center"; ctx.fillText("TODAY'S 22K GOLD RATE", leftCx, cardY + 42 * sy);
-  ctx.fillStyle = "#A5CFFF"; ctx.font = `bold ${Math.round(15 * sc)}px Arial, sans-serif`;
-  ctx.fillText("PER 1 GRAM", leftCx, cardY + 70 * sy);
+  ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(19 * sc)}px Arial, sans-serif`;
+  ctx.textAlign = "center"; ctx.fillText("TODAY'S 22K GOLD RATE", leftCx, cardY + 40 * sy);
+  ctx.fillStyle = "#A5CFFF"; ctx.font = `bold ${Math.round(14 * sc)}px Arial, sans-serif`;
+  ctx.fillText("PER 1 GRAM", leftCx, cardY + 66 * sy);
 
-  const divLine = ctx.createLinearGradient(leftX + 40 * sx, 0, leftX + cardW - 40 * sx, 0);
-  divLine.addColorStop(0, "rgba(126,184,255,0)"); divLine.addColorStop(0.5, "rgba(126,184,255,0.5)"); divLine.addColorStop(1, "rgba(126,184,255,0)");
-  ctx.strokeStyle = divLine; ctx.lineWidth = 1.5 * sc;
-  ctx.beginPath(); ctx.moveTo(leftX + 40 * sx, cardY + 95 * sy); ctx.lineTo(leftX + cardW - 40 * sx, cardY + 95 * sy); ctx.stroke();
+  ctx.strokeStyle = acLine; ctx.lineWidth = 1.2 * sc;
+  ctx.beginPath(); ctx.moveTo(leftX + 40 * sx, cardY + 90 * sy); ctx.lineTo(leftX + cardW - 40 * sx, cardY + 90 * sy); ctx.stroke();
 
-  ctx.shadowColor = "rgba(126,184,255,0.9)"; ctx.shadowBlur = 24 * sc;
-  ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(72 * sc)}px Georgia, serif`;
-  ctx.fillText(rates.gold1gStr, leftCx, cardY + 195 * sy); ctx.shadowBlur = 0;
+  ctx.shadowColor = "rgba(126,184,255,0.8)"; ctx.shadowBlur = 18 * sc;
+  ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(64 * sc)}px Georgia, serif`;
+  ctx.fillText(rates.gold1gStr, leftCx, cardY + 186 * sy); ctx.shadowBlur = 0;
 
-  // RIGHT CARD: SILVER 999 (1g only)
+  // RIGHT CARD: SILVER 999
   ctx.save();
-  ctx.shadowColor = "rgba(0,100,255,0.3)"; ctx.shadowBlur = 16 * sc;
+  ctx.shadowColor = "rgba(0,100,255,0.3)"; ctx.shadowBlur = 18 * sc;
   const sPanel2 = ctx.createLinearGradient(rightX, cardY, rightX, cardY + cardH);
-  sPanel2.addColorStop(0, "rgba(10,35,80,0.92)"); sPanel2.addColorStop(1, "rgba(5,18,50,0.95)");
+  sPanel2.addColorStop(0, "rgba(10, 30, 70, 0.94)"); sPanel2.addColorStop(1, "rgba(5, 15, 40, 0.96)");
   ctx.fillStyle = sPanel2; ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.fill();
-  ctx.shadowBlur = 0; ctx.strokeStyle = "#CBD5E1"; ctx.lineWidth = 2 * sc;
+  ctx.shadowBlur = 0; ctx.strokeStyle = "#CBD5E1"; ctx.lineWidth = 2.2 * sc;
   ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
   ctx.restore();
 
-  ctx.fillStyle = "#CBD5E1"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
-  ctx.textAlign = "center"; ctx.fillText("TODAY'S 999 FINE SILVER", rightCx, cardY + 42 * sy);
-  ctx.fillStyle = "#94A3B8"; ctx.font = `bold ${Math.round(15 * sc)}px Arial, sans-serif`;
-  ctx.fillText("PER 1 GRAM", rightCx, cardY + 70 * sy);
+  ctx.fillStyle = "#CBD5E1"; ctx.font = `bold ${Math.round(19 * sc)}px Arial, sans-serif`;
+  ctx.textAlign = "center"; ctx.fillText("TODAY'S 999 FINE SILVER", rightCx, cardY + 40 * sy);
+  ctx.fillStyle = "#94A3B8"; ctx.font = `bold ${Math.round(14 * sc)}px Arial, sans-serif`;
+  ctx.fillText("PER 1 GRAM", rightCx, cardY + 66 * sy);
 
-  const divLineR = ctx.createLinearGradient(rightX + 40 * sx, 0, rightX + cardW - 40 * sx, 0);
-  divLineR.addColorStop(0, "rgba(203,213,225,0)"); divLineR.addColorStop(0.5, "rgba(203,213,225,0.5)"); divLineR.addColorStop(1, "rgba(203,213,225,0)");
-  ctx.strokeStyle = divLineR; ctx.lineWidth = 1.5 * sc;
-  ctx.beginPath(); ctx.moveTo(rightX + 40 * sx, cardY + 95 * sy); ctx.lineTo(rightX + cardW - 40 * sx, cardY + 95 * sy); ctx.stroke();
+  ctx.strokeStyle = acLine; ctx.lineWidth = 1.2 * sc;
+  ctx.beginPath(); ctx.moveTo(rightX + 40 * sx, cardY + 90 * sy); ctx.lineTo(rightX + cardW - 40 * sx, cardY + 90 * sy); ctx.stroke();
 
-  ctx.shadowColor = "rgba(226,232,240,0.85)"; ctx.shadowBlur = 24 * sc;
-  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(72 * sc)}px Georgia, serif`;
-  ctx.fillText(rates.silver1gStr, rightCx, cardY + 195 * sy); ctx.shadowBlur = 0;
+  ctx.shadowColor = "rgba(226,232,240,0.7)"; ctx.shadowBlur = 18 * sc;
+  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(64 * sc)}px Georgia, serif`;
+  ctx.fillText(rates.silver1gStr, rightCx, cardY + 186 * sy); ctx.shadowBlur = 0;
 
-  // === FOOTER (1600px to H) ===
-  const fY = 1600 * sy;
-  ctx.strokeStyle = acLine; ctx.lineWidth = 1.5 * sc;
-  ctx.beginPath(); ctx.moveTo(60 * sx, fY); ctx.lineTo(W - 60 * sx, fY); ctx.stroke();
+  // === FOOTER: SEAMLESS VIGNETTE SCRIM, ENLARGED HIGH-CONTRAST PHONE & ADDRESS ===
+  const fY = 1530 * sy;
+  const fGrad2 = ctx.createLinearGradient(0, fY, 0, H);
+  fGrad2.addColorStop(0, "rgba(2, 6, 20, 0)");
+  fGrad2.addColorStop(0.2, "rgba(4, 16, 50, 0.88)");
+  fGrad2.addColorStop(1, "rgba(2, 8, 30, 0.98)");
+  ctx.fillStyle = fGrad2; ctx.fillRect(0, fY, W, H - fY);
 
-  const fGrad2 = ctx.createLinearGradient(0, fY + 10 * sy, 0, H);
-  fGrad2.addColorStop(0, "rgba(0,0,0,0)"); fGrad2.addColorStop(0.2, "rgba(4,16,60,0.96)"); fGrad2.addColorStop(1, "rgba(2,8,30,0.99)");
-  ctx.fillStyle = fGrad2; ctx.fillRect(0, fY + 10 * sy, W, H - (fY + 10 * sy));
+  ctx.strokeStyle = acLine; ctx.lineWidth = 1.2 * sc;
+  ctx.beginPath(); ctx.moveTo(40 * sx, fY + 30 * sy); ctx.lineTo(W - 40 * sx, fY + 30 * sy); ctx.stroke();
 
-  // LEFT BOTTOM: Phone & Showroom Address
-  const phoneX2 = 60 * sx;
+  // Phone Vector Icon Badge & Text
+  const iconR = 20 * sc;
+  const phoneX2 = 60 * sx + iconR;
+  const phoneY2 = fY + 85 * sy;
+  drawVectorIconBadge(ctx, phoneX2, phoneY2, iconR, "phone", sc, "#7EB8FF");
+
+  ctx.save();
   ctx.textAlign = "left";
-  ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(25 * sc)}px Arial, sans-serif`;
-  ctx.fillText("\uD83D\uDCDE " + phone, phoneX2, fY + 100 * sy);
-  ctx.fillStyle = "#B0D0F0"; ctx.font = `${Math.round(20 * sc)}px Arial, sans-serif`;
-  drawShowroomAddress(ctx, address, phoneX2, fY + 142 * sy, W - 430 * sx, 28 * sy, 2);
+  ctx.shadowColor = "rgba(126, 184, 255, 0.75)"; ctx.shadowBlur = 14 * sc;
+  ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(36 * sc)}px Arial, sans-serif`;
+  ctx.fillText(phone, phoneX2 + iconR + 16 * sx, phoneY2 + 12 * sy);
+  ctx.restore();
 
-  // RIGHT BOTTOM: BIS 916 Hallmark Emblem
-  if (hallmarkImg && hallmarkImg.complete && hallmarkImg.naturalWidth > 0) {
-    drawRealBIS916Hallmark(ctx, W - 160 * sx, fY + 132 * sy, sc * 0.78, "glass", hallmarkImg);
-  } else {
-    ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(18 * sc)}px Arial, sans-serif`;
-    ctx.textAlign = "right"; ctx.fillText("BIS 916 HALLMARKED", W - 40 * sx, fY + 132 * sy);
-  }
+  // Showroom Address Vector Icon Badge & Text
+  const pinX2 = 60 * sx + iconR;
+  const pinY2 = phoneY2 + 56 * sy;
+  drawVectorIconBadge(ctx, pinX2, pinY2, iconR, "pin", sc, "#7EB8FF");
 
-  // BOTTOM CENTER: Tagline
+  ctx.save();
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(24 * sc)}px Arial, sans-serif`;
+  drawShowroomAddress(ctx, address, pinX2 + iconR + 16 * sx, pinY2 + 8 * sy, W - 440 * sx, 32 * sy, 2);
+  ctx.restore();
+
+  // Right Bottom: BIS 916 Hallmark Badge
+  drawRealBIS916Hallmark(ctx, W - 150 * sx, fY + 115 * sy, sc * 0.82, "glass", hallmarkImg);
+
+  // Bottom Center: Tagline
   ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(165,207,255,0.75)"; ctx.font = `italic ${Math.round(23 * sc)}px Georgia, serif`;
-  ctx.fillText('"Excellence in Every Carat"', cx, fY + 250 * sy);
+  ctx.fillStyle = "rgba(165,207,255,0.85)"; ctx.font = `italic ${Math.round(22 * sc)}px Georgia, serif`;
+  ctx.fillText('"Excellence in Every Carat"', cx, H - 30 * sy);
 
   ctx.fillStyle = slvGrad; ctx.fillRect(0, H - 6 * sy, W, 6 * sy);
   ctx.restore();
@@ -714,123 +841,144 @@ const drawTemplate3_BridalEmerald = (ctx, W, H, shopName, shopLogoImg, livePrice
   const sx = W / 1080, sy = H / 1920, sc = Math.min(sx, sy);
   const cx = W / 2;
   const now = new Date();
-  const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase();
+  const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
   const rates = getFormattedRates(livePrices);
   const phone = shopInfo?.phonePrimary || shopInfo?.phone || "+91 99520 54493";
   const address = shopInfo?.address || shopInfo?.city || "Tuticorin";
 
-  // TRANSLUCENT OVERLAY
-  ctx.fillStyle = "rgba(0, 10, 5, 0.20)";
+  ctx.fillStyle = "rgba(0, 10, 5, 0.18)";
   ctx.fillRect(0, 0, W, H);
 
-  // Top header dark scrim gradient
-  const topScrim3 = ctx.createLinearGradient(0, 0, 0, 410 * sy);
-  topScrim3.addColorStop(0, "rgba(1, 35, 15, 0.95)");
-  topScrim3.addColorStop(0.75, "rgba(1, 35, 15, 0.75)");
+  // TOP HEADER: Soft Emerald Scrim
+  const topScrim3 = ctx.createLinearGradient(0, 0, 0, 240 * sy);
+  topScrim3.addColorStop(0, "rgba(1, 35, 15, 0.96)");
+  topScrim3.addColorStop(0.7, "rgba(1, 35, 15, 0.82)");
   topScrim3.addColorStop(1, "rgba(0, 10, 5, 0)");
   ctx.fillStyle = topScrim3;
-  ctx.fillRect(0, 0, W, 410 * sy);
+  ctx.fillRect(0, 0, W, 240 * sy);
 
   // Gold top line
   const topGoldGrad = ctx.createLinearGradient(0, 0, W, 0);
   topGoldGrad.addColorStop(0, "rgba(212,175,55,0.2)"); topGoldGrad.addColorStop(0.5, "#D4AF37"); topGoldGrad.addColorStop(1, "rgba(212,175,55,0.2)");
-  ctx.fillStyle = topGoldGrad; ctx.fillRect(0, 0, W, 7 * sy);
+  ctx.fillStyle = topGoldGrad; ctx.fillRect(0, 0, W, 6 * sy);
 
-  // Header content
-  drawShopLogoBadge(ctx, cx, 125 * sy, 65 * sc, shopLogoImg, shopName, sc);
+  // --- HEADER: TOP-LEFT LOGO MEDALLION, SHOP NAME, TOP-RIGHT DATE ---
+  const logoRadius = 48 * sc;
+  const logoCenterX = 55 * sx + logoRadius;
+  const logoCenterY = 40 * sy + logoRadius;
+  drawShopLogoBadge(ctx, logoCenterX, logoCenterY, logoRadius, shopLogoImg, shopName, sc);
 
-  ctx.shadowColor = "rgba(212,175,55,0.55)"; ctx.shadowBlur = 16 * sc;
-  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(62 * sc)}px Georgia, serif`;
-  ctx.textAlign = "center"; ctx.fillText(shopName, cx, 255 * sy); ctx.shadowBlur = 0;
+  const textStartX = logoCenterX + logoRadius + 20 * sx;
+  ctx.save();
+  ctx.textAlign = "left";
+  ctx.shadowColor = "rgba(212,175,55,0.6)"; ctx.shadowBlur = 14 * sc;
+  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(44 * sc)}px Georgia, serif`;
+  ctx.fillText(shopName, textStartX, logoCenterY - 4 * sy); ctx.shadowBlur = 0;
 
-  ctx.fillStyle = "#6EE7B7"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
-  ctx.fillText("BRIDAL & TRADITIONAL JEWELLERY", cx, 292 * sy);
+  ctx.fillStyle = "#6EE7B7"; ctx.font = `bold ${Math.round(16 * sc)}px Arial, sans-serif`;
+  ctx.fillText("BRIDAL & TRADITIONAL JEWELLERY", textStartX, logoCenterY + 28 * sy);
+  ctx.restore();
 
-  drawOrnamentalRule(ctx, 65 * sx, 315 * sy, W - 130 * sx, "#D4AF37", sc);
+  // Top Right Date
+  ctx.save();
+  ctx.textAlign = "right";
+  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 8 * sc;
+  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(24 * sc)}px Georgia, serif`;
+  ctx.fillText(dateStr, W - 50 * sx, logoCenterY + 4 * sy);
+  ctx.restore();
 
-  // BIGGER DATE (No emoji)
-  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(34 * sc)}px Georgia, serif`;
-  ctx.textAlign = "center"; ctx.fillText(dateStr, cx, 360 * sy);
+  drawOrnamentalRule(ctx, 40 * sx, 195 * sy, W - 80 * sx, "#D4AF37", sc);
 
-  drawOrnamentalRule(ctx, 70 * sx, 395 * sy, W - 140 * sx, "#D4AF37", sc);
-
-  // === SIDE-BY-SIDE CARDS (PLACED BELOW, AT Y = 1240px) ===
-  const cardY = 1240 * sy, cardH = 270 * sy, cardW = 480 * sx;
+  // === SIDE-BY-SIDE RATE CARDS AT Y = 1240px ===
+  const cardY = 1240 * sy, cardH = 260 * sy, cardW = 480 * sx;
   const leftX = 40 * sx, leftCx = leftX + cardW / 2;
   const rightX = 560 * sx, rightCx = rightX + cardW / 2;
 
   // LEFT CARD: GOLD 22K
   ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 16 * sc;
+  ctx.shadowColor = "rgba(0,0,0,0.65)"; ctx.shadowBlur = 18 * sc;
   const gPanel3 = ctx.createLinearGradient(leftX, cardY, leftX, cardY + cardH);
-  gPanel3.addColorStop(0, "rgba(0,40,18,0.92)"); gPanel3.addColorStop(1, "rgba(0,22,10,0.95)");
+  gPanel3.addColorStop(0, "rgba(0, 35, 15, 0.94)"); gPanel3.addColorStop(1, "rgba(0, 18, 8, 0.96)");
   ctx.fillStyle = gPanel3; ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.fill();
-  ctx.shadowBlur = 0; ctx.strokeStyle = "#D4AF37"; ctx.lineWidth = 2 * sc;
+  ctx.shadowBlur = 0; ctx.strokeStyle = "#D4AF37"; ctx.lineWidth = 2.2 * sc;
   ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
   ctx.restore();
 
-  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
-  ctx.textAlign = "center"; ctx.fillText("TODAY'S 22K GOLD RATE", leftCx, cardY + 42 * sy);
-  ctx.fillStyle = "#6EE7B7"; ctx.font = `bold ${Math.round(15 * sc)}px Arial, sans-serif`;
-  ctx.fillText("PER 1 GRAM", leftCx, cardY + 70 * sy);
+  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(19 * sc)}px Arial, sans-serif`;
+  ctx.textAlign = "center"; ctx.fillText("TODAY'S 22K GOLD RATE", leftCx, cardY + 40 * sy);
+  ctx.fillStyle = "#6EE7B7"; ctx.font = `bold ${Math.round(14 * sc)}px Arial, sans-serif`;
+  ctx.fillText("PER 1 GRAM", leftCx, cardY + 66 * sy);
 
-  drawOrnamentalRule(ctx, leftX + 40 * sx, cardY + 95 * sy, cardW - 80 * sx, "rgba(212,175,55,0.5)", sc);
+  drawOrnamentalRule(ctx, leftX + 40 * sx, cardY + 90 * sy, cardW - 80 * sx, "rgba(212,175,55,0.45)", sc);
 
-  ctx.shadowColor = "rgba(212,175,55,0.9)"; ctx.shadowBlur = 24 * sc;
-  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(72 * sc)}px Georgia, serif`;
-  ctx.fillText(rates.gold1gStr, leftCx, cardY + 195 * sy); ctx.shadowBlur = 0;
+  ctx.shadowColor = "rgba(212,175,55,0.7)"; ctx.shadowBlur = 18 * sc;
+  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(64 * sc)}px Georgia, serif`;
+  ctx.fillText(rates.gold1gStr, leftCx, cardY + 186 * sy); ctx.shadowBlur = 0;
 
   // RIGHT CARD: SILVER 999
   ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 16 * sc;
+  ctx.shadowColor = "rgba(0,0,0,0.65)"; ctx.shadowBlur = 18 * sc;
   const sPanel3 = ctx.createLinearGradient(rightX, cardY, rightX, cardY + cardH);
-  sPanel3.addColorStop(0, "rgba(5,30,25,0.92)"); sPanel3.addColorStop(1, "rgba(2,15,12,0.95)");
+  sPanel3.addColorStop(0, "rgba(5, 25, 20, 0.94)"); sPanel3.addColorStop(1, "rgba(2, 12, 10, 0.96)");
   ctx.fillStyle = sPanel3; ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.fill();
-  ctx.shadowBlur = 0; ctx.strokeStyle = "#CBD5E1"; ctx.lineWidth = 2 * sc;
+  ctx.shadowBlur = 0; ctx.strokeStyle = "#CBD5E1"; ctx.lineWidth = 2.2 * sc;
   ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
   ctx.restore();
 
-  ctx.fillStyle = "#CBD5E1"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
-  ctx.textAlign = "center"; ctx.fillText("TODAY'S 999 FINE SILVER", rightCx, cardY + 42 * sy);
-  ctx.fillStyle = "#94A3B8"; ctx.font = `bold ${Math.round(15 * sc)}px Arial, sans-serif`;
-  ctx.fillText("PER 1 GRAM", rightCx, cardY + 70 * sy);
+  ctx.fillStyle = "#CBD5E1"; ctx.font = `bold ${Math.round(19 * sc)}px Arial, sans-serif`;
+  ctx.textAlign = "center"; ctx.fillText("TODAY'S 999 FINE SILVER", rightCx, cardY + 40 * sy);
+  ctx.fillStyle = "#94A3B8"; ctx.font = `bold ${Math.round(14 * sc)}px Arial, sans-serif`;
+  ctx.fillText("PER 1 GRAM", rightCx, cardY + 66 * sy);
 
-  drawOrnamentalRule(ctx, rightX + 40 * sx, cardY + 95 * sy, cardW - 80 * sx, "rgba(203,213,225,0.5)", sc);
+  drawOrnamentalRule(ctx, rightX + 40 * sx, cardY + 90 * sy, cardW - 80 * sx, "rgba(203,213,225,0.45)", sc);
 
-  ctx.shadowColor = "rgba(226,232,240,0.85)"; ctx.shadowBlur = 24 * sc;
-  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(72 * sc)}px Georgia, serif`;
-  ctx.fillText(rates.silver1gStr, rightCx, cardY + 195 * sy); ctx.shadowBlur = 0;
+  ctx.shadowColor = "rgba(226,232,240,0.7)"; ctx.shadowBlur = 18 * sc;
+  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(64 * sc)}px Georgia, serif`;
+  ctx.fillText(rates.silver1gStr, rightCx, cardY + 186 * sy); ctx.shadowBlur = 0;
 
-  // === FOOTER (1600px to H) ===
-  const fY = 1600 * sy;
-  drawOrnamentalRule(ctx, 65 * sx, fY, W - 130 * sx, "#D4AF37", sc);
+  // === FOOTER: SEAMLESS VIGNETTE SCRIM, ENLARGED HIGH-CONTRAST PHONE & ADDRESS ===
+  const fY = 1530 * sy;
+  const fGrad3 = ctx.createLinearGradient(0, fY, 0, H);
+  fGrad3.addColorStop(0, "rgba(0, 10, 5, 0)");
+  fGrad3.addColorStop(0.2, "rgba(0, 24, 12, 0.88)");
+  fGrad3.addColorStop(1, "rgba(0, 10, 5, 0.98)");
+  ctx.fillStyle = fGrad3; ctx.fillRect(0, fY, W, H - fY);
 
-  const fGrad3 = ctx.createLinearGradient(0, fY + 10 * sy, 0, H);
-  fGrad3.addColorStop(0, "rgba(0,0,0,0)"); fGrad3.addColorStop(0.2, "rgba(0,30,14,0.96)"); fGrad3.addColorStop(1, "rgba(0,10,5,0.99)");
-  ctx.fillStyle = fGrad3; ctx.fillRect(0, fY + 10 * sy, W, H - (fY + 10 * sy));
+  drawOrnamentalRule(ctx, 40 * sx, fY + 30 * sy, W - 80 * sx, "#D4AF37", sc);
 
-  // LEFT BOTTOM: Phone & Showroom Address
-  const phoneX3 = 65 * sx;
+  // Phone Vector Icon Badge & Text
+  const iconR = 20 * sc;
+  const phoneX3 = 60 * sx + iconR;
+  const phoneY3 = fY + 85 * sy;
+  drawVectorIconBadge(ctx, phoneX3, phoneY3, iconR, "phone", sc, "#FFDA6A");
+
+  ctx.save();
   ctx.textAlign = "left";
-  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(25 * sc)}px Arial, sans-serif`;
-  ctx.fillText("\uD83D\uDCDE " + phone, phoneX3, fY + 100 * sy);
-  ctx.fillStyle = "#A7F3D0"; ctx.font = `${Math.round(20 * sc)}px Arial, sans-serif`;
-  drawShowroomAddress(ctx, address, phoneX3, fY + 142 * sy, W - 430 * sx, 28 * sy, 2);
+  ctx.shadowColor = "rgba(255, 218, 106, 0.75)"; ctx.shadowBlur = 14 * sc;
+  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(36 * sc)}px Arial, sans-serif`;
+  ctx.fillText(phone, phoneX3 + iconR + 16 * sx, phoneY3 + 12 * sy);
+  ctx.restore();
 
-  // RIGHT BOTTOM: BIS 916 Hallmark Emblem
-  if (hallmarkImg && hallmarkImg.complete && hallmarkImg.naturalWidth > 0) {
-    drawRealBIS916Hallmark(ctx, W - 160 * sx, fY + 132 * sy, sc * 0.78, "emerald", hallmarkImg);
-  } else {
-    ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(18 * sc)}px Arial, sans-serif`;
-    ctx.textAlign = "right"; ctx.fillText("BIS 916 HALLMARKED", W - 40 * sx, fY + 132 * sy);
-  }
+  // Showroom Address Vector Icon Badge & Text
+  const pinX3 = 60 * sx + iconR;
+  const pinY3 = phoneY3 + 56 * sy;
+  drawVectorIconBadge(ctx, pinX3, pinY3, iconR, "pin", sc, "#D4AF37");
 
-  // BOTTOM CENTER: Tagline
+  ctx.save();
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(24 * sc)}px Arial, sans-serif`;
+  drawShowroomAddress(ctx, address, pinX3 + iconR + 16 * sx, pinY3 + 8 * sy, W - 440 * sx, 32 * sy, 2);
+  ctx.restore();
+
+  // Right Bottom: BIS 916 Hallmark Badge
+  drawRealBIS916Hallmark(ctx, W - 150 * sx, fY + 115 * sy, sc * 0.82, "emerald", hallmarkImg);
+
+  // Bottom Center: Tagline
   ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(200,255,210,0.75)"; ctx.font = `italic ${Math.round(23 * sc)}px Georgia, serif`;
-  ctx.fillText('"Your Heritage, Our Craft"', cx, fY + 250 * sy);
+  ctx.fillStyle = "rgba(200,255,210,0.85)"; ctx.font = `italic ${Math.round(22 * sc)}px Georgia, serif`;
+  ctx.fillText('"Your Heritage, Our Craft"', cx, H - 30 * sy);
 
-  ctx.fillStyle = topGoldGrad; ctx.fillRect(0, H - 7 * sy, W, 7 * sy);
+  ctx.fillStyle = topGoldGrad; ctx.fillRect(0, H - 6 * sy, W, 6 * sy);
   ctx.restore();
 };
 
@@ -842,25 +990,24 @@ const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrice
   const sx = W / 1080, sy = H / 1920, sc = Math.min(sx, sy);
   const cx = W / 2;
   const now = new Date();
-  const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase();
+  const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
   const rates = getFormattedRates(livePrices);
   const phone = shopInfo?.phonePrimary || shopInfo?.phone || "+91 99520 54493";
   const address = shopInfo?.address || shopInfo?.city || "Tuticorin";
 
-  // TRANSLUCENT OVERLAY
-  ctx.fillStyle = "rgba(15, 8, 4, 0.20)";
+  ctx.fillStyle = "rgba(15, 8, 4, 0.18)";
   ctx.fillRect(0, 0, W, H);
 
-  // Top header dark scrim gradient
-  const topScrim4 = ctx.createLinearGradient(0, 0, 0, 410 * sy);
-  topScrim4.addColorStop(0, "rgba(40, 22, 8, 0.95)");
-  topScrim4.addColorStop(0.75, "rgba(40, 22, 8, 0.75)");
+  // TOP HEADER: Soft Rose Gold Scrim
+  const topScrim4 = ctx.createLinearGradient(0, 0, 0, 240 * sy);
+  topScrim4.addColorStop(0, "rgba(35, 18, 6, 0.96)");
+  topScrim4.addColorStop(0.7, "rgba(35, 18, 6, 0.82)");
   topScrim4.addColorStop(1, "rgba(15, 8, 4, 0)");
   ctx.fillStyle = topScrim4;
-  ctx.fillRect(0, 0, W, 410 * sy);
+  ctx.fillRect(0, 0, W, 240 * sy);
 
   // Rose gold side stripes
-  const lsW = 14 * sx;
+  const lsW = 12 * sx;
   const lsGrad = ctx.createLinearGradient(0, 0, lsW, 0);
   lsGrad.addColorStop(0, "#A06040"); lsGrad.addColorStop(1, "#D4916A");
   ctx.fillStyle = lsGrad; ctx.fillRect(0, 0, lsW, H);
@@ -872,99 +1019,121 @@ const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrice
   roseBar.addColorStop(0, "rgba(212,145,106,0.3)"); roseBar.addColorStop(0.5, "rgba(212,145,106,0.9)"); roseBar.addColorStop(1, "rgba(212,145,106,0.3)");
   ctx.fillStyle = roseBar; ctx.fillRect(lsW, 0, W - lsW * 2, 6 * sy);
 
-  // Header content
-  drawShopLogoBadge(ctx, cx, 125 * sy, 65 * sc, shopLogoImg, shopName, sc);
+  // --- HEADER: TOP-LEFT LOGO MEDALLION, SHOP NAME, TOP-RIGHT DATE ---
+  const logoRadius = 48 * sc;
+  const logoCenterX = 55 * sx + logoRadius;
+  const logoCenterY = 40 * sy + logoRadius;
+  drawShopLogoBadge(ctx, logoCenterX, logoCenterY, logoRadius, shopLogoImg, shopName, sc);
 
-  ctx.shadowColor = "rgba(212,145,106,0.45)"; ctx.shadowBlur = 18 * sc;
-  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(62 * sc)}px Georgia, serif`;
-  ctx.textAlign = "center"; ctx.fillText(shopName, cx, 255 * sy); ctx.shadowBlur = 0;
+  const textStartX = logoCenterX + logoRadius + 20 * sx;
+  ctx.save();
+  ctx.textAlign = "left";
+  ctx.shadowColor = "rgba(212,145,106,0.55)"; ctx.shadowBlur = 14 * sc;
+  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(44 * sc)}px Georgia, serif`;
+  ctx.fillText(shopName, textStartX, logoCenterY - 4 * sy); ctx.shadowBlur = 0;
 
-  ctx.fillStyle = "#D4916A"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
-  ctx.fillText("SOLITAIRE & FINE JEWELLERY", cx, 292 * sy);
+  ctx.fillStyle = "#D4916A"; ctx.font = `bold ${Math.round(16 * sc)}px Arial, sans-serif`;
+  ctx.fillText("SOLITAIRE & FINE JEWELLERY", textStartX, logoCenterY + 28 * sy);
+  ctx.restore();
 
-  drawOrnamentalRule(ctx, 75 * sx, 315 * sy, W - 150 * sx, "#C08050", sc);
+  // Top Right Date
+  ctx.save();
+  ctx.textAlign = "right";
+  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 8 * sc;
+  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(24 * sc)}px Georgia, serif`;
+  ctx.fillText(dateStr, W - 50 * sx, logoCenterY + 4 * sy);
+  ctx.restore();
 
-  // BIGGER DATE (No emoji)
-  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(34 * sc)}px Georgia, serif`;
-  ctx.textAlign = "center"; ctx.fillText(dateStr, cx, 360 * sy);
+  drawOrnamentalRule(ctx, 40 * sx, 195 * sy, W - 80 * sx, "#D4916A", sc);
 
-  drawOrnamentalRule(ctx, 70 * sx, 395 * sy, W - 140 * sx, "#D4916A", sc);
-
-  // === SIDE-BY-SIDE CARDS (PLACED BELOW, AT Y = 1240px) ===
-  const cardY = 1240 * sy, cardH = 270 * sy, cardW = 480 * sx;
+  // === SIDE-BY-SIDE RATE CARDS AT Y = 1240px ===
+  const cardY = 1240 * sy, cardH = 260 * sy, cardW = 480 * sx;
   const leftX = 40 * sx, leftCx = leftX + cardW / 2;
   const rightX = 560 * sx, rightCx = rightX + cardW / 2;
 
   // LEFT CARD: GOLD 22K
   ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 16 * sc;
+  ctx.shadowColor = "rgba(0,0,0,0.65)"; ctx.shadowBlur = 18 * sc;
   const gPanel4 = ctx.createLinearGradient(leftX, cardY, leftX, cardY + cardH);
-  gPanel4.addColorStop(0, "rgba(40,22,8,0.92)"); gPanel4.addColorStop(1, "rgba(20,10,4,0.95)");
+  gPanel4.addColorStop(0, "rgba(35, 18, 6, 0.94)"); gPanel4.addColorStop(1, "rgba(18, 8, 3, 0.96)");
   ctx.fillStyle = gPanel4; ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.fill();
-  ctx.shadowBlur = 0; ctx.strokeStyle = "#D4916A"; ctx.lineWidth = 2 * sc;
+  ctx.shadowBlur = 0; ctx.strokeStyle = "#D4916A"; ctx.lineWidth = 2.2 * sc;
   ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
   ctx.restore();
 
-  ctx.fillStyle = "#D4916A"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
-  ctx.textAlign = "center"; ctx.fillText("TODAY'S 22K GOLD RATE", leftCx, cardY + 42 * sy);
-  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(15 * sc)}px Arial, sans-serif`;
-  ctx.fillText("PER 1 GRAM", leftCx, cardY + 70 * sy);
+  ctx.fillStyle = "#D4916A"; ctx.font = `bold ${Math.round(19 * sc)}px Arial, sans-serif`;
+  ctx.textAlign = "center"; ctx.fillText("TODAY'S 22K GOLD RATE", leftCx, cardY + 40 * sy);
+  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(14 * sc)}px Arial, sans-serif`;
+  ctx.fillText("PER 1 GRAM", leftCx, cardY + 66 * sy);
 
-  drawOrnamentalRule(ctx, leftX + 40 * sx, cardY + 95 * sy, cardW - 80 * sx, "rgba(212,145,106,0.5)", sc);
+  drawOrnamentalRule(ctx, leftX + 40 * sx, cardY + 90 * sy, cardW - 80 * sx, "rgba(212,145,106,0.45)", sc);
 
-  ctx.shadowColor = "rgba(212,145,106,0.9)"; ctx.shadowBlur = 24 * sc;
-  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(72 * sc)}px Georgia, serif`;
-  ctx.fillText(rates.gold1gStr, leftCx, cardY + 195 * sy); ctx.shadowBlur = 0;
+  ctx.shadowColor = "rgba(212,145,106,0.7)"; ctx.shadowBlur = 18 * sc;
+  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(64 * sc)}px Georgia, serif`;
+  ctx.fillText(rates.gold1gStr, leftCx, cardY + 186 * sy); ctx.shadowBlur = 0;
 
   // RIGHT CARD: SILVER 999
   ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 16 * sc;
+  ctx.shadowColor = "rgba(0,0,0,0.65)"; ctx.shadowBlur = 18 * sc;
   const sPanel4 = ctx.createLinearGradient(rightX, cardY, rightX, cardY + cardH);
-  sPanel4.addColorStop(0, "rgba(22,16,12,0.92)"); sPanel4.addColorStop(1, "rgba(10,8,6,0.95)");
+  sPanel4.addColorStop(0, "rgba(20, 14, 10, 0.94)"); sPanel4.addColorStop(1, "rgba(8, 6, 4, 0.96)");
   ctx.fillStyle = sPanel4; ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.fill();
-  ctx.shadowBlur = 0; ctx.strokeStyle = "#CBD5E1"; ctx.lineWidth = 2 * sc;
+  ctx.shadowBlur = 0; ctx.strokeStyle = "#CBD5E1"; ctx.lineWidth = 2.2 * sc;
   ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
   ctx.restore();
 
-  ctx.fillStyle = "#CBD5E1"; ctx.font = `bold ${Math.round(20 * sc)}px Arial, sans-serif`;
-  ctx.textAlign = "center"; ctx.fillText("TODAY'S 999 FINE SILVER", rightCx, cardY + 42 * sy);
-  ctx.fillStyle = "#94A3B8"; ctx.font = `bold ${Math.round(15 * sc)}px Arial, sans-serif`;
-  ctx.fillText("PER 1 GRAM", rightCx, cardY + 70 * sy);
+  ctx.fillStyle = "#CBD5E1"; ctx.font = `bold ${Math.round(19 * sc)}px Arial, sans-serif`;
+  ctx.textAlign = "center"; ctx.fillText("TODAY'S 999 FINE SILVER", rightCx, cardY + 40 * sy);
+  ctx.fillStyle = "#94A3B8"; ctx.font = `bold ${Math.round(14 * sc)}px Arial, sans-serif`;
+  ctx.fillText("PER 1 GRAM", rightCx, cardY + 66 * sy);
 
-  drawOrnamentalRule(ctx, rightX + 40 * sx, cardY + 95 * sy, cardW - 80 * sx, "rgba(203,213,225,0.5)", sc);
+  drawOrnamentalRule(ctx, rightX + 40 * sx, cardY + 90 * sy, cardW - 80 * sx, "rgba(203,213,225,0.45)", sc);
 
-  ctx.shadowColor = "rgba(226,232,240,0.85)"; ctx.shadowBlur = 24 * sc;
-  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(72 * sc)}px Georgia, serif`;
-  ctx.fillText(rates.silver1gStr, rightCx, cardY + 195 * sy); ctx.shadowBlur = 0;
+  ctx.shadowColor = "rgba(226,232,240,0.7)"; ctx.shadowBlur = 18 * sc;
+  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(64 * sc)}px Georgia, serif`;
+  ctx.fillText(rates.silver1gStr, rightCx, cardY + 186 * sy); ctx.shadowBlur = 0;
 
-  // === FOOTER (1600px to H) ===
-  const fY = 1600 * sy;
-  drawOrnamentalRule(ctx, 75 * sx, fY, W - 150 * sx, "#C08050", sc);
+  // === FOOTER: SEAMLESS VIGNETTE SCRIM, ENLARGED HIGH-CONTRAST PHONE & ADDRESS ===
+  const fY = 1530 * sy;
+  const fGrad4 = ctx.createLinearGradient(0, fY, 0, H);
+  fGrad4.addColorStop(0, "rgba(15, 8, 4, 0)");
+  fGrad4.addColorStop(0.2, "rgba(24, 12, 5, 0.88)");
+  fGrad4.addColorStop(1, "rgba(12, 6, 2, 0.98)");
+  ctx.fillStyle = fGrad4; ctx.fillRect(0, fY, W, H - fY);
 
-  const fGrad4 = ctx.createLinearGradient(0, fY + 10 * sy, 0, H);
-  fGrad4.addColorStop(0, "rgba(0,0,0,0)"); fGrad4.addColorStop(0.2, "rgba(28,16,6,0.96)"); fGrad4.addColorStop(1, "rgba(12,6,2,0.99)");
-  ctx.fillStyle = fGrad4; ctx.fillRect(0, fY + 10 * sy, W, H - (fY + 10 * sy));
+  drawOrnamentalRule(ctx, 40 * sx, fY + 30 * sy, W - 80 * sx, "#C08050", sc);
 
-  // LEFT BOTTOM: Phone & Showroom Address
-  const phoneX4 = 75 * sx;
+  // Phone Vector Icon Badge & Text
+  const iconR = 20 * sc;
+  const phoneX4 = 60 * sx + iconR;
+  const phoneY4 = fY + 85 * sy;
+  drawVectorIconBadge(ctx, phoneX4, phoneY4, iconR, "phone", sc, "#F5E4C8");
+
+  ctx.save();
   ctx.textAlign = "left";
-  ctx.fillStyle = "#D4916A"; ctx.font = `bold ${Math.round(25 * sc)}px Arial, sans-serif`;
-  ctx.fillText("\uD83D\uDCDE " + phone, phoneX4, fY + 100 * sy);
-  ctx.fillStyle = "#C8A878"; ctx.font = `${Math.round(20 * sc)}px Arial, sans-serif`;
-  drawShowroomAddress(ctx, address, phoneX4, fY + 142 * sy, W - 440 * sx, 28 * sy, 2);
+  ctx.shadowColor = "rgba(245, 228, 200, 0.75)"; ctx.shadowBlur = 14 * sc;
+  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(36 * sc)}px Arial, sans-serif`;
+  ctx.fillText(phone, phoneX4 + iconR + 16 * sx, phoneY4 + 12 * sy);
+  ctx.restore();
 
-  // RIGHT BOTTOM: BIS 916 Hallmark Emblem
-  if (hallmarkImg && hallmarkImg.complete && hallmarkImg.naturalWidth > 0) {
-    drawRealBIS916Hallmark(ctx, W - 160 * sx, fY + 132 * sy, sc * 0.78, "gold", hallmarkImg);
-  } else {
-    ctx.fillStyle = "#D4916A"; ctx.font = `bold ${Math.round(18 * sc)}px Arial, sans-serif`;
-    ctx.textAlign = "right"; ctx.fillText("BIS 916 HALLMARKED", W - 40 * sx, fY + 132 * sy);
-  }
+  // Showroom Address Vector Icon Badge & Text
+  const pinX4 = 60 * sx + iconR;
+  const pinY4 = phoneY4 + 56 * sy;
+  drawVectorIconBadge(ctx, pinX4, pinY4, iconR, "pin", sc, "#D4916A");
 
-  // BOTTOM CENTER: Tagline
+  ctx.save();
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(24 * sc)}px Arial, sans-serif`;
+  drawShowroomAddress(ctx, address, pinX4 + iconR + 16 * sx, pinY4 + 8 * sy, W - 440 * sx, 32 * sy, 2);
+  ctx.restore();
+
+  // Right Bottom: BIS 916 Hallmark Badge
+  drawRealBIS916Hallmark(ctx, W - 150 * sx, fY + 115 * sy, sc * 0.82, "gold", hallmarkImg);
+
+  // Bottom Center: Tagline
   ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(200,150,100,0.75)"; ctx.font = `italic ${Math.round(23 * sc)}px Georgia, serif`;
-  ctx.fillText('"Where Luxury Meets Tradition"', cx, fY + 250 * sy);
+  ctx.fillStyle = "rgba(245,228,200,0.85)"; ctx.font = `italic ${Math.round(22 * sc)}px Georgia, serif`;
+  ctx.fillText('"Where Luxury Meets Tradition"', cx, H - 30 * sy);
 
   ctx.fillStyle = roseBar; ctx.fillRect(lsW, H - 6 * sy, W - lsW * 2, 6 * sy);
   ctx.restore();
@@ -1075,13 +1244,28 @@ function VideoCanvasPreview({ videoUrl, shopName, templateId, drawOverlay, shopL
 
   React.useEffect(() => {
     let isMounted = true;
+    let videoBlobUrl = null;
     const video = document.createElement("video");
-    video.src = resolveFullImageUrl(videoUrl);
-    video.crossOrigin = "anonymous";
     video.loop = true;
     video.muted = true;
     video.playsInline = true;
     videoRef.current = video;
+
+    const fullUrl = resolveFullImageUrl(videoUrl);
+    fetch(fullUrl)
+      .then((res) => res.blob())
+      .then((blob) => {
+        videoBlobUrl = URL.createObjectURL(blob);
+        if (isMounted) {
+          video.src = videoBlobUrl;
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          video.crossOrigin = "anonymous";
+          video.src = fullUrl;
+        }
+      });
 
     let animId;
     let lastRenderTime = 0;
@@ -1232,11 +1416,9 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
   // Preload Official Golden BIS 916 Hallmark Logo Image
   useEffect(() => {
-    const img = new window.Image();
-    img.crossOrigin = "anonymous";
-    img.src = "/bis_916_hallmark.png";
-    img.onload = () => setLoadedHallmarkLogo(img);
-    img.onerror = () => setLoadedHallmarkLogo(null);
+    loadSingleImage("/bis_916_hallmark.png").then((img) => {
+      if (img) setLoadedHallmarkLogo(img);
+    });
   }, []);
 
   // Preload Shop Logo Image whenever shopInfo.logo changes or localStorage updates
@@ -1249,18 +1431,21 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
       const c2 = localStorage.getItem(`aadagam_site_info_${shopPrefix}`);
       const parsed1 = c1 ? JSON.parse(c1) : null;
       const parsed2 = c2 ? JSON.parse(c2) : null;
-      cachedLogo = parsed1?.logo || parsed2?.logo || "";
+      cachedLogo =
+        parsed1?.logo ||
+        parsed1?.logoUrl ||
+        parsed2?.logo ||
+        parsed2?.logoUrl ||
+        parsed2?.siteInfoData?.logo ||
+        parsed2?.siteInfoData?.logoUrl ||
+        "";
     } catch (e) {}
 
     const rawLogoUrl = shopInfo?.logo || shopInfo?.logoUrl || cachedLogo;
-    if (rawLogoUrl) {
-      loadSingleImage(rawLogoUrl).then((loadedImg) => {
-        if (loadedImg) setLoadedShopLogo(loadedImg);
-      });
-    } else {
-      setLoadedShopLogo(null);
-    }
-  }, [shopInfo?.logo, shopInfo?.logoUrl]);
+    loadLogoWithFallback(rawLogoUrl).then((loadedImg) => {
+      if (loadedImg) setLoadedShopLogo(loadedImg);
+    });
+  }, [shopInfo?.logo, shopInfo?.logoUrl, shopInfo]);
 
   useEffect(() => {
     async function loadData() {
@@ -1270,23 +1455,31 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
           getBasicAssets(),
         ]);
 
-        if (siteRes && siteRes.success === 1 && Array.isArray(siteRes.priceData)) {
-          let goldVal = "\u20b97,195";
-          let silverVal = "\u20b994.50";
-          siteRes.priceData.forEach((item) => {
-            const mat = (item.material || "").toLowerCase();
-            const purity = (item.purity || "").toLowerCase();
-            const price = Number(item.price);
-            if (!isNaN(price) && price > 0) {
-              if (mat === "gold" && purity.includes("22")) {
-                goldVal = `\u20b9${price.toLocaleString("en-IN")}`;
+        if (siteRes && siteRes.success === 1) {
+          if (Array.isArray(siteRes.priceData)) {
+            let goldVal = "\u20b97,195";
+            let silverVal = "\u20b994.50";
+            siteRes.priceData.forEach((item) => {
+              const mat = (item.material || "").toLowerCase();
+              const purity = (item.purity || "").toLowerCase();
+              const price = Number(item.price);
+              if (!isNaN(price) && price > 0) {
+                if (mat === "gold" && purity.includes("22")) {
+                  goldVal = `\u20b9${price.toLocaleString("en-IN")}`;
+                }
+                if (mat === "silver" && (purity.includes("24") || purity.includes("925"))) {
+                  silverVal = `\u20b9${price.toLocaleString("en-IN")}`;
+                }
               }
-              if (mat === "silver" && (purity.includes("24") || purity.includes("925"))) {
-                silverVal = `\u20b9${price.toLocaleString("en-IN")}`;
-              }
-            }
+            });
+            setLivePrices({ gold22k: goldVal, silver999: silverVal });
+          }
+
+          // Extract shop logo directly from API siteInfoData response
+          const apiLogo = siteRes.siteInfoData?.logo || siteRes.siteInfoData?.logoUrl;
+          loadLogoWithFallback(apiLogo || shopInfo?.logo || cachedLogo).then((img) => {
+            if (img) setLoadedShopLogo(img);
           });
-          setLivePrices({ gold22k: goldVal, silver999: silverVal });
         }
 
         if (assetsRes && assetsRes.status === 1) {
@@ -1420,13 +1613,20 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
           const c2 = localStorage.getItem(`aadagam_site_info_${shopPrefix}`);
           const parsed1 = c1 ? JSON.parse(c1) : null;
           const parsed2 = c2 ? JSON.parse(c2) : null;
-          cachedLogo = parsed1?.logo || parsed2?.logo || "";
+          cachedLogo =
+            parsed1?.logo ||
+            parsed1?.logoUrl ||
+            parsed2?.logo ||
+            parsed2?.logoUrl ||
+            parsed2?.siteInfoData?.logo ||
+            parsed2?.siteInfoData?.logoUrl ||
+            "";
         } catch (e) {}
 
         const targetShopLogoUrl = shopInfo?.logo || shopInfo?.logoUrl || cachedLogo;
         let activeShopLogo = loadedShopLogo || null;
-        if (!activeShopLogo && targetShopLogoUrl) {
-          activeShopLogo = await loadSingleImage(targetShopLogoUrl);
+        if (!activeShopLogo) {
+          activeShopLogo = await loadLogoWithFallback(targetShopLogoUrl);
         }
 
         let activeHallmarkLogo = loadedHallmarkLogo || null;
@@ -1500,11 +1700,6 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
         };
 
         let resultUrl = await exportCanvas();
-        if (!resultUrl && activeShopLogo) {
-          // If canvas export failed due to non-CORS logo, re-draw using luxury gold monogram emblem
-          drawStatusOverlay(ctx, canvas.width, canvas.height, shopNameStr, templateId, null, livePrices, shopInfo, activeHallmarkLogo);
-          resultUrl = await exportCanvas();
-        }
 
         if (resultUrl) {
           resolve({ blobUrl: resultUrl, shopName: shopNameStr, cardNum });
@@ -1622,13 +1817,20 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
         const c2 = localStorage.getItem(`aadagam_site_info_${shopPrefix}`);
         const parsed1 = c1 ? JSON.parse(c1) : null;
         const parsed2 = c2 ? JSON.parse(c2) : null;
-        cachedLogo = parsed1?.logo || parsed2?.logo || "";
+        cachedLogo =
+          parsed1?.logo ||
+          parsed1?.logoUrl ||
+          parsed2?.logo ||
+          parsed2?.logoUrl ||
+          parsed2?.siteInfoData?.logo ||
+          parsed2?.siteInfoData?.logoUrl ||
+          "";
       } catch (e) {}
 
       const targetShopLogoUrl = shopInfo?.logo || shopInfo?.logoUrl || cachedLogo;
       let activeShopLogo = loadedShopLogo || null;
-      if (!activeShopLogo && targetShopLogoUrl) {
-        activeShopLogo = await loadSingleImage(targetShopLogoUrl);
+      if (!activeShopLogo) {
+        activeShopLogo = await loadLogoWithFallback(targetShopLogoUrl);
       }
       let activeHallmarkLogo = loadedHallmarkLogo || null;
       if (!activeHallmarkLogo) {
@@ -1637,21 +1839,36 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
       setDownloadProgress(10);
 
-      // 2. Setup Video Element with safe CORS fallback to ensure branded video recording never fails
+      // 2. Setup Video Element with local Blob URL fetching to guarantee no canvas tainting
       const video = document.createElement("video");
       video.muted = false;
       video.volume = 1.0;
       video.playsInline = true;
 
+      let videoBlobUrl = null;
+      try {
+        const vRes = await fetch(fullVideoUrl);
+        if (vRes.ok) {
+          const vBlob = await vRes.blob();
+          videoBlobUrl = URL.createObjectURL(vBlob);
+        }
+      } catch (e) {
+        console.warn("Could not fetch video as blob, using direct URL:", e);
+      }
+
+      const targetVideoSrc = videoBlobUrl || fullVideoUrl;
+
       const loadVideoWithFallback = (url) => {
         return new Promise((resolve) => {
           let hasAttemptedFallback = false;
-          video.crossOrigin = "anonymous";
+          if (!url.startsWith("blob:")) {
+            video.crossOrigin = "anonymous";
+          }
           video.src = url;
 
           const handleLoaded = () => resolve(true);
           const handleError = () => {
-            if (!hasAttemptedFallback) {
+            if (!hasAttemptedFallback && !url.startsWith("blob:")) {
               hasAttemptedFallback = true;
               video.removeAttribute("crossOrigin");
               video.src = url;
@@ -1666,7 +1883,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
         });
       };
 
-      await loadVideoWithFallback(fullVideoUrl);
+      await loadVideoWithFallback(targetVideoSrc);
 
       setDownloadProgress(20);
 
