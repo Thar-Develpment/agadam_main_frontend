@@ -326,7 +326,16 @@ export default function AdminDashboard() {
           loadDashboardStats();
           triggerToast("Video uploaded and added to showcase!");
         } else if (target === "story") {
-          setStoryImage(uploadedList[0]);
+          const uploadedStoryImg = uploadedList[0];
+          setStoryImage(uploadedStoryImg);
+          const shopPrefix = getShopPrefix(adminUser?.domain);
+          try {
+            const currentStory = JSON.parse(localStorage.getItem(`aadagam_story_${shopPrefix}`) || "{}");
+            localStorage.setItem(
+              `aadagam_story_${shopPrefix}`,
+              JSON.stringify({ ...currentStory, imageUrl: uploadedStoryImg, image: uploadedStoryImg })
+            );
+          } catch (e) {}
           triggerToast("Story image uploaded! Click 'Save Story Narrative & Image' to apply.");
         } else if (target === "slideshow") {
           setNewSlide((prev) => ({ ...prev, desktopImg: uploadedList[0] }));
@@ -594,7 +603,15 @@ export default function AdminDashboard() {
             story.image || story.image_url || ""
           );
           setStoryContent(storyText || "");
-          setStoryImage(imageUrl || "");
+          const shopPrefix = getShopPrefix(adminUser?.domain);
+          let finalImg = imageUrl || "";
+          if (!finalImg) {
+            try {
+              const localStory = JSON.parse(localStorage.getItem(`aadagam_story_${shopPrefix}`) || "{}");
+              finalImg = localStory?.imageUrl || localStory?.image || "";
+            } catch (e) {}
+          }
+          setStoryImage(finalImg);
         }
       } else {
         setStories([]);
@@ -618,6 +635,17 @@ export default function AdminDashboard() {
     setIsLoading(false);
 
     if (res.status === 1) {
+      const shopPrefix = getShopPrefix(adminUser?.domain);
+      try {
+        localStorage.setItem(
+          `aadagam_story_${shopPrefix}`,
+          JSON.stringify({
+            storyText: storyContent.trim(),
+            imageUrl: storyImage,
+            image: storyImage,
+          })
+        );
+      } catch (e) {}
       triggerToast(res.message || "Our Story and Image updated successfully!");
       loadStories(storyPage);
     } else {

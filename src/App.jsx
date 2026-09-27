@@ -155,7 +155,34 @@ function ClientStorefrontPage() {
         setVideos(videoData);
 
         // 4. About Us
-        setAboutContent(aboutData);
+        const localStory = localStorage.getItem(`aadagam_story_${shopPrefix}`);
+        if (localStory) {
+          try {
+            const parsedLocalStory = JSON.parse(localStory);
+            if (aboutData) {
+              setAboutContent({
+                ...aboutData,
+                image: aboutData.image || parsedLocalStory.imageUrl || parsedLocalStory.image || null,
+                imageUrl: aboutData.imageUrl || parsedLocalStory.imageUrl || parsedLocalStory.image || null,
+                historyParagraphs:
+                  aboutData.historyParagraphs && aboutData.historyParagraphs.length > 0 && aboutData.historyParagraphs[0] !== ""
+                    ? aboutData.historyParagraphs
+                    : (parsedLocalStory.storyText ? parsedLocalStory.storyText.split(/\r?\n\r?\n/).map((s) => s.trim()).filter(Boolean) : aboutData.historyParagraphs),
+              });
+            } else {
+              setAboutContent({
+                title: "Our Heritage & Passion for Perfection",
+                historyParagraphs: parsedLocalStory.storyText ? parsedLocalStory.storyText.split(/\r?\n\r?\n/).map((s) => s.trim()).filter(Boolean) : [""],
+                image: parsedLocalStory.imageUrl || parsedLocalStory.image || null,
+                imageUrl: parsedLocalStory.imageUrl || parsedLocalStory.image || null,
+              });
+            }
+          } catch (e) {
+            setAboutContent(aboutData);
+          }
+        } else {
+          setAboutContent(aboutData);
+        }
 
         // 5. Categories
         setCategories(categoryData);

@@ -338,14 +338,37 @@ export async function getAboutContent() {
         ? storyText.split(/\r?\n\r?\n/).map((s) => s.trim()).filter(Boolean)
         : [];
 
+      let finalImageUrl = imageUrl;
+      if (!finalImageUrl) {
+        try {
+          const localStory = JSON.parse(localStorage.getItem(`aadagam_story_${shop_name}`) || "{}");
+          if (localStory?.imageUrl || localStory?.image) {
+            finalImageUrl = resolveFullImageUrl(localStory.imageUrl || localStory.image);
+          }
+        } catch (e) {}
+      }
+
       return {
         title: headingText || "Our Heritage & Passion for Perfection",
         historyParagraphs: userParagraphs.length > 0 ? userParagraphs : (mockAboutContent.historyParagraphs || [""]),
-        image: imageUrl || null,
-        imageUrl: imageUrl || null,
+        image: finalImageUrl || null,
+        imageUrl: finalImageUrl || null,
       };
     }
-    return mockAboutContent;
+
+    let fallbackImage = mockAboutContent.image || null;
+    try {
+      const localStory = JSON.parse(localStorage.getItem(`aadagam_story_${shop_name}`) || "{}");
+      if (localStory?.imageUrl || localStory?.image) {
+        fallbackImage = resolveFullImageUrl(localStory.imageUrl || localStory.image);
+      }
+    } catch (e) {}
+
+    return {
+      ...mockAboutContent,
+      image: fallbackImage,
+      imageUrl: fallbackImage,
+    };
   } catch (err) {
     console.error("Error in getAboutContent:", err);
     return mockAboutContent;
@@ -1102,8 +1125,15 @@ export async function adminAddOurStory(content, image = "", token = null) {
     const rawText = typeof content === "string" ? content.trim() : "";
     const imageUrl = (image || "").trim();
 
+    const contentObj = {
+      heading: "Our Heritage & Craftsmanship",
+      body: rawText,
+      image_url: imageUrl,
+      image: imageUrl
+    };
+
     const payload = {
-      content: rawText,
+      content: JSON.stringify(contentObj),
       image: imageUrl
     };
 
@@ -1152,9 +1182,16 @@ export async function adminUpdateOurStory(id, content, status = 1, image = "", t
     const rawText = typeof content === "string" ? content.trim() : "";
     const imageUrl = (image || "").trim();
 
+    const contentObj = {
+      heading: "Our Heritage & Craftsmanship",
+      body: rawText,
+      image_url: imageUrl,
+      image: imageUrl
+    };
+
     const payload = {
       id: Number(id),
-      content: rawText,
+      content: JSON.stringify(contentObj),
       status: Number(status),
       image: imageUrl
     };
