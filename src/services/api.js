@@ -42,7 +42,7 @@ export function extractYoutubeId(url = "") {
  * ========================================================================== */
 
 /**
- * Fetch hero carousel slides (Checks token-based backend fetch, local storage cache, basic assets fallback, or mock slides)
+ * Fetch hero carousel slides (Calls backend hero slides API, with localStorage and basic assets fallback)
  * @returns {Promise<Array>} Array of slide objects
  */
 export async function getSlides() {
@@ -51,49 +51,47 @@ export async function getSlides() {
     const shop_name = getShopPrefix(subdomain);
     const shopPrefix = shop_name;
 
-    // 1. If admin token exists (admin logged in or testing on this browser), fetch live slides
-    let token = localStorage.getItem("aadagam_auth_token");
-    if (!token) {
-      const adminSession = localStorage.getItem("aadagam_current_admin");
-      if (adminSession) {
-        try {
-          const user = JSON.parse(adminSession);
-          token = user?.token || user?.authTkn;
-        } catch (e) {}
+    // 1. Always call backend hero slides API for this showroom subdomain
+    let resData = null;
+    try {
+      const res = await apiClient.post("/opxXxolN7m6CU/get_all_hero_slide", {
+        shop_name,
+        subdomain,
+        pageNo: 0,
+        pageSize: 10,
+      });
+
+      if (res.data && res.data.status === 1 && Array.isArray(res.data.data) && res.data.data.length > 0) {
+        resData = res.data.data;
       }
+    } catch (e) {
+      console.warn("Could not fetch hero slides from backend:", e);
     }
 
-    if (token) {
-      try {
-        const res = await adminGetAllHeroSlide(0, 20, token);
-        if (res && res.status === 1 && Array.isArray(res.data) && res.data.length > 0) {
-          const activeSlides = res.data
-            .filter((s) => Number(s.status) === 1 || s.status === undefined || s.status === "1")
-            .map((s) => {
-              const imgUrl = resolveFullImageUrl(s.image || s.desktopImg || s.mobileImg || "");
-              return {
-                id: s.id,
-                title: s.title || "Royal Bridal Heritage",
-                subtitle: s.description || s.subtitle || "Discover timeless handcrafted bridal jewels",
-                description: s.description || s.subtitle || "Discover timeless handcrafted bridal jewels",
-                desktopImg: imgUrl,
-                mobileImg: imgUrl,
-                image: imgUrl,
-                status: 1,
-                ctaLink: s.ctaLink || "#gallery",
-                ctaText: s.ctaText || "Explore Collection",
-              };
-            });
+    if (resData && resData.length > 0) {
+      const activeSlides = resData
+        .filter((s) => Number(s.status) === 1 || s.status === undefined || s.status === "1")
+        .map((s) => {
+          const imgUrl = resolveFullImageUrl(s.image || s.desktopImg || s.mobileImg || "");
+          return {
+            id: s.id,
+            title: s.title || "Royal Bridal Heritage",
+            subtitle: s.description || s.subtitle || "Discover timeless handcrafted bridal jewels",
+            description: s.description || s.subtitle || "Discover timeless handcrafted bridal jewels",
+            desktopImg: imgUrl,
+            mobileImg: imgUrl,
+            image: imgUrl,
+            status: 1,
+            ctaLink: s.ctaLink || "#gallery",
+            ctaText: s.ctaText || "Explore Collection",
+          };
+        });
 
-          if (activeSlides.length > 0) {
-            try {
-              localStorage.setItem(`aadagam_carousel_slides_${shopPrefix}`, JSON.stringify(activeSlides));
-            } catch (e) {}
-            return activeSlides;
-          }
-        }
-      } catch (adminErr) {
-        console.warn("Could not fetch admin hero slides:", adminErr);
+      if (activeSlides.length > 0) {
+        try {
+          localStorage.setItem(`aadagam_carousel_slides_${shopPrefix}`, JSON.stringify(activeSlides));
+        } catch (e) {}
+        return activeSlides;
       }
     }
 
