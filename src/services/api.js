@@ -48,52 +48,77 @@ export function extractYoutubeId(url = "") {
 export async function getSlides() {
   try {
     const subdomain = getTenantSubdomain();
-    const shopPrefix = getShopPrefix(subdomain);
+    const shop_name = getShopPrefix(subdomain);
+    const shopPrefix = shop_name;
 
-    // 1. Query backend hero slides API
-    const res = await adminGetAllHeroSlide(0, 10);
-    if (res && res.status === 1 && Array.isArray(res.data) && res.data.length > 0) {
-      const activeSlides = res.data
-        .filter((s) => s.status === 1 || s.status === undefined)
-        .map((s) => ({
-          id: s.id,
-          title: s.title || "Royal Bridal Heritage",
-          subtitle: s.description || "Discover timeless handcrafted bridal jewels",
-          description: s.description || "Discover timeless handcrafted bridal jewels",
-          desktopImg: s.image,
-          mobileImg: s.image,
-          image: s.image,
-          ctaLink: "#gallery",
-          ctaText: "Explore Collection",
-        }));
+    // 1. Query public backend hero slides API
+    let resData = null;
+    try {
+      const res = await apiClient.post("/user/get_all_hero_slide", {
+        shop_name,
+        subdomain,
+        pageNo: 0,
+        pageSize: 10,
+      });
+      if (res.data && res.data.status === 1 && Array.isArray(res.data.data) && res.data.data.length > 0) {
+        resData = res.data.data;
+      }
+    } catch (e) {
+      console.warn("Could not fetch /user/get_all_hero_slide:", e);
+    }
+
+    if (resData && resData.length > 0) {
+      const activeSlides = resData
+        .filter((s) => s.status === 1 || s.status === undefined || s.status === "1")
+        .map((s) => {
+          const imgUrl = resolveFullImageUrl(s.image || s.desktopImg || s.mobileImg || "");
+          return {
+            id: s.id,
+            title: s.title || "Royal Bridal Heritage",
+            subtitle: s.description || s.subtitle || "Discover timeless handcrafted bridal jewels",
+            description: s.description || s.subtitle || "Discover timeless handcrafted bridal jewels",
+            desktopImg: imgUrl,
+            mobileImg: imgUrl,
+            image: imgUrl,
+            ctaLink: s.ctaLink || "#gallery",
+            ctaText: s.ctaText || "Explore Collection",
+          };
+        });
 
       if (activeSlides.length > 0) {
-        localStorage.setItem(`aadagam_carousel_slides_${shopPrefix}`, JSON.stringify(activeSlides));
+        try {
+          localStorage.setItem(`aadagam_carousel_slides_${shopPrefix}`, JSON.stringify(activeSlides));
+        } catch (e) {}
         return activeSlides;
       }
     }
 
     // 2. Try local storage cache fallback
-    const localSlides = localStorage.getItem(`aadagam_carousel_slides_${shopPrefix}`);
-    if (localSlides) {
-      const parsed = JSON.parse(localSlides);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
+    try {
+      const localSlides = localStorage.getItem(`aadagam_carousel_slides_${shopPrefix}`);
+      if (localSlides) {
+        const parsed = JSON.parse(localSlides);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
 
     // 3. Fallback to basic assets
     const basicRes = await getBasicAssets();
     if (basicRes && basicRes.status === 1 && basicRes.image?.data?.length > 0) {
-      const basicSlides = basicRes.image.data.slice(0, 4).map((url, idx) => ({
-        id: idx + 1,
-        title: idx === 0 ? "Exquisite Bridal Diamond Collection" : "Royal Heritage Gold Collection",
-        subtitle: idx === 0 ? "Discover timeless handcrafted bridal jewels" : "Handcrafted pure 22K gold ornaments",
-        description: idx === 0 ? "Discover timeless handcrafted bridal jewels" : "Handcrafted pure 22K gold ornaments",
-        desktopImg: url,
-        mobileImg: url,
-        image: url,
-        ctaLink: "#gallery",
-        ctaText: "Explore Collection",
-      }));
+      const basicSlides = basicRes.image.data.slice(0, 4).map((url, idx) => {
+        const imgUrl = resolveFullImageUrl(url);
+        return {
+          id: idx + 1,
+          title: idx === 0 ? "Exquisite Bridal Diamond Collection" : "Royal Heritage Gold Collection",
+          subtitle: idx === 0 ? "Discover timeless handcrafted bridal jewels" : "Handcrafted pure 22K gold ornaments",
+          description: idx === 0 ? "Discover timeless handcrafted bridal jewels" : "Handcrafted pure 22K gold ornaments",
+          desktopImg: imgUrl,
+          mobileImg: imgUrl,
+          image: imgUrl,
+          ctaLink: "#gallery",
+          ctaText: "Explore Collection",
+        };
+      });
       return basicSlides;
     }
 
