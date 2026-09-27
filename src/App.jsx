@@ -144,12 +144,7 @@ function ClientStorefrontPage() {
         });
 
         // 2. Slides
-        const localSlides = localStorage.getItem(`aadagam_carousel_slides_${shopPrefix}`);
-        if (localSlides) {
-          setSlides(JSON.parse(localSlides));
-        } else {
-          setSlides(slideData);
-        }
+        setSlides(slideData && Array.isArray(slideData) && slideData.length > 0 ? slideData : mockSlides);
 
         // 3. Videos
         setVideos(videoData);

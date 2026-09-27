@@ -42,7 +42,7 @@ export function extractYoutubeId(url = "") {
  * ========================================================================== */
 
 /**
- * Fetch hero carousel slides (Checks backend hero slides, basic assets fallback, or mock slides)
+ * Fetch hero carousel slides (Checks token-based backend fetch, local storage cache, basic assets fallback, or mock slides)
  * @returns {Promise<Array>} Array of slide objects
  */
 export async function getSlides() {
@@ -51,80 +51,112 @@ export async function getSlides() {
     const shop_name = getShopPrefix(subdomain);
     const shopPrefix = shop_name;
 
-    // 1. Query public backend hero slides API
-    let resData = null;
-    try {
-      const res = await apiClient.post("/user/get_all_hero_slide", {
-        shop_name,
-        subdomain,
-        pageNo: 0,
-        pageSize: 10,
-      });
-      if (res.data && res.data.status === 1 && Array.isArray(res.data.data) && res.data.data.length > 0) {
-        resData = res.data.data;
-      }
-    } catch (e) {
-      console.warn("Could not fetch /user/get_all_hero_slide:", e);
-    }
-
-    if (resData && resData.length > 0) {
-      const activeSlides = resData
-        .filter((s) => s.status === 1 || s.status === undefined || s.status === "1")
-        .map((s) => {
-          const imgUrl = resolveFullImageUrl(s.image || s.desktopImg || s.mobileImg || "");
-          return {
-            id: s.id,
-            title: s.title || "Royal Bridal Heritage",
-            subtitle: s.description || s.subtitle || "Discover timeless handcrafted bridal jewels",
-            description: s.description || s.subtitle || "Discover timeless handcrafted bridal jewels",
-            desktopImg: imgUrl,
-            mobileImg: imgUrl,
-            image: imgUrl,
-            ctaLink: s.ctaLink || "#gallery",
-            ctaText: s.ctaText || "Explore Collection",
-          };
-        });
-
-      if (activeSlides.length > 0) {
+    // 1. If admin token exists (admin logged in or testing on this browser), fetch live slides
+    let token = localStorage.getItem("aadagam_auth_token");
+    if (!token) {
+      const adminSession = localStorage.getItem("aadagam_current_admin");
+      if (adminSession) {
         try {
-          localStorage.setItem(`aadagam_carousel_slides_${shopPrefix}`, JSON.stringify(activeSlides));
+          const user = JSON.parse(adminSession);
+          token = user?.token || user?.authTkn;
         } catch (e) {}
-        return activeSlides;
       }
     }
 
-    // 2. Try local storage cache fallback
+    if (token) {
+      try {
+        const res = await adminGetAllHeroSlide(0, 20, token);
+        if (res && res.status === 1 && Array.isArray(res.data) && res.data.length > 0) {
+          const activeSlides = res.data
+            .filter((s) => Number(s.status) === 1 || s.status === undefined || s.status === "1")
+            .map((s) => {
+              const imgUrl = resolveFullImageUrl(s.image || s.desktopImg || s.mobileImg || "");
+              return {
+                id: s.id,
+                title: s.title || "Royal Bridal Heritage",
+                subtitle: s.description || s.subtitle || "Discover timeless handcrafted bridal jewels",
+                description: s.description || s.subtitle || "Discover timeless handcrafted bridal jewels",
+                desktopImg: imgUrl,
+                mobileImg: imgUrl,
+                image: imgUrl,
+                status: 1,
+                ctaLink: s.ctaLink || "#gallery",
+                ctaText: s.ctaText || "Explore Collection",
+              };
+            });
+
+          if (activeSlides.length > 0) {
+            try {
+              localStorage.setItem(`aadagam_carousel_slides_${shopPrefix}`, JSON.stringify(activeSlides));
+            } catch (e) {}
+            return activeSlides;
+          }
+        }
+      } catch (adminErr) {
+        console.warn("Could not fetch admin hero slides:", adminErr);
+      }
+    }
+
+    // 2. Try local storage cache (populated when admin adds/updates slides on this subdomain)
     try {
       const localSlides = localStorage.getItem(`aadagam_carousel_slides_${shopPrefix}`);
       if (localSlides) {
         const parsed = JSON.parse(localSlides);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const activeLocal = parsed
+            .filter((s) => Number(s.status) !== 0 && s.status !== "0")
+            .map((s) => {
+              const imgUrl = resolveFullImageUrl(s.image || s.desktopImg || s.mobileImg || "");
+              return {
+                id: s.id,
+                title: s.title || "Royal Bridal Heritage",
+                subtitle: s.subtitle || s.description || "Discover timeless handcrafted bridal jewels",
+                description: s.description || s.subtitle || "Discover timeless handcrafted bridal jewels",
+                desktopImg: imgUrl,
+                mobileImg: imgUrl,
+                image: imgUrl,
+                status: 1,
+                ctaLink: s.ctaLink || "#gallery",
+                ctaText: s.ctaText || "Explore Collection",
+              };
+            });
+          if (activeLocal.length > 0) {
+            return activeLocal;
+          }
+        }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn("Could not read local hero slides cache:", e);
+    }
 
-    // 3. Fallback to basic assets
-    const basicRes = await getBasicAssets();
-    if (basicRes && basicRes.status === 1 && basicRes.image?.data?.length > 0) {
-      const basicSlides = basicRes.image.data.slice(0, 4).map((url, idx) => {
-        const imgUrl = resolveFullImageUrl(url);
-        return {
-          id: idx + 1,
-          title: idx === 0 ? "Exquisite Bridal Diamond Collection" : "Royal Heritage Gold Collection",
-          subtitle: idx === 0 ? "Discover timeless handcrafted bridal jewels" : "Handcrafted pure 22K gold ornaments",
-          description: idx === 0 ? "Discover timeless handcrafted bridal jewels" : "Handcrafted pure 22K gold ornaments",
-          desktopImg: imgUrl,
-          mobileImg: imgUrl,
-          image: imgUrl,
-          ctaLink: "#gallery",
-          ctaText: "Explore Collection",
-        };
-      });
-      return basicSlides;
+    // 3. Fallback to basic assets (official platform banners for public storefront)
+    try {
+      const basicRes = await getBasicAssets();
+      if (basicRes && basicRes.status === 1 && basicRes.image?.data?.length > 0) {
+        const basicSlides = basicRes.image.data.slice(0, 4).map((url, idx) => {
+          const imgUrl = resolveFullImageUrl(url);
+          return {
+            id: idx + 1,
+            title: idx === 0 ? "Exquisite Bridal Diamond Collection" : "Royal Heritage Gold Collection",
+            subtitle: idx === 0 ? "Discover timeless handcrafted bridal jewels" : "Handcrafted pure 22K gold ornaments",
+            description: idx === 0 ? "Discover timeless handcrafted bridal jewels" : "Handcrafted pure 22K gold ornaments",
+            desktopImg: imgUrl,
+            mobileImg: imgUrl,
+            image: imgUrl,
+            status: 1,
+            ctaLink: "#gallery",
+            ctaText: "Explore Collection",
+          };
+        });
+        return basicSlides;
+      }
+    } catch (basicErr) {
+      console.warn("Could not load basic assets fallback:", basicErr);
     }
 
     return mockSlides;
   } catch (err) {
-    console.warn("Could not load backend hero slides, using defaults:", err);
+    console.warn("Could not load hero slides, using defaults:", err);
     return mockSlides;
   }
 }
@@ -1498,4 +1530,24 @@ export async function adminUpdateHeroSlide(id, title, description, image, status
   }
 }
 
+/**
+ * Soft delete hero slide (sets status: 0)
+ * @param {Object} slide { id, title, description, image }
+ * @param {string} [token]
+ */
+export async function deleteHeroSlide(slide, token = null) {
+  return adminUpdateHeroSlide(
+    slide.id,
+    slide.title || "",
+    slide.description || slide.subtitle || "",
+    slide.image || slide.desktopImg || "",
+    0,
+    token
+  );
+}
 
+// Convenient CRUD aliases matching specification
+export const uploadHeroImage = adminUploadImages;
+export const addHeroSlide = adminAddHeroSlide;
+export const getHeroSlides = adminGetAllHeroSlide;
+export const updateHeroSlide = adminUpdateHeroSlide;
