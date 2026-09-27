@@ -13,7 +13,7 @@ import { getTenantSubdomain, getShopPrefix, resolveFullImageUrl } from "../servi
 const drawShopLogoBadge = (ctx, centerX, centerY, radius, shopLogoImg, shopName, scale = 1) => {
   ctx.save();
   
-  if (shopLogoImg && shopLogoImg.complete && shopLogoImg.naturalWidth > 0 && shopLogoImg.isCorsClean !== false) {
+  if (shopLogoImg && shopLogoImg.complete && shopLogoImg.naturalWidth > 0) {
     ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
     ctx.shadowBlur = 8 * scale;
 
@@ -86,6 +86,18 @@ const loadSingleImage = (url) => {
     if (!url) return resolve(null);
     const fullUrl = resolveFullImageUrl(url);
 
+    // If already a Data URL or Blob URL, it's 100% CORS-clean on canvas
+    if (fullUrl.startsWith("data:") || fullUrl.startsWith("blob:")) {
+      const img = new window.Image();
+      img.onload = () => {
+        img.isCorsClean = true;
+        resolve(img);
+      };
+      img.onerror = () => resolve(null);
+      img.src = fullUrl;
+      return;
+    }
+
     // Stage 1: Try direct anonymous CORS image load
     const img = new window.Image();
     img.crossOrigin = "anonymous";
@@ -97,50 +109,54 @@ const loadSingleImage = (url) => {
     };
 
     img.onerror = async () => {
-      // Stage 2: Fetch binary blob and convert to Base64 Data URL (Data URLs NEVER taint canvas!)
-      try {
-        const res = await fetch(fullUrl);
-        if (!res.ok) throw new Error("Fetch failed");
-        const blob = await res.blob();
+      // Stage 2: Fetch via CORS proxies or direct fetch to convert to Base64 Data URL (Base64 Data URLs NEVER taint canvas!)
+      const proxyCandidates = [
+        fullUrl,
+        `https://images.weserv.nl/?url=${encodeURIComponent(fullUrl.replace(/^https?:\/\//, ""))}`,
+        `https://corsproxy.io/?${encodeURIComponent(fullUrl)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(fullUrl)}`
+      ];
 
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const dataImg = new window.Image();
-          dataImg.crossOrigin = "anonymous";
-          dataImg.onload = () => {
-            dataImg.isCorsClean = true; // Base64 Data URL is 100% untainted on canvas!
-            resolve(dataImg);
-          };
-          dataImg.onerror = () => {
-            const fallbackImg = new window.Image();
-            fallbackImg.src = fullUrl;
-            fallbackImg.onload = () => {
-              fallbackImg.isCorsClean = false;
-              resolve(fallbackImg);
-            };
-            fallbackImg.onerror = () => resolve(null);
-          };
-          dataImg.src = reader.result;
-        };
-        reader.onerror = () => {
-          const fallbackImg = new window.Image();
-          fallbackImg.src = fullUrl;
-          fallbackImg.onload = () => {
-            fallbackImg.isCorsClean = false;
-            resolve(fallbackImg);
-          };
-          fallbackImg.onerror = () => resolve(null);
-        };
-        reader.readAsDataURL(blob);
-      } catch (e) {
-        const fallbackImg = new window.Image();
-        fallbackImg.src = fullUrl;
-        fallbackImg.onload = () => {
-          fallbackImg.isCorsClean = false;
-          resolve(fallbackImg);
-        };
-        fallbackImg.onerror = () => resolve(null);
+      for (const pUrl of proxyCandidates) {
+        try {
+          const res = await fetch(pUrl);
+          if (res.ok) {
+            const blob = await res.blob();
+            const dataUrl = await new Promise((resReader) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resReader(reader.result);
+              reader.onerror = () => resReader(null);
+              reader.readAsDataURL(blob);
+            });
+
+            if (dataUrl) {
+              const dataImg = new window.Image();
+              const loaded = await new Promise((resImg) => {
+                dataImg.onload = () => {
+                  dataImg.isCorsClean = true;
+                  resImg(dataImg);
+                };
+                dataImg.onerror = () => resImg(null);
+                dataImg.src = dataUrl;
+              });
+              if (loaded) {
+                return resolve(loaded);
+              }
+            }
+          }
+        } catch (e) {
+          // Try next proxy candidate
+        }
       }
+
+      // Stage 3: Fallback direct load (guarantees preview canvas always renders the logo image)
+      const fallbackImg = new window.Image();
+      fallbackImg.onload = () => {
+        fallbackImg.isCorsClean = true;
+        resolve(fallbackImg);
+      };
+      fallbackImg.onerror = () => resolve(null);
+      fallbackImg.src = fullUrl;
     };
   });
 };
@@ -320,6 +336,57 @@ const drawOrnamentalRule = (ctx, x, y, w, color, scale) => {
   ctx.restore();
 };
 
+/**
+ * Helper to wrap and draw physical showroom address text on canvas
+ */
+const drawShowroomAddress = (ctx, addressText, startX, startY, maxWidth, lineHeight, maxLines = 2) => {
+  if (!addressText) return;
+  const cleanText = String(addressText).replace(/[\r\n]+/g, ", ").trim();
+  const words = cleanText.split(/\s+/).filter(Boolean);
+  
+  const lines = [];
+  let currentLine = "";
+  
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const prefix = (lines.length === 0 && !currentLine) ? "\uD83D\uDCCD " : "";
+    const testWidth = ctx.measureText(prefix + testLine).width;
+    
+    if (testWidth > maxWidth && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+      if (lines.length === maxLines - 1) {
+        // Last allowed line: collect remaining words and truncate with ellipsis if needed
+        const remainingWords = words.slice(i);
+        let lastLine = "";
+        for (const remWord of remainingWords) {
+          const testLast = lastLine ? `${lastLine} ${remWord}` : remWord;
+          if (ctx.measureText(testLast + "...").width > maxWidth) {
+            lastLine = lastLine ? `${lastLine}...` : `${remWord.slice(0, 15)}...`;
+            break;
+          }
+          lastLine = testLast;
+        }
+        lines.push(lastLine || currentLine);
+        currentLine = "";
+        break;
+      }
+    } else {
+      currentLine = testLine;
+    }
+  }
+  
+  if (currentLine && lines.length < maxLines) {
+    lines.push(currentLine);
+  }
+
+  lines.forEach((line, index) => {
+    const textToDraw = index === 0 ? `\uD83D\uDCCD ${line}` : `   ${line}`;
+    ctx.fillText(textToDraw, startX, startY + index * lineHeight);
+  });
+};
+
 /** Draw the 3-column rate table */
 const drawRatePanel = (ctx, x, y, w, h, rates, bgColor1, bgColor2, borderColor, labelColor, valueColor, dividerColor, scale) => {
   ctx.save();
@@ -382,8 +449,8 @@ const drawTemplate1_RoyalHeritage = (ctx, W, H, shopName, shopLogoImg, livePrice
   const now = new Date();
   const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase();
   const rates = getFormattedRates(livePrices);
-  const phone = shopInfo?.phonePrimary || "+91 99520 54493";
-  const city = shopInfo?.city || "Tuticorin";
+  const phone = shopInfo?.phonePrimary || shopInfo?.phone || "+91 99520 54493";
+  const address = shopInfo?.address || shopInfo?.city || "Tuticorin";
 
   // TRANSLUCENT OVERLAY (allows background image/video to be sharp & clear)
   ctx.fillStyle = "rgba(10, 0, 4, 0.20)";
@@ -476,13 +543,13 @@ const drawTemplate1_RoyalHeritage = (ctx, W, H, shopName, shopLogoImg, livePrice
   fGrad.addColorStop(0, "rgba(0,0,0,0)"); fGrad.addColorStop(0.2, "rgba(45,5,5,0.95)"); fGrad.addColorStop(1, "rgba(12,1,1,0.99)");
   ctx.fillStyle = fGrad; ctx.fillRect(0, fY + 10 * sy, W, H - (fY + 10 * sy));
 
-  // LEFT BOTTOM: Phone & Place
+  // LEFT BOTTOM: Phone & Showroom Address
   const phoneX = 60 * sx;
   ctx.textAlign = "left";
-  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(26 * sc)}px Arial, sans-serif`;
-  ctx.fillText("\uD83D\uDCDE " + phone, phoneX, fY + 110 * sy);
-  ctx.fillStyle = "#E2C97E"; ctx.font = `${Math.round(22 * sc)}px Arial, sans-serif`;
-  ctx.fillText("\uD83D\uDCCD " + city, phoneX, fY + 155 * sy);
+  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(25 * sc)}px Arial, sans-serif`;
+  ctx.fillText("\uD83D\uDCDE " + phone, phoneX, fY + 100 * sy);
+  ctx.fillStyle = "#E2C97E"; ctx.font = `${Math.round(20 * sc)}px Arial, sans-serif`;
+  drawShowroomAddress(ctx, address, phoneX, fY + 142 * sy, W - 430 * sx, 28 * sy, 2);
 
   // RIGHT BOTTOM: BIS 916 Hallmark Emblem
   if (hallmarkImg && hallmarkImg.complete && hallmarkImg.naturalWidth > 0) {
@@ -511,8 +578,8 @@ const drawTemplate2_ModernMinimalist = (ctx, W, H, shopName, shopLogoImg, livePr
   const now = new Date();
   const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase();
   const rates = getFormattedRates(livePrices);
-  const phone = shopInfo?.phonePrimary || "+91 99520 54493";
-  const city = shopInfo?.city || "Tuticorin";
+  const phone = shopInfo?.phonePrimary || shopInfo?.phone || "+91 99520 54493";
+  const address = shopInfo?.address || shopInfo?.city || "Tuticorin";
 
   // TRANSLUCENT OVERLAY
   ctx.fillStyle = "rgba(2, 6, 20, 0.20)";
@@ -614,13 +681,13 @@ const drawTemplate2_ModernMinimalist = (ctx, W, H, shopName, shopLogoImg, livePr
   fGrad2.addColorStop(0, "rgba(0,0,0,0)"); fGrad2.addColorStop(0.2, "rgba(4,16,60,0.96)"); fGrad2.addColorStop(1, "rgba(2,8,30,0.99)");
   ctx.fillStyle = fGrad2; ctx.fillRect(0, fY + 10 * sy, W, H - (fY + 10 * sy));
 
-  // LEFT BOTTOM: Phone & Place
+  // LEFT BOTTOM: Phone & Showroom Address
   const phoneX2 = 60 * sx;
   ctx.textAlign = "left";
-  ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(26 * sc)}px Arial, sans-serif`;
-  ctx.fillText("\uD83D\uDCDE " + phone, phoneX2, fY + 110 * sy);
-  ctx.fillStyle = "#B0D0F0"; ctx.font = `${Math.round(22 * sc)}px Arial, sans-serif`;
-  ctx.fillText("\uD83D\uDCCD " + city, phoneX2, fY + 155 * sy);
+  ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(25 * sc)}px Arial, sans-serif`;
+  ctx.fillText("\uD83D\uDCDE " + phone, phoneX2, fY + 100 * sy);
+  ctx.fillStyle = "#B0D0F0"; ctx.font = `${Math.round(20 * sc)}px Arial, sans-serif`;
+  drawShowroomAddress(ctx, address, phoneX2, fY + 142 * sy, W - 430 * sx, 28 * sy, 2);
 
   // RIGHT BOTTOM: BIS 916 Hallmark Emblem
   if (hallmarkImg && hallmarkImg.complete && hallmarkImg.naturalWidth > 0) {
@@ -649,8 +716,8 @@ const drawTemplate3_BridalEmerald = (ctx, W, H, shopName, shopLogoImg, livePrice
   const now = new Date();
   const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase();
   const rates = getFormattedRates(livePrices);
-  const phone = shopInfo?.phonePrimary || "+91 99520 54493";
-  const city = shopInfo?.city || "Tuticorin";
+  const phone = shopInfo?.phonePrimary || shopInfo?.phone || "+91 99520 54493";
+  const address = shopInfo?.address || shopInfo?.city || "Tuticorin";
 
   // TRANSLUCENT OVERLAY
   ctx.fillStyle = "rgba(0, 10, 5, 0.20)";
@@ -742,13 +809,13 @@ const drawTemplate3_BridalEmerald = (ctx, W, H, shopName, shopLogoImg, livePrice
   fGrad3.addColorStop(0, "rgba(0,0,0,0)"); fGrad3.addColorStop(0.2, "rgba(0,30,14,0.96)"); fGrad3.addColorStop(1, "rgba(0,10,5,0.99)");
   ctx.fillStyle = fGrad3; ctx.fillRect(0, fY + 10 * sy, W, H - (fY + 10 * sy));
 
-  // LEFT BOTTOM: Phone & Place
+  // LEFT BOTTOM: Phone & Showroom Address
   const phoneX3 = 65 * sx;
   ctx.textAlign = "left";
-  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(26 * sc)}px Arial, sans-serif`;
-  ctx.fillText("\uD83D\uDCDE " + phone, phoneX3, fY + 110 * sy);
-  ctx.fillStyle = "#A7F3D0"; ctx.font = `${Math.round(22 * sc)}px Arial, sans-serif`;
-  ctx.fillText("\uD83D\uDCCD " + city, phoneX3, fY + 155 * sy);
+  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(25 * sc)}px Arial, sans-serif`;
+  ctx.fillText("\uD83D\uDCDE " + phone, phoneX3, fY + 100 * sy);
+  ctx.fillStyle = "#A7F3D0"; ctx.font = `${Math.round(20 * sc)}px Arial, sans-serif`;
+  drawShowroomAddress(ctx, address, phoneX3, fY + 142 * sy, W - 430 * sx, 28 * sy, 2);
 
   // RIGHT BOTTOM: BIS 916 Hallmark Emblem
   if (hallmarkImg && hallmarkImg.complete && hallmarkImg.naturalWidth > 0) {
@@ -777,8 +844,8 @@ const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrice
   const now = new Date();
   const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase();
   const rates = getFormattedRates(livePrices);
-  const phone = shopInfo?.phonePrimary || "+91 99520 54493";
-  const city = shopInfo?.city || "Tuticorin";
+  const phone = shopInfo?.phonePrimary || shopInfo?.phone || "+91 99520 54493";
+  const address = shopInfo?.address || shopInfo?.city || "Tuticorin";
 
   // TRANSLUCENT OVERLAY
   ctx.fillStyle = "rgba(15, 8, 4, 0.20)";
@@ -878,13 +945,13 @@ const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrice
   fGrad4.addColorStop(0, "rgba(0,0,0,0)"); fGrad4.addColorStop(0.2, "rgba(28,16,6,0.96)"); fGrad4.addColorStop(1, "rgba(12,6,2,0.99)");
   ctx.fillStyle = fGrad4; ctx.fillRect(0, fY + 10 * sy, W, H - (fY + 10 * sy));
 
-  // LEFT BOTTOM: Phone & Place
+  // LEFT BOTTOM: Phone & Showroom Address
   const phoneX4 = 75 * sx;
   ctx.textAlign = "left";
-  ctx.fillStyle = "#D4916A"; ctx.font = `bold ${Math.round(26 * sc)}px Arial, sans-serif`;
-  ctx.fillText("\uD83D\uDCDE " + phone, phoneX4, fY + 110 * sy);
-  ctx.fillStyle = "#C8A878"; ctx.font = `${Math.round(22 * sc)}px Arial, sans-serif`;
-  ctx.fillText("\uD83D\uDCCD " + city, phoneX4, fY + 155 * sy);
+  ctx.fillStyle = "#D4916A"; ctx.font = `bold ${Math.round(25 * sc)}px Arial, sans-serif`;
+  ctx.fillText("\uD83D\uDCDE " + phone, phoneX4, fY + 100 * sy);
+  ctx.fillStyle = "#C8A878"; ctx.font = `${Math.round(20 * sc)}px Arial, sans-serif`;
+  drawShowroomAddress(ctx, address, phoneX4, fY + 142 * sy, W - 440 * sx, 28 * sy, 2);
 
   // RIGHT BOTTOM: BIS 916 Hallmark Emblem
   if (hallmarkImg && hallmarkImg.complete && hallmarkImg.naturalWidth > 0) {
@@ -902,7 +969,6 @@ const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrice
   ctx.fillStyle = roseBar; ctx.fillRect(lsW, H - 6 * sy, W - lsW * 2, 6 * sy);
   ctx.restore();
 };
-
 
 /**
  * Dispatcher function for drawing the selected overlay template
@@ -1173,12 +1239,23 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
     img.onerror = () => setLoadedHallmarkLogo(null);
   }, []);
 
-  // Preload Shop Logo Image whenever shopInfo.logo changes
+  // Preload Shop Logo Image whenever shopInfo.logo changes or localStorage updates
   useEffect(() => {
-    const rawLogoUrl = shopInfo?.logo || shopInfo?.logoUrl;
+    const activeSubdomain = getTenantSubdomain();
+    const shopPrefix = getShopPrefix(activeSubdomain);
+    let cachedLogo = "";
+    try {
+      const c1 = localStorage.getItem(`aadagam_contact_info_${shopPrefix}`);
+      const c2 = localStorage.getItem(`aadagam_site_info_${shopPrefix}`);
+      const parsed1 = c1 ? JSON.parse(c1) : null;
+      const parsed2 = c2 ? JSON.parse(c2) : null;
+      cachedLogo = parsed1?.logo || parsed2?.logo || "";
+    } catch (e) {}
+
+    const rawLogoUrl = shopInfo?.logo || shopInfo?.logoUrl || cachedLogo;
     if (rawLogoUrl) {
       loadSingleImage(rawLogoUrl).then((loadedImg) => {
-        setLoadedShopLogo(loadedImg);
+        if (loadedImg) setLoadedShopLogo(loadedImg);
       });
     } else {
       setLoadedShopLogo(null);
@@ -1332,25 +1409,30 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
         if (!ctx) return resolve(null);
 
-        let activeShopLogo = (loadedShopLogo && loadedShopLogo.isCorsClean !== false) ? loadedShopLogo : null;
-        const targetShopLogoUrl = shopInfo?.logo || shopInfo?.logoUrl;
-        if (!activeShopLogo && targetShopLogoUrl) {
-          const loaded = await loadSingleImage(targetShopLogoUrl);
-          if (loaded && loaded.isCorsClean !== false) {
-            activeShopLogo = loaded;
-          }
-        }
-        let activeHallmarkLogo = (loadedHallmarkLogo && loadedHallmarkLogo.isCorsClean !== false) ? loadedHallmarkLogo : null;
-        if (!activeHallmarkLogo) {
-          const loaded = await loadSingleImage("/bis_916_hallmark.png");
-          if (loaded && loaded.isCorsClean !== false) {
-            activeHallmarkLogo = loaded;
-          }
-        }
-
         const activeSubdomain = getTenantSubdomain();
         const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
+        const shopPrefix = getShopPrefix(activeSubdomain);
         const shopNameStr = (shopInfo?.name || defaultShopName).toUpperCase();
+
+        let cachedLogo = "";
+        try {
+          const c1 = localStorage.getItem(`aadagam_contact_info_${shopPrefix}`);
+          const c2 = localStorage.getItem(`aadagam_site_info_${shopPrefix}`);
+          const parsed1 = c1 ? JSON.parse(c1) : null;
+          const parsed2 = c2 ? JSON.parse(c2) : null;
+          cachedLogo = parsed1?.logo || parsed2?.logo || "";
+        } catch (e) {}
+
+        const targetShopLogoUrl = shopInfo?.logo || shopInfo?.logoUrl || cachedLogo;
+        let activeShopLogo = loadedShopLogo || null;
+        if (!activeShopLogo && targetShopLogoUrl) {
+          activeShopLogo = await loadSingleImage(targetShopLogoUrl);
+        }
+
+        let activeHallmarkLogo = loadedHallmarkLogo || null;
+        if (!activeHallmarkLogo) {
+          activeHallmarkLogo = await loadSingleImage("/bis_916_hallmark.png");
+        }
 
         if (bgImageUrl) {
           const bgImg = await loadSingleImage(bgImageUrl);
@@ -1533,20 +1615,24 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
     try {
       // 1. Preload Shop Logo & Hallmark Logo
-      let activeShopLogo = (loadedShopLogo && loadedShopLogo.isCorsClean !== false) ? loadedShopLogo : null;
-      const targetShopLogoUrl = shopInfo?.logo || shopInfo?.logoUrl;
+      const shopPrefix = getShopPrefix(activeSubdomain);
+      let cachedLogo = "";
+      try {
+        const c1 = localStorage.getItem(`aadagam_contact_info_${shopPrefix}`);
+        const c2 = localStorage.getItem(`aadagam_site_info_${shopPrefix}`);
+        const parsed1 = c1 ? JSON.parse(c1) : null;
+        const parsed2 = c2 ? JSON.parse(c2) : null;
+        cachedLogo = parsed1?.logo || parsed2?.logo || "";
+      } catch (e) {}
+
+      const targetShopLogoUrl = shopInfo?.logo || shopInfo?.logoUrl || cachedLogo;
+      let activeShopLogo = loadedShopLogo || null;
       if (!activeShopLogo && targetShopLogoUrl) {
-        const loaded = await loadSingleImage(targetShopLogoUrl);
-        if (loaded && loaded.isCorsClean !== false) {
-          activeShopLogo = loaded;
-        }
+        activeShopLogo = await loadSingleImage(targetShopLogoUrl);
       }
-      let activeHallmarkLogo = (loadedHallmarkLogo && loadedHallmarkLogo.isCorsClean !== false) ? loadedHallmarkLogo : null;
+      let activeHallmarkLogo = loadedHallmarkLogo || null;
       if (!activeHallmarkLogo) {
-        const loaded = await loadSingleImage("/bis_916_hallmark.png");
-        if (loaded && loaded.isCorsClean !== false) {
-          activeHallmarkLogo = loaded;
-        }
+        activeHallmarkLogo = await loadSingleImage("/bis_916_hallmark.png");
       }
 
       setDownloadProgress(10);
@@ -1594,8 +1680,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
         throw new Error("MediaRecorder streaming not supported on this browser");
       }
 
-      // For video canvas recording, ensure logo is CORS-clean to prevent canvas tainting from blocking video stream
-      const videoLogoOverlay = (activeShopLogo && activeShopLogo.isCorsClean !== false) ? activeShopLogo : null;
+      const videoLogoOverlay = activeShopLogo || null;
 
       // Draw initial frame
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -2045,14 +2130,20 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
                     <span className="text-stone-400">Live Gold Rate (22K):</span>
                     <span className="font-number font-bold text-amber-300 text-sm">{livePrices.gold22k} /g</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center justify-between text-xs border-b border-stone-800 pb-2">
                     <span className="text-stone-400">Live Silver Rate (999):</span>
                     <span className="font-number font-bold text-stone-200 text-sm">{livePrices.silver999} /g</span>
+                  </div>
+                  <div className="flex items-start justify-between text-xs pt-0.5 gap-2">
+                    <span className="text-stone-400 shrink-0">Showroom Address:</span>
+                    <span className="font-medium text-stone-300 text-right truncate max-w-[200px]">
+                      {shopInfo?.address || shopInfo?.city || "Tuticorin"}
+                    </span>
                   </div>
                 </div>
 
                 <p className="text-[11px] text-stone-400 font-light leading-relaxed">
-                  Stamped with official 100% BIS Hallmarked 916 gold emblem, live metal rates in Cinzel typography, showroom logo, and contact phone number.
+                  Stamped with official 100% BIS Hallmarked 916 gold emblem, live metal rates in Cinzel typography, showroom logo, contact phone number, and physical showroom address.
                 </p>
               </div>
 

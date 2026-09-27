@@ -331,7 +331,15 @@ export default function AdminDashboard() {
         } else if (target === "slideshow") {
           setNewSlide((prev) => ({ ...prev, desktopImg: uploadedList[0] }));
         } else if (target === "logo") {
-          setContactInfo((prev) => ({ ...prev, logo: uploadedList[0] }));
+          const uploadedLogo = uploadedList[0];
+          setContactInfo((prev) => ({ ...prev, logo: uploadedLogo }));
+          const shopPrefix = getShopPrefix(adminUser?.domain);
+          try {
+            const currentContact = JSON.parse(localStorage.getItem(`aadagam_contact_info_${shopPrefix}`) || "{}");
+            localStorage.setItem(`aadagam_contact_info_${shopPrefix}`, JSON.stringify({ ...currentContact, logo: uploadedLogo }));
+            const currentSite = JSON.parse(localStorage.getItem(`aadagam_site_info_${shopPrefix}`) || "{}");
+            localStorage.setItem(`aadagam_site_info_${shopPrefix}`, JSON.stringify({ ...currentSite, logo: uploadedLogo }));
+          } catch (e) {}
           triggerToast("Showroom logo uploaded! Click 'Save Showroom Site Info' to apply changes.");
         }
       } else {
@@ -808,10 +816,9 @@ export default function AdminDashboard() {
       if (res && (res.status === 1 || res.success === 1 || res.success === true)) {
         const shopPrefix = getShopPrefix(adminUser.domain);
         const social_urls = { facebook, instagram, whatsapp, twitter, youtube, telegram };
-        localStorage.setItem(
-          `aadagam_contact_info_${shopPrefix}`,
-          JSON.stringify({ ...contactInfo, logo, social_urls, facebook, instagram, twitter, youtube, telegram })
-        );
+        const savedData = { ...contactInfo, logo, city, address, phone, contact_us, whatsapp_no, social_urls, facebook, instagram, twitter, youtube, telegram };
+        localStorage.setItem(`aadagam_contact_info_${shopPrefix}`, JSON.stringify(savedData));
+        localStorage.setItem(`aadagam_site_info_${shopPrefix}`, JSON.stringify(savedData));
         triggerToast(res.message || "Showroom contact and site info updated successfully!");
         loadShowroomSiteInfo();
       } else {
