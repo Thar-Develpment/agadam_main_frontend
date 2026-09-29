@@ -150,14 +150,6 @@ export default function AdminLogin() {
             )}
           </button>
         </form>
-
-        {/* Footer Link to Registration */}
-        <div className="text-center text-xs text-stone-500 pt-4 border-t border-stone-100 mt-6">
-          <span>Don't have a storefront yet? </span>
-          <Link to="/register" className="text-[#783bf0] hover:underline font-bold">
-            Register your showroom now
-          </Link>
-        </div>
       </div>
     </div>
   );

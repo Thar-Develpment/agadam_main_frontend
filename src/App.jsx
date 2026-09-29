@@ -11,7 +11,6 @@ import {
   getSiteInfo,
   getSlides,
   getGalleryImages,
-  getVideos,
   getAboutContent,
   getGalleryCategories,
   checkTenantStatus,
@@ -23,7 +22,6 @@ import GallerySection from "./components/GallerySection";
 import GoldRateSection from "./components/GoldRateSection";
 import AboutSection from "./components/AboutSection";
 import WhatsAppStatusSection from "./components/WhatsAppStatusSection";
-import VideoGallery from "./components/VideoGallery";
 import ContactSection from "./components/ContactSection";
 import Footer from "./components/Footer";
 import { Gem, Loader2, Sparkles, Lock, AlertCircle } from "lucide-react";
@@ -36,7 +34,6 @@ function ClientStorefrontPage() {
   const [shopInfo, setShopInfo] = useState(null);
   const [slides, setSlides] = useState([]);
   const [galleryImages, setGalleryImages] = useState([]);
-  const [videos, setVideos] = useState([]);
   const [aboutContent, setAboutContent] = useState(null);
   const [categories, setCategories] = useState(["All"]);
 
@@ -78,10 +75,9 @@ function ClientStorefrontPage() {
         }
 
         // 2. Load remaining storefront APIs only if payment status is valid
-        const [info, slideData, videoData, aboutData, categoryData] = await Promise.all([
+        const [info, slideData, aboutData, categoryData] = await Promise.all([
           getContactInfo(),
           getSlides(),
-          getVideos(),
           getAboutContent(),
           getGalleryCategories(),
         ]);
@@ -123,9 +119,15 @@ function ClientStorefrontPage() {
           ""
         ).trim();
 
+        const rawDisplayName = (liveSiteData.tamil_shop_name || baseContact.tamil_shop_name || "").trim();
+        const fallbackName = (liveSiteData.shop_name || shopPrefix || "").trim().toUpperCase();
+        const displayName = rawDisplayName || fallbackName;
+
         setShopInfo({
           ...baseContact,
-          name: (liveSiteData.shop_name || shopPrefix || "").trim().toUpperCase(),
+          name: displayName,
+          tamil_shop_name: rawDisplayName,
+          shop_name: fallbackName,
           logo: resolveFullImageUrl(liveSiteData.logo || baseContact.logo || ""),
           email: liveSiteData.contact_us || baseContact.email || `contact@${shopPrefix}jewellery.com`,
           contact_us: liveSiteData.contact_us || baseContact.email || `contact@${shopPrefix}jewellery.com`,
@@ -146,10 +148,7 @@ function ClientStorefrontPage() {
         // 2. Slides
         setSlides(slideData && Array.isArray(slideData) && slideData.length > 0 ? slideData : mockSlides);
 
-        // 3. Videos
-        setVideos(videoData);
-
-        // 4. About Us
+        // 3. About Us
         const localStory = localStorage.getItem(`aadagam_story_${shopPrefix}`);
         if (localStory) {
           try {
@@ -338,10 +337,7 @@ function ClientStorefrontPage() {
         {/* 5. About Us / Our Story Section */}
         <AboutSection aboutContent={aboutContent} galleryImages={galleryImages} shopInfo={shopInfo} />
 
-        {/* 6. Showcase Videos Section */}
-        <VideoGallery videos={videos} />
-
-        {/* 7. Contact Us & Enquiry Form Section */}
+        {/* 6. Contact Us & Enquiry Form Section */}
         <ContactSection shopInfo={shopInfo} />
       </main>
 

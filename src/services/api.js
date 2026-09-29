@@ -1331,8 +1331,8 @@ export async function adminActivateSubdomain(id, status = null, token = null) {
 /* ------------------ G. SITE INFO & S3 MULTI-IMAGE UPLOAD ------------------ */
 
 /**
- * Update showroom contact, physical address info, logo, and social media links via `POST /opxXxolN7m6CU/update_site_info`
- * @param {Object} siteInfo { logo, city, address, phone, contact_us, whatsapp_no, facebook, instagram, whatsapp, twitter, youtube, telegram }
+ * Update showroom contact, physical address info, logo, tamil_shop_name, and social media links via `POST /opxXxolN7m6CU/update_site_info`
+ * @param {Object} siteInfo { logo, city, address, phone, contact_us, whatsapp_no, tamil_shop_name, facebook, instagram, whatsapp, twitter, youtube, telegram }
  * @param {string} [token] Optional JWT token override
  * @returns {Promise<Object>} Response object { status: number, message: string, errors?: Object }
  */
@@ -1344,6 +1344,7 @@ export async function adminUpdateSiteInfo(
     phone,
     contact_us,
     whatsapp_no,
+    tamil_shop_name,
     facebook,
     instagram,
     whatsapp,
@@ -1363,6 +1364,9 @@ export async function adminUpdateSiteInfo(
       whatsapp_no: (whatsapp_no || "").trim().slice(0, 15),
     };
 
+    if (tamil_shop_name !== undefined) {
+      payload.tamil_shop_name = (tamil_shop_name || "").trim().slice(0, 255);
+    }
     if (facebook !== undefined) payload.facebook = (facebook || "").trim();
     if (instagram !== undefined) payload.instagram = (instagram || "").trim();
     if (whatsapp !== undefined) payload.whatsapp = (whatsapp || "").trim();

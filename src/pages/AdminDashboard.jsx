@@ -9,7 +9,6 @@ import {
   Image as ImageIcon,
   Tag,
   BookOpen,
-  Video,
   Settings,
   Plus,
   Trash2,
@@ -53,9 +52,6 @@ import {
   adminAddGallery,
   adminGetAllGallery,
   adminUpdateGallery,
-  adminAddVideo,
-  adminGetAllVideo,
-  adminUpdateVideo,
   adminGetAllAskedQuestions,
   adminGetSingleAskedQuestion,
   adminUpdateAskedQuestionStatus,
@@ -73,7 +69,6 @@ import {
   adminUpdateSiteInfo,
   adminUploadImages,
   adminActivateSubdomain,
-  extractYoutubeId,
   DEFAULT_GOLD_THUMBNAIL
 } from "../services/api";
 import { mockSlides, mockShopInfo } from "../services/mockData";
@@ -95,7 +90,6 @@ export default function AdminDashboard() {
   const [dashboardStats, setDashboardStats] = useState({
     category_count: 0,
     gallery_count: 0,
-    videos_count: 0,
     asked_question: 0,
     priceData: [],
   });
@@ -115,24 +109,19 @@ export default function AdminDashboard() {
   const [newImage, setNewImage] = useState({ categoryId: "", imageUrl: "" });
   const [galleryPage, setGalleryPage] = useState(0);
 
-  // 3. Videos State
-  const [videos, setVideos] = useState([]);
-  const [newVideoUrl, setNewVideoUrl] = useState("");
-  const [videoPage, setVideoPage] = useState(0);
-
-  // 4. Enquiries State
+  // 3. Enquiries State
   const [enquiries, setEnquiries] = useState([]);
   const [enquiryPage, setEnquiryPage] = useState(0);
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
   const [isLoadingEnquiryDetail, setIsLoadingEnquiryDetail] = useState(false);
 
-  // 5. Our Story State
+  // 4. Our Story State
   const [stories, setStories] = useState([]);
   const [storyContent, setStoryContent] = useState("");
   const [storyImage, setStoryImage] = useState("");
   const [storyPage, setStoryPage] = useState(0);
 
-  // 6. Slideshow Carousel
+  // 5. Slideshow Carousel
   const [slides, setSlides] = useState([]);
   const [slidePage, setSlidePage] = useState(0);
   const [newSlide, setNewSlide] = useState({
@@ -143,9 +132,10 @@ export default function AdminDashboard() {
     badge: ""
   });
 
-  // 7. Contact Profile & Site Info
+  // 6. Contact Profile & Site Info
   const [contactInfo, setContactInfo] = useState({
     logo: "",
+    tamil_shop_name: "",
     city: "",
     address: "",
     phone: "",
@@ -161,10 +151,10 @@ export default function AdminDashboard() {
     telegram: "",
   });
 
-  // 8. Delete Confirmation Modal State
+  // 7. Delete Confirmation Modal State
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
-    type: "", // 'slide' | 'category' | 'gallery' | 'video'
+    type: "", // 'slide' | 'category' | 'gallery'
     item: null
   });
 
@@ -207,6 +197,7 @@ export default function AdminDashboard() {
     }
     setContactInfo({
       logo: parsedContact.logo || "",
+      tamil_shop_name: parsedContact.tamil_shop_name || "",
       city: parsedContact.city || "",
       address: parsedContact.address || mockShopInfo.address,
       phone: parsedContact.phone || parsedContact.phonePrimary || mockShopInfo.phonePrimary,
@@ -226,7 +217,6 @@ export default function AdminDashboard() {
     loadDashboardStats();
     loadCategories(0);
     loadGallery(0);
-    loadVideos(0);
     loadEnquiries(0);
     loadStories(0);
     loadSlides(0);
@@ -249,6 +239,7 @@ export default function AdminDashboard() {
         setContactInfo((prev) => ({
           ...prev,
           logo: d.logo || prev.logo || "",
+          tamil_shop_name: d.tamil_shop_name || prev.tamil_shop_name || "",
           city: d.city || prev.city || "",
           address: d.address || prev.address || "",
           phone: d.phone || prev.phone || prev.phonePrimary || "",
@@ -319,12 +310,6 @@ export default function AdminDashboard() {
           } else {
             setNewImage((prev) => ({ ...prev, imageUrl: uploadedList[0] }));
           }
-        } else if (target === "video") {
-          setNewVideoUrl(uploadedList[0]);
-          await adminAddVideo(uploadedList[0]);
-          loadVideos(videoPage);
-          loadDashboardStats();
-          triggerToast("Video uploaded and added to showcase!");
         } else if (target === "story") {
           const uploadedStoryImg = uploadedList[0];
           setStoryImage(uploadedStoryImg);
@@ -376,7 +361,6 @@ export default function AdminDashboard() {
       setDashboardStats({
         category_count: res?.category_count ?? 0,
         gallery_count: res?.gallery_count ?? 0,
-        videos_count: res?.videos_count ?? 0,
         asked_question: res?.asked_question ?? 0,
         priceData: siteRes?.priceData || res?.priceData || [],
       });
@@ -503,52 +487,7 @@ export default function AdminDashboard() {
   };
 
   /* ==========================================================================
-   * 3. VIDEO CRUD HANDLERS
-   * ========================================================================== */
-  const loadVideos = async (page = 0) => {
-    try {
-      const res = await adminGetAllVideo(page, 20);
-      if (res && res.status === 1 && Array.isArray(res.data)) {
-        setVideos(res.data);
-      } else {
-        setVideos([]);
-      }
-    } catch (e) {
-      console.error("Failed to load videos:", e);
-    }
-  };
-
-  const handleAddVideo = async (e) => {
-    e.preventDefault();
-    if (!newVideoUrl.trim()) return;
-
-    setIsLoading(true);
-    const res = await adminAddVideo(newVideoUrl.trim());
-    setIsLoading(false);
-
-    if (res.status === 1) {
-      triggerToast(res.message || "Video added successfully!");
-      setNewVideoUrl("");
-      loadVideos(videoPage);
-    } else {
-      triggerToast(res.message || "Failed to add video", "error");
-    }
-  };
-
-  const handleToggleVideoStatus = async (v) => {
-    const nextStatus = v.status === 1 ? 0 : 1;
-    const videoUrl = v.video_url || v.videoUrl || v.url || "";
-    const res = await adminUpdateVideo(v.id, videoUrl, nextStatus);
-    if (res.status === 1) {
-      triggerToast(`Video ${nextStatus === 1 ? "Activated" : "Deactivated"}`);
-      loadVideos(videoPage);
-    } else {
-      triggerToast(res.message || "Status update failed", "error");
-    }
-  };
-
-  /* ==========================================================================
-   * 4. CUSTOMER ENQUIRIES HANDLERS
+   * 3. CUSTOMER ENQUIRIES HANDLERS
    * ========================================================================== */
   const loadEnquiries = async (page = 0) => {
     try {
@@ -789,17 +728,6 @@ export default function AdminDashboard() {
       } else {
         triggerToast(res.message || "Failed to delete image.", "error");
       }
-    } else if (type === "video") {
-      setIsLoading(true);
-      const videoUrl = item.video_url || item.videoUrl || item.url || "";
-      const res = await adminUpdateVideo(item.id, videoUrl, 0);
-      setIsLoading(false);
-      if (res.status === 1) {
-        triggerToast("Showcase video deleted successfully.");
-        loadVideos(videoPage);
-      } else {
-        triggerToast(res.message || "Failed to delete video.", "error");
-      }
     }
 
     setDeleteModal({ isOpen: false, type: "", item: null });
@@ -809,6 +737,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     setIsLoading(true);
 
+    const tamil_shop_name = (contactInfo.tamil_shop_name || "").trim().slice(0, 255);
     const logo = (contactInfo.logo || "").trim().slice(0, 250);
     const city = (contactInfo.city || "").trim().slice(0, 250);
     const address = (contactInfo.address || "").trim().slice(0, 1500);
@@ -826,6 +755,7 @@ export default function AdminDashboard() {
     try {
       const res = await adminUpdateSiteInfo({
         logo: logo || "https://s3.in-west3.purestore.io/aadagam/images/logo.png",
+        tamil_shop_name,
         city,
         address,
         phone,
@@ -844,7 +774,7 @@ export default function AdminDashboard() {
       if (res && (res.status === 1 || res.success === 1 || res.success === true)) {
         const shopPrefix = getShopPrefix(adminUser.domain);
         const social_urls = { facebook, instagram, whatsapp, twitter, youtube, telegram };
-        const savedData = { ...contactInfo, logo, city, address, phone, contact_us, whatsapp_no, social_urls, facebook, instagram, twitter, youtube, telegram };
+        const savedData = { ...contactInfo, tamil_shop_name, logo, city, address, phone, contact_us, whatsapp_no, social_urls, facebook, instagram, twitter, youtube, telegram };
         localStorage.setItem(`aadagam_contact_info_${shopPrefix}`, JSON.stringify(savedData));
         localStorage.setItem(`aadagam_site_info_${shopPrefix}`, JSON.stringify(savedData));
         triggerToast(res.message || "Showroom contact and site info updated successfully!");
@@ -901,7 +831,6 @@ export default function AdminDashboard() {
     { id: "gallery", label: "Jewellery Gallery", shortLabel: "Gallery", icon: ImageIcon, count: galleryImages.length },
     { id: "rates", label: "Daily Metal Rates", shortLabel: "Metal Rates", icon: Coins, count: dashboardStats.priceData.length },
     { id: "story", label: "Our Story Narrative", shortLabel: "Our Story", icon: BookOpen },
-    { id: "videos", label: "Showcase Videos", shortLabel: "Videos", icon: Video, count: videos.length },
     { id: "enquiries", label: "Customer Enquiries", shortLabel: "Enquiries", icon: MessageSquare, count: enquiries.length },
     { id: "contact", label: "Showroom Contact", shortLabel: "Contact", icon: Settings },
   ];
@@ -1197,7 +1126,7 @@ export default function AdminDashboard() {
         {/* Right Main Content Pane */}
         <main className="lg:col-span-9 w-full min-w-0 space-y-6 text-left">
           {/* Live Overview Stats Counter Bar (GET /opxXxolN7m6CU/dash_board) */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center shrink-0">
                 <Tag className="w-5 h-5" />
@@ -1215,16 +1144,6 @@ export default function AdminDashboard() {
               <div>
                 <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Catalogue</span>
                 <span className="font-serif text-xl font-bold text-stone-900">{dashboardStats.gallery_count || galleryImages.length}</span>
-              </div>
-            </div>
-
-            <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center shrink-0">
-                <Video className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Videos</span>
-                <span className="font-serif text-xl font-bold text-stone-900">{dashboardStats.videos_count || videos.length}</span>
               </div>
             </div>
 
@@ -1634,129 +1553,6 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                     ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* ===================================================================
-           * TAB 3: SHOWCASE VIDEOS MANAGEMENT
-           * =================================================================== */}
-          {activeTab === "videos" && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
-                      Showcase Videos
-                    </h3>
-                    <p className="text-xs text-stone-500 mt-1">
-                      Add YouTube videos of your atelier, artisan craftsmanship, and bridal campaigns.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => loadVideos(videoPage)}
-                    className="p-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors shrink-0"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <form onSubmit={handleAddVideo} className="space-y-3 pt-2">
-                  <div>
-                    <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-1.5">
-                      YouTube Video URL <span className="text-rose-500">*</span>
-                    </label>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <input
-                        type="url"
-                        maxLength={500}
-                        placeholder="e.g. https://www.youtube.com/watch?v=... or https://youtu.be/..."
-                        value={newVideoUrl}
-                        onChange={(e) => setNewVideoUrl(e.target.value)}
-                        className="flex-1 px-4 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-[#D4AF37]"
-                        required
-                      />
-                      <button
-                        type="submit"
-                        disabled={isLoading || !newVideoUrl.trim()}
-                        className="inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3.5 px-6 rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-50 min-h-[44px]"
-                      >
-                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" /> : <Plus className="w-4 h-4 text-[#D4AF37]" />}
-                        <span>Add Video</span>
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              </div>
-
-              {/* Videos List */}
-              <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm space-y-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-stone-400 block">
-                  Showcase Videos ({videos.length})
-                </span>
-
-                {videos.length === 0 ? (
-                  <p className="text-xs text-stone-400 italic py-4">No videos found.</p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                    {videos.map((v) => {
-                      const ytId = extractYoutubeId(v.video_url);
-                      const initialThumb = ytId
-                        ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
-                        : DEFAULT_GOLD_THUMBNAIL;
-
-                      return (
-                        <div
-                          key={v.id}
-                          className="bg-[#FAF9F5] border border-stone-200 rounded-2xl overflow-hidden shadow-xs flex flex-col justify-between"
-                        >
-                          <div className="aspect-video w-full bg-stone-900 relative overflow-hidden group">
-                            <img
-                              src={initialThumb}
-                              alt="Video thumbnail"
-                              onError={(e) => {
-                                if (e.currentTarget.src !== DEFAULT_GOLD_THUMBNAIL) {
-                                  e.currentTarget.src = DEFAULT_GOLD_THUMBNAIL;
-                                }
-                              }}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                            <div className="absolute inset-0 bg-stone-950/20 flex items-center justify-center pointer-events-none">
-                              <div className="w-10 h-10 rounded-full bg-stone-900/80 backdrop-blur-xs text-[#D4AF37] border border-[#D4AF37]/40 flex items-center justify-center shadow-lg">
-                                <Video className="w-5 h-5 ml-0.5" />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="p-4 space-y-2">
-                            <span className="text-[10px] font-mono text-stone-400 block truncate">
-                              {v.video_url}
-                            </span>
-                            <div className="flex items-center justify-between pt-2 border-t border-stone-200">
-                              <span className="text-[10px] font-mono text-stone-500">ID #{v.id}</span>
-                              <div className="flex items-center gap-1.5">
-                                <button
-                                  onClick={() => handleToggleVideoStatus(v)}
-                                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${v.status === 1 ? "bg-emerald-100 text-emerald-800" : "bg-stone-200 text-stone-600"
-                                    }`}
-                                >
-                                  {v.status === 1 ? "Active" : "Inactive"}
-                                </button>
-                                <button
-                                  onClick={() => openDeleteModal("video", v)}
-                                  className="p-1 rounded-lg text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors"
-                                  title="Delete video"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
                   </div>
                 )}
               </div>
@@ -2324,6 +2120,34 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+                {/* Showroom Display Name / Tamil Shop Name */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider">
+                      Showroom Display Name (Tamil / Custom Name)
+                    </label>
+                    <span className="text-[10px] text-stone-400 font-mono">
+                      {(contactInfo.tamil_shop_name || "").length}/255 max
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+                      <Tag className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      maxLength={255}
+                      placeholder="e.g. ஆதகம் ஜுவல்லர்ஸ் or Praveen Jewellery"
+                      value={contactInfo.tamil_shop_name || ""}
+                      onChange={(e) => setContactInfo({ ...contactInfo, tamil_shop_name: e.target.value })}
+                      className="w-full pl-10 pr-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
+                    />
+                  </div>
+                  <p className="text-[11px] text-stone-500 mt-1 font-light">
+                    Display name shown on your storefront header, footer, and brand profile (supports spaces, Tamil script, etc.). If left empty, your domain prefix <strong className="font-semibold text-stone-700">({getShopPrefix(adminUser?.domain)})</strong> is displayed by default.
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* City */}
                   <div>
@@ -2717,15 +2541,13 @@ export default function AdminDashboard() {
                 <h3 className="font-serif text-lg font-bold text-stone-900">
                   Delete {
                     deleteModal.type === "slide" ? "Slide" :
-                    deleteModal.type === "category" ? "Category" :
-                    deleteModal.type === "gallery" ? "Image" : "Video"
+                    deleteModal.type === "category" ? "Category" : "Image"
                   }
                 </h3>
                 <p className="text-xs text-stone-500 font-light mt-0.5">
                   Are you sure you want to delete this {
                     deleteModal.type === "slide" ? "hero slide" :
-                    deleteModal.type === "category" ? "category" :
-                    deleteModal.type === "gallery" ? "gallery image" : "showcase video"
+                    deleteModal.type === "category" ? "category" : "gallery image"
                   }?
                 </p>
               </div>
