@@ -6,6 +6,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import NotFoundPage from "./pages/NotFoundPage";
 import {
   getContactInfo,
   getSiteInfo,
@@ -257,29 +258,28 @@ function ClientStorefrontPage() {
 
     return (
       <div className="min-h-screen bg-[#FAF9F5] flex flex-col items-center justify-center p-6 text-center select-none animate-fade-in">
-        {/* Animated Luxury Brand Logo Badge */}
-        <div className="relative mb-6">
+        {/* Animated Luxury Brand Logo */}
+        <div className="relative mb-6 flex items-center justify-center">
           {activeLogo ? (
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white border-2 border-[#D4AF37] p-2 flex items-center justify-center shadow-2xl shadow-stone-950/20 overflow-hidden">
+            <div className="flex items-center justify-center">
               <img
                 src={activeLogo}
                 alt="Showroom Logo"
-                className="w-full h-full object-contain animate-pulse"
+                className="h-16 sm:h-20 w-auto max-w-[200px] max-h-20 object-contain animate-pulse"
                 onError={(e) => {
                   e.target.style.display = "none";
                   if (e.target.nextSibling) e.target.nextSibling.style.display = "flex";
                 }}
               />
-              <div className="hidden w-full h-full rounded-full bg-gradient-to-tr from-stone-950 via-stone-900 to-stone-950 items-center justify-center">
-                <Gem className="w-9 h-9 sm:w-10 sm:h-10 text-[#D4AF37] animate-pulse" />
+              <div className="hidden w-16 h-16 rounded-2xl bg-gradient-to-tr from-stone-950 via-stone-900 to-stone-950 items-center justify-center shadow-2xl shadow-stone-950/20 border border-[#D4AF37]">
+                <Gem className="w-8 h-8 text-[#D4AF37] animate-pulse" />
               </div>
             </div>
           ) : (
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-stone-950 via-stone-900 to-stone-950 border-2 border-[#D4AF37] flex items-center justify-center shadow-2xl shadow-stone-950/20">
-              <Gem className="w-9 h-9 sm:w-10 sm:h-10 text-[#D4AF37] animate-pulse" />
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-stone-950 via-stone-900 to-stone-950 border-2 border-[#D4AF37] flex items-center justify-center shadow-2xl shadow-stone-950/20">
+              <Gem className="w-8 h-8 sm:w-10 sm:h-10 text-[#D4AF37] animate-pulse" />
             </div>
           )}
-          <div className="absolute -inset-2 rounded-full border border-[#D4AF37]/30 animate-ping pointer-events-none" />
         </div>
 
         {/* Meaningful & Attractive Luxury Loading Message */}
@@ -368,8 +368,8 @@ function MainLayout() {
         {/* Standalone Onboarding Registration */}
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* Fallback for subdomain routes */}
-        <Route path="*" element={<ClientStorefrontPage />} />
+        {/* 404 Fallback for subdomain routes */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     );
   }
@@ -399,8 +399,8 @@ function MainLayout() {
       {/* Page 6: Super Admin Portal */}
       <Route path="/superadmin" element={<SuperAdminDashboard />} />
 
-      {/* Fallback route */}
-      <Route path="*" element={<PlatformLandingPage />} />
+      {/* 404 Fallback route for main domain */}
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
