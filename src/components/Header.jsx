@@ -96,22 +96,22 @@ export default function Header({ shopInfo }) {
             className="flex items-center gap-3 group"
           >
             {shopInfo?.logo ? (
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white border border-[#D4AF37] p-1 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform shrink-0 overflow-hidden">
+              <div className="flex items-center justify-center shrink-0">
                 <img
                   src={resolveFullImageUrl(shopInfo.logo)}
                   alt={shopInfo?.name || "Logo"}
-                  className="w-full h-full object-contain"
+                  className="h-10 sm:h-12 w-auto max-w-[140px] sm:max-w-[180px] max-h-12 object-contain group-hover:scale-105 transition-transform"
                   onError={(e) => {
                     e.target.style.display = "none";
                     if (e.target.nextSibling) e.target.nextSibling.style.display = "flex";
                   }}
                 />
-                <div className="hidden w-full h-full rounded-full bg-gradient-to-tr from-stone-900 via-[#1C1917] to-[#292524] items-center justify-center">
+                <div className="hidden w-10 h-10 rounded-xl bg-gradient-to-tr from-stone-900 via-[#1C1917] to-[#292524] items-center justify-center border border-[#D4AF37]/50 shadow-md">
                   <Gem className="w-5 h-5 text-[#D4AF37]" />
                 </div>
               </div>
             ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-stone-900 via-[#1C1917] to-[#292524] border border-[#D4AF37] flex items-center justify-center shadow-md group-hover:scale-105 transition-transform shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-stone-900 via-[#1C1917] to-[#292524] border border-[#D4AF37] flex items-center justify-center shadow-md group-hover:scale-105 transition-transform shrink-0">
                 <Gem className="w-5 h-5 text-[#D4AF37]" />
               </div>
             )}
@@ -189,11 +189,28 @@ export default function Header({ shopInfo }) {
             <div>
               {/* Drawer Header */}
               <div className="flex items-center justify-between pb-6 border-b border-stone-200">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-stone-900 border border-[#D4AF37] flex items-center justify-center">
-                    <Gem className="w-4 h-4 text-[#D4AF37]" />
-                  </div>
-                  <span className="font-serif font-bold text-lg text-stone-900">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {shopInfo?.logo ? (
+                    <div className="flex items-center justify-center shrink-0">
+                      <img
+                        src={resolveFullImageUrl(shopInfo.logo)}
+                        alt={shopInfo?.name || "Logo"}
+                        className="h-8 sm:h-9 w-auto max-w-[110px] max-h-9 object-contain"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                          if (e.target.nextSibling) e.target.nextSibling.style.display = "flex";
+                        }}
+                      />
+                      <div className="hidden w-8 h-8 rounded-lg bg-stone-900 border border-[#D4AF37] items-center justify-center">
+                        <Gem className="w-4 h-4 text-[#D4AF37]" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-stone-900 border border-[#D4AF37] flex items-center justify-center shrink-0">
+                      <Gem className="w-4 h-4 text-[#D4AF37]" />
+                    </div>
+                  )}
+                  <span className="font-serif font-bold text-base sm:text-lg text-stone-900 truncate">
                     {shopInfo?.name || "JEWELLERY BOUTIQUE"}
                   </span>
                 </div>
