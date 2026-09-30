@@ -8,22 +8,175 @@ import { getTenantSubdomain, getShopPrefix, resolveFullImageUrl } from "../servi
 // ==========================================
 
 /**
+ * Renders the Shop Logo and Shop Name as a single, perfectly unified, centered header block.
+ * Eliminates empty gaps between logo and text, centering the combined unit horizontally across W.
+ */
+const drawCenteredHeaderLogoAndShopName = (ctx, W, topY, shopName, shopLogoImg, maxLogoW, maxLogoH, maxFontSize, sc, sx, sy, fillStyleStyle, accentColor = "#D4AF37") => {
+  ctx.save();
+
+  // 1. Calculate Logo Dimensions
+  let logoW = 0;
+  let logoH = 0;
+  let hasImageLogo = false;
+
+  if (shopLogoImg && shopLogoImg.complete && shopLogoImg.naturalWidth > 0) {
+    hasImageLogo = true;
+    const aspect = shopLogoImg.naturalWidth / shopLogoImg.naturalHeight;
+    logoW = maxLogoW;
+    logoH = logoW / aspect;
+    if (logoH > maxLogoH) {
+      logoH = maxLogoH;
+      logoW = logoH * aspect;
+    }
+  } else if (shopName) {
+    logoW = 140 * sc;
+    logoH = 140 * sc;
+  }
+
+  const gap = hasImageLogo ? -16 * sx : shopName ? 1 * sx : 0;
+  const maxAvailableTextW = Math.max(100, W - 80 * sx - logoW - gap);
+
+  // 2. Determine Shop Name Wrapping & Line Formatting
+  let lines = [];
+  let fontSize = Math.round(maxFontSize * sc);
+  ctx.font = `bold ${fontSize}px Georgia, serif`;
+
+  if (shopName) {
+    const singleLineWidth = ctx.measureText(shopName).width;
+
+    if (singleLineWidth <= maxAvailableTextW) {
+      lines = [shopName];
+    } else {
+      const getWrappedLines = (text, maxWidth) => {
+        const words = text.trim().split(/\s+/);
+        if (words.length <= 1) return [text];
+        const resLines = [];
+        let currentLine = words[0];
+        for (let i = 1; i < words.length; i++) {
+          const testLine = currentLine + " " + words[i];
+          if (ctx.measureText(testLine).width <= maxWidth) {
+            currentLine = testLine;
+          } else {
+            resLines.push(currentLine);
+            currentLine = words[i];
+          }
+        }
+        resLines.push(currentLine);
+        return resLines;
+      };
+
+      lines = getWrappedLines(shopName, maxAvailableTextW);
+
+      if (lines.length === 1) {
+        fontSize = Math.max(Math.round(26 * sc), Math.floor(fontSize * (maxAvailableTextW / singleLineWidth)));
+        ctx.font = `bold ${fontSize}px Georgia, serif`;
+      } else {
+        let maxLineW = 0;
+        lines.forEach(l => {
+          const w = ctx.measureText(l).width;
+          if (w > maxLineW) maxLineW = w;
+        });
+
+        if (maxLineW > maxAvailableTextW) {
+          fontSize = Math.max(Math.round(24 * sc), Math.floor(fontSize * (maxAvailableTextW / maxLineW)));
+          ctx.font = `bold ${fontSize}px Georgia, serif`;
+          lines = getWrappedLines(shopName, maxAvailableTextW);
+        }
+      }
+    }
+  }
+
+  // Calculate text block width
+  let textW = 0;
+  lines.forEach(l => {
+    const w = ctx.measureText(l).width;
+    if (w > textW) textW = w;
+  });
+
+  const lineGap = fontSize * 1.15;
+
+  // 3. Compute Group Positions (Center Logo + Gap + Text horizontally)
+  const totalGroupW = logoW + (lines.length > 0 ? gap + textW : 0);
+  const groupStartX = Math.max(30 * sx, (W - totalGroupW) / 2);
+  const headerCenterY = topY + maxLogoH / 2;
+
+  // 4. Draw Logo
+  const logoX = groupStartX;
+  const logoY = headerCenterY - logoH / 2;
+
+  if (hasImageLogo) {
+    ctx.shadowColor = "rgba(0, 0, 0, 0.75)";
+    ctx.shadowBlur = 12 * sc;
+    ctx.shadowOffsetY = 4 * sc;
+    ctx.drawImage(shopLogoImg, logoX, logoY, logoW, logoH);
+    ctx.shadowBlur = 0;
+  } else if (shopName) {
+    const shopInitial = shopName.trim().charAt(0).toUpperCase();
+    ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
+    ctx.shadowBlur = 12 * sc;
+    ctx.fillStyle = accentColor;
+    ctx.font = `bold ${Math.round(140 * sc)}px Georgia, serif`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(shopInitial, logoX, headerCenterY);
+    ctx.shadowBlur = 0;
+  }
+
+  // 5. Draw Shop Name Text immediately next to logo (gap = 20px)
+  if (lines.length > 0) {
+    const textStartX = logoX + (logoW > 0 ? logoW + gap : 0);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.95)";
+    ctx.shadowBlur = 14 * sc;
+
+    if (lines.length === 1) {
+      ctx.fillStyle = typeof fillStyleStyle === "function" ? fillStyleStyle(ctx, textStartX + textW / 2, headerCenterY) : fillStyleStyle;
+      ctx.fillText(lines[0], textStartX, headerCenterY);
+    } else {
+      const startTextY = headerCenterY - ((lines.length - 1) * lineGap) / 2;
+      lines.forEach((line, index) => {
+        const lineY = startTextY + index * lineGap;
+        ctx.fillStyle = typeof fillStyleStyle === "function" ? fillStyleStyle(ctx, textStartX + textW / 2, lineY) : fillStyleStyle;
+        ctx.fillText(line, textStartX, lineY);
+      });
+    }
+  }
+
+  ctx.restore();
+};
+
+/**
  * Draws the Shop Logo inside a luxury metallic gold medallion badge or monogram emblem on Canvas
  */
-const drawShopLogoBadge = (ctx, centerX, centerY, radius, shopLogoImg, shopName, scale = 1) => {
+const drawShopLogoBadge = (ctx, centerX, centerY, radius, shopLogoImg, shopName, scale = 1, style = "gold") => {
   ctx.save();
-  
-  // Outer Metallic Gold Gradient Ring
-  ctx.shadowColor = "rgba(0, 0, 0, 0.55)";
-  ctx.shadowBlur = 12 * scale;
 
-  const outerGoldGrad = ctx.createLinearGradient(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
-  outerGoldGrad.addColorStop(0, "#78590F");
-  outerGoldGrad.addColorStop(0.3, "#D4AF37");
-  outerGoldGrad.addColorStop(0.7, "#FFF6D4");
-  outerGoldGrad.addColorStop(1, "#9E7B15");
+  // Outer Metallic Ring Gradient based on style
+  ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
+  ctx.shadowBlur = 14 * scale;
 
-  ctx.fillStyle = outerGoldGrad;
+  const outerGrad = ctx.createLinearGradient(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
+  if (style === "navy") {
+    outerGrad.addColorStop(0, "#7EB8FF");
+    outerGrad.addColorStop(0.5, "#0A2568");
+    outerGrad.addColorStop(1, "#D4AF37");
+  } else if (style === "emerald") {
+    outerGrad.addColorStop(0, "#6EE7B7");
+    outerGrad.addColorStop(0.5, "#024E28");
+    outerGrad.addColorStop(1, "#D4AF37");
+  } else if (style === "rose") {
+    outerGrad.addColorStop(0, "#F5E4C8");
+    outerGrad.addColorStop(0.5, "#D4916A");
+    outerGrad.addColorStop(1, "#A06040");
+  } else {
+    outerGrad.addColorStop(0, "#78590F");
+    outerGrad.addColorStop(0.3, "#D4AF37");
+    outerGrad.addColorStop(0.7, "#FFF6D4");
+    outerGrad.addColorStop(1, "#9E7B15");
+  }
+
+  ctx.fillStyle = outerGrad;
   ctx.beginPath();
   ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
   ctx.fill();
@@ -42,7 +195,7 @@ const drawShopLogoBadge = (ctx, centerX, centerY, radius, shopLogoImg, shopName,
     ctx.beginPath();
     ctx.arc(centerX, centerY, innerRadius - 2 * scale, 0, Math.PI * 2);
     ctx.clip();
-    
+
     const aspect = shopLogoImg.naturalWidth / shopLogoImg.naturalHeight;
     let drawW = innerRadius * 1.68;
     let drawH = drawW / aspect;
@@ -53,8 +206,8 @@ const drawShopLogoBadge = (ctx, centerX, centerY, radius, shopLogoImg, shopName,
     ctx.drawImage(shopLogoImg, centerX - drawW / 2, centerY - drawH / 2, drawW, drawH);
     ctx.restore();
 
-    // Subtle Gold Inner Rim
-    ctx.strokeStyle = "rgba(212, 175, 55, 0.85)";
+    // Subtle Inner Rim
+    ctx.strokeStyle = style === "navy" ? "rgba(126, 184, 255, 0.85)" : style === "emerald" ? "rgba(110, 231, 183, 0.85)" : "rgba(212, 175, 55, 0.85)";
     ctx.lineWidth = 2 * scale;
     ctx.beginPath();
     ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
@@ -63,28 +216,39 @@ const drawShopLogoBadge = (ctx, centerX, centerY, radius, shopLogoImg, shopName,
     // Luxury Shop Monogram Crest Medallion (Fallback when shop image logo is not set)
     const innerRadius = radius - 4 * scale;
     const innerGrad = ctx.createLinearGradient(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
-    innerGrad.addColorStop(0, "#241804");
-    innerGrad.addColorStop(1, "#0A0601");
+    if (style === "navy") {
+      innerGrad.addColorStop(0, "#061950");
+      innerGrad.addColorStop(1, "#030C2D");
+    } else if (style === "emerald") {
+      innerGrad.addColorStop(0, "#00230F");
+      innerGrad.addColorStop(1, "#001208");
+    } else if (style === "rose") {
+      innerGrad.addColorStop(0, "#231206");
+      innerGrad.addColorStop(1, "#120803");
+    } else {
+      innerGrad.addColorStop(0, "#241804");
+      innerGrad.addColorStop(1, "#0A0601");
+    }
     ctx.fillStyle = innerGrad;
     ctx.beginPath();
     ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.strokeStyle = "#FDE68A";
+    ctx.strokeStyle = style === "navy" ? "#7EB8FF" : style === "emerald" ? "#6EE7B7" : "#FDE68A";
     ctx.lineWidth = 1.8 * scale;
     ctx.stroke();
 
     // Monogram Initial Letter
     const shopInitial = (shopName || "S").trim().charAt(0).toUpperCase();
-    ctx.shadowColor = "rgba(212, 175, 55, 0.7)";
+    ctx.shadowColor = style === "navy" ? "rgba(126, 184, 255, 0.7)" : "rgba(212, 175, 55, 0.7)";
     ctx.shadowBlur = 8 * scale;
-    ctx.fillStyle = "#FDE68A";
+    ctx.fillStyle = style === "navy" ? "#7EB8FF" : style === "emerald" ? "#6EE7B7" : "#FDE68A";
     ctx.font = `bold ${Math.round(radius * 1.05)}px Georgia, serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(shopInitial, centerX, centerY + 2 * scale);
   }
-  
+
   ctx.restore();
 };
 
@@ -111,13 +275,13 @@ const loadSingleImage = (url) => {
       try {
         const res = await fetch(fullUrl, { mode: "cors" });
         if (res.ok) blob = await res.blob();
-      } catch (e) {}
+      } catch (e) { }
 
       if (!blob && fullUrl.startsWith("/")) {
         try {
           const res = await fetch(window.location.origin + fullUrl);
           if (res.ok) blob = await res.blob();
-        } catch (e) {}
+        } catch (e) { }
       }
 
       if (blob) {
@@ -141,7 +305,7 @@ const loadSingleImage = (url) => {
           if (loaded) return resolve(loaded);
         }
       }
-    } catch (e) {}
+    } catch (e) { }
 
     // Stage 2: Try direct anonymous CORS image load
     try {
@@ -156,7 +320,7 @@ const loadSingleImage = (url) => {
         img.onerror = () => resImg(null);
       });
       if (loadedImg) return resolve(loadedImg);
-    } catch (e) {}
+    } catch (e) { }
 
     // Stage 3: Fetch via CORS proxies to convert to Base64 Data URL (with PNG format output)
     const cleanUrl = fullUrl.replace(/^https?:\/\//, "");
@@ -196,7 +360,7 @@ const loadSingleImage = (url) => {
             if (loaded) return resolve(loaded);
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     // Stage 4: Fallback direct load
@@ -308,7 +472,7 @@ const drawVectorIconBadge = (ctx, centerX, centerY, radius, type, scale, accentC
  */
 const drawRealBIS916Hallmark = (ctx, centerX, centerY, scale = 1, style = "gold", hallmarkImg = null) => {
   ctx.save();
-  
+
   if (hallmarkImg && hallmarkImg.complete && hallmarkImg.naturalWidth > 0 && hallmarkImg.isCorsClean !== false) {
     const aspect = hallmarkImg.naturalWidth / hallmarkImg.naturalHeight;
     const drawW = 210 * scale;
@@ -410,7 +574,7 @@ const drawRealBIS916Hallmark = (ctx, centerX, centerY, scale = 1, style = "gold"
 // ==========================================
 
 /**
- * Helper to parse numeric gold price and calculate 8GM (1 Pavan/Sovereign) price
+ * Helper to parse numeric gold price and calculate rates
  */
 const getFormattedRates = (livePrices = {}) => {
   const parseNum = (str) => {
@@ -423,13 +587,17 @@ const getFormattedRates = (livePrices = {}) => {
   const silver1gVal = parseNum(livePrices.silver999) || 94.50;
   const gold8gVal = gold1gVal * 8;
 
+  const silverStr = silver1gVal % 1 === 0
+    ? `\u20b9${silver1gVal.toLocaleString("en-IN")}`
+    : `\u20b9${silver1gVal.toFixed(2)}`;
+
   return {
     gold1gVal,
     silver1gVal,
     gold8gVal,
     gold1gStr: `\u20b9${gold1gVal.toLocaleString("en-IN")}`,
     gold8gStr: `\u20b9${gold8gVal.toLocaleString("en-IN")}`,
-    silver1gStr: `\u20b9${silver1gVal.toLocaleString("en-IN")}`,
+    silver1gStr: silverStr,
   };
 };
 
@@ -487,15 +655,15 @@ const drawShowroomAddress = (ctx, addressText, startX, startY, maxWidth, lineHei
   if (!addressText) return;
   const cleanText = String(addressText).replace(/[\r\n]+/g, ", ").trim();
   const words = cleanText.split(/\s+/).filter(Boolean);
-  
+
   const lines = [];
   let currentLine = "";
-  
+
   for (let i = 0; i < words.length; i++) {
     const word = words[i];
     const testLine = currentLine ? `${currentLine} ${word}` : word;
     const testWidth = ctx.measureText(testLine).width;
-    
+
     if (testWidth > maxWidth && currentLine) {
       lines.push(currentLine);
       currentLine = word;
@@ -518,7 +686,7 @@ const drawShowroomAddress = (ctx, addressText, startX, startY, maxWidth, lineHei
       currentLine = testLine;
     }
   }
-  
+
   if (currentLine && lines.length < maxLines) {
     lines.push(currentLine);
   }
@@ -528,485 +696,574 @@ const drawShowroomAddress = (ctx, addressText, startX, startY, maxWidth, lineHei
   });
 };
 
-// ==============================
-// TEMPLATE 1: Royal Heritage (Maroon & Gold)
-// ==============================
-const drawTemplate1_RoyalHeritage = (ctx, W, H, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null) => {
-  ctx.save();
-  const sx = W / 1080, sy = H / 1920, sc = Math.min(sx, sy);
-  const cx = W / 2;
-  const now = new Date();
-  const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
-  const rates = getFormattedRates(livePrices);
-  const phone = shopInfo?.phonePrimary || shopInfo?.phone || "+91 99520 54493";
-  const address = shopInfo?.address || shopInfo?.city || "Tuticorin";
-
-  // Light base overlay allowing product image to shine through
-  ctx.fillStyle = "rgba(12, 2, 6, 0.18)";
-  ctx.fillRect(0, 0, W, H);
-
-  // TOP HEADER: Soft Glassmorphic Gradient Scrim
-  const topScrim = ctx.createLinearGradient(0, 0, 0, 240 * sy);
-  topScrim.addColorStop(0, "rgba(22, 4, 10, 0.96)");
-  topScrim.addColorStop(0.7, "rgba(22, 4, 10, 0.82)");
-  topScrim.addColorStop(1, "rgba(12, 2, 6, 0)");
-  ctx.fillStyle = topScrim;
-  ctx.fillRect(0, 0, W, 240 * sy);
-
-  // Top Edge Gold Bar
-  const goldGrad = ctx.createLinearGradient(0, 0, W, 0);
-  goldGrad.addColorStop(0, "rgba(212,175,55,0.2)"); goldGrad.addColorStop(0.5, "#D4AF37"); goldGrad.addColorStop(1, "rgba(212,175,55,0.2)");
-  ctx.fillStyle = goldGrad; ctx.fillRect(0, 0, W, 6 * sy);
-
-  // --- HEADER: TOP-LEFT LOGO MEDALLION, SHOP NAME, TOP-RIGHT DATE ---
-  const logoRadius = 48 * sc;
-  const logoCenterX = 55 * sx + logoRadius; // ~ 103 * sx
-  const logoCenterY = 40 * sy + logoRadius; // ~ 88 * sy
-  drawShopLogoBadge(ctx, logoCenterX, logoCenterY, logoRadius, shopLogoImg, shopName, sc);
-
-  const textStartX = logoCenterX + logoRadius + 20 * sx;
+/**
+ * Helper to draw 2-line stacked footer address cleanly matching reference image (Line 1: Street, Line 2: City/State)
+ */
+const drawFooterAddressTwoLines = (ctx, fullAddress, startX, startY, lineHeight, scale, color = "#FFFFFF") => {
+  if (!fullAddress) return;
   ctx.save();
   ctx.textAlign = "left";
-  ctx.shadowColor = "rgba(212,175,55,0.6)"; ctx.shadowBlur = 14 * sc;
-  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(44 * sc)}px Georgia, serif`;
-  ctx.fillText(shopName, textStartX, logoCenterY - 4 * sy); ctx.shadowBlur = 0;
+  ctx.fillStyle = color;
+  ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+  ctx.shadowBlur = 8 * scale;
+  ctx.font = `bold ${Math.round(36 * scale)}px "Inter", "Segoe UI", Arial, sans-serif`;
 
-  ctx.fillStyle = "#D4AF37"; ctx.font = `bold ${Math.round(16 * sc)}px Arial, sans-serif`;
-  ctx.fillText("SOLITAIRE & FINE JEWELLERY", textStartX, logoCenterY + 28 * sy);
-  ctx.restore();
+  const cleanAddr = String(fullAddress).trim();
+  let line1 = cleanAddr;
+  let line2 = "";
 
-  // Top Right Date
-  ctx.save();
-  ctx.textAlign = "right";
-  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 8 * sc;
-  ctx.fillStyle = "#FDE68A"; ctx.font = `bold ${Math.round(24 * sc)}px Georgia, serif`;
-  ctx.fillText(dateStr, W - 50 * sx, logoCenterY + 4 * sy);
-  ctx.restore();
+  if (cleanAddr.includes(",")) {
+    const parts = cleanAddr.split(",");
+    line1 = parts[0].trim() + ",";
+    line2 = parts.slice(1).join(",").trim();
+  } else if (cleanAddr.length > 15) {
+    const words = cleanAddr.split(" ");
+    const mid = Math.ceil(words.length / 2);
+    line1 = words.slice(0, mid).join(" ");
+    line2 = words.slice(mid).join(" ");
+  }
 
-  drawOrnamentalRule(ctx, 40 * sx, 195 * sy, W - 80 * sx, "#D4AF37", sc);
-
-  // === SIDE-BY-SIDE RATE CARDS (GOLD LEFT & SILVER RIGHT) AT Y = 1240px ===
-  const cardY = 1240 * sy, cardH = 260 * sy, cardW = 480 * sx;
-  const leftX = 40 * sx, leftCx = leftX + cardW / 2;
-  const rightX = 560 * sx, rightCx = rightX + cardW / 2;
-
-  // LEFT CARD: GOLD 22K (1g)
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.65)"; ctx.shadowBlur = 18 * sc;
-  const gPanel = ctx.createLinearGradient(leftX, cardY, leftX, cardY + cardH);
-  gPanel.addColorStop(0, "rgba(45, 10, 8, 0.94)"); gPanel.addColorStop(1, "rgba(20, 4, 4, 0.96)");
-  ctx.fillStyle = gPanel; ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.fill();
-  ctx.shadowBlur = 0; ctx.strokeStyle = "#D4AF37"; ctx.lineWidth = 2.2 * sc;
-  ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
-  ctx.restore();
-
-  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(19 * sc)}px Arial, sans-serif`;
-  ctx.textAlign = "center"; ctx.fillText("TODAY'S 22K GOLD RATE", leftCx, cardY + 40 * sy);
-  ctx.fillStyle = "#D4AF37"; ctx.font = `bold ${Math.round(14 * sc)}px Arial, sans-serif`;
-  ctx.fillText("PER 1 GRAM", leftCx, cardY + 66 * sy);
-
-  drawOrnamentalRule(ctx, leftX + 40 * sx, cardY + 90 * sy, cardW - 80 * sx, "rgba(212,175,55,0.45)", sc);
-
-  ctx.shadowColor = "rgba(212,175,55,0.7)"; ctx.shadowBlur = 18 * sc;
-  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(64 * sc)}px Georgia, serif`;
-  ctx.fillText(rates.gold1gStr, leftCx, cardY + 186 * sy); ctx.shadowBlur = 0;
-
-  // RIGHT CARD: SILVER 999 (1g)
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.65)"; ctx.shadowBlur = 18 * sc;
-  const sPanel = ctx.createLinearGradient(rightX, cardY, rightX, cardY + cardH);
-  sPanel.addColorStop(0, "rgba(20, 24, 34, 0.94)"); sPanel.addColorStop(1, "rgba(10, 12, 18, 0.96)");
-  ctx.fillStyle = sPanel; ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.fill();
-  ctx.shadowBlur = 0; ctx.strokeStyle = "#CBD5E1"; ctx.lineWidth = 2.2 * sc;
-  ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
-  ctx.restore();
-
-  ctx.fillStyle = "#CBD5E1"; ctx.font = `bold ${Math.round(19 * sc)}px Arial, sans-serif`;
-  ctx.textAlign = "center"; ctx.fillText("TODAY'S 999 FINE SILVER", rightCx, cardY + 40 * sy);
-  ctx.fillStyle = "#94A3B8"; ctx.font = `bold ${Math.round(14 * sc)}px Arial, sans-serif`;
-  ctx.fillText("PER 1 GRAM", rightCx, cardY + 66 * sy);
-
-  drawOrnamentalRule(ctx, rightX + 40 * sx, cardY + 90 * sy, cardW - 80 * sx, "rgba(203,213,225,0.45)", sc);
-
-  ctx.shadowColor = "rgba(226,232,240,0.7)"; ctx.shadowBlur = 18 * sc;
-  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(64 * sc)}px Georgia, serif`;
-  ctx.fillText(rates.silver1gStr, rightCx, cardY + 186 * sy); ctx.shadowBlur = 0;
-
-  // === FOOTER: SEAMLESS VIGNETTE SCRIM, ENLARGED HIGH-CONTRAST PHONE & ADDRESS ===
-  const fY = 1530 * sy;
-  const fGrad = ctx.createLinearGradient(0, fY, 0, H);
-  fGrad.addColorStop(0, "rgba(12, 2, 6, 0)");
-  fGrad.addColorStop(0.2, "rgba(20, 4, 8, 0.88)");
-  fGrad.addColorStop(1, "rgba(10, 1, 3, 0.98)");
-  ctx.fillStyle = fGrad; ctx.fillRect(0, fY, W, H - fY);
-
-  drawOrnamentalRule(ctx, 40 * sx, fY + 30 * sy, W - 80 * sx, "#D4AF37", sc);
-
-  // Phone Vector Icon Badge & Text
-  const iconR = 20 * sc;
-  const phoneX = 60 * sx + iconR;
-  const phoneY = fY + 85 * sy;
-  drawVectorIconBadge(ctx, phoneX, phoneY, iconR, "phone", sc, "#FFE566");
-
-  ctx.save();
-  ctx.textAlign = "left";
-  ctx.shadowColor = "rgba(255, 229, 102, 0.7)"; ctx.shadowBlur = 14 * sc;
-  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(36 * sc)}px Arial, sans-serif`;
-  ctx.fillText(phone, phoneX + iconR + 16 * sx, phoneY + 12 * sy);
-  ctx.restore();
-
-  // Showroom Address Vector Icon Badge & Text
-  const pinX = 60 * sx + iconR;
-  const pinY = phoneY + 56 * sy;
-  drawVectorIconBadge(ctx, pinX, pinY, iconR, "pin", sc, "#D4AF37");
-
-  ctx.save();
-  ctx.textAlign = "left";
-  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(24 * sc)}px Arial, sans-serif`;
-  drawShowroomAddress(ctx, address, pinX + iconR + 16 * sx, pinY + 8 * sy, W - 440 * sx, 32 * sy, 2);
-  ctx.restore();
-
-  // Right Bottom: BIS 916 Hallmark Badge
-  drawRealBIS916Hallmark(ctx, W - 150 * sx, fY + 115 * sy, sc * 0.82, "gold", hallmarkImg);
-
-  // Bottom Center: Tagline
-  ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(255,229,128,0.9)"; ctx.font = `italic ${Math.round(22 * sc)}px Georgia, serif`;
-  ctx.fillText('"Where Luxury Meets Tradition"', cx, H - 30 * sy);
-
-  ctx.fillStyle = goldGrad; ctx.fillRect(0, H - 6 * sy, W, 6 * sy);
+  ctx.fillText(line1, startX, startY);
+  if (line2) {
+    ctx.fillText(line2, startX, startY + lineHeight);
+  }
   ctx.restore();
 };
 
 // ==============================
-// TEMPLATE 2: Midnight Navy & Diamond
+// TEMPLATE DRAWING HELPERS & SHIELD SHAPES
 // ==============================
-const drawTemplate2_ModernMinimalist = (ctx, W, H, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null) => {
+
+/**
+ * Draws a Scalloped Luxury Gold Shield Card badge shape on canvas
+ */
+const drawScallopedShieldCard = (ctx, x, y, w, h, notchR) => {
+  ctx.beginPath();
+  ctx.moveTo(x + notchR, y);
+  ctx.lineTo(x + w - notchR, y);
+  ctx.arc(x + w, y, notchR, Math.PI, Math.PI / 2, true);
+  ctx.lineTo(x + w, y + h - notchR);
+  ctx.arc(x + w, y + h, notchR, Math.PI * 1.5, Math.PI, true);
+  ctx.lineTo(x + notchR, y + h);
+  ctx.arc(x, y + h, notchR, 0, Math.PI * 1.5, true);
+  ctx.lineTo(x, y + notchR);
+  ctx.arc(x, y, notchR, Math.PI / 2, 0, true);
+  ctx.closePath();
+};
+
+/**
+ * Draws the Authentic Scalloped Crest Badge (PTR / Royal Jewellers Badge Style matching reference image)
+ * Rounded rectangle corners + 4 center outward pointed tips (N, S, E, W)
+ */
+const drawScallopedCrestBadge = (ctx, x, y, w, h, sc = 1) => {
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  const right = x + w;
+  const bottom = y + h;
+
+  // Scaled dimensions for corner radius and tips
+  const r = 38 * sc;
+  const tipH = 18 * sc;
+  const tipW = 32 * sc;
+
+  ctx.beginPath();
+  // 1. Top-Left Corner to Top Edge Tip Base Left
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(cx - tipW, y);
+
+  // Top Center Tip Pointing UP
+  ctx.quadraticCurveTo(cx - tipW * 0.35, y - tipH * 0.95, cx, y - tipH);
+  ctx.quadraticCurveTo(cx + tipW * 0.35, y - tipH * 0.95, cx + tipW, y);
+
+  // Top Edge Tip Base Right to Top-Right Corner
+  ctx.lineTo(right - r, y);
+  ctx.arcTo(right, y, right, y + r, r);
+
+  // Right Edge to Right Tip Base Top
+  ctx.lineTo(right, cy - tipW);
+
+  // Right Center Tip Pointing RIGHT
+  ctx.quadraticCurveTo(right + tipH * 0.95, cy - tipW * 0.35, right + tipH, cy);
+  ctx.quadraticCurveTo(right + tipH * 0.95, cy + tipW * 0.35, right, cy + tipW);
+
+  // Right Edge Tip Base Bottom to Bottom-Right Corner
+  ctx.lineTo(right, bottom - r);
+  ctx.arcTo(right, bottom, right - r, bottom, r);
+
+  // Bottom Edge to Bottom Tip Base Right
+  ctx.lineTo(cx + tipW, bottom);
+
+  // Bottom Center Tip Pointing DOWN
+  ctx.quadraticCurveTo(cx + tipW * 0.35, bottom + tipH * 0.95, cx, bottom + tipH);
+  ctx.quadraticCurveTo(cx - tipW * 0.35, bottom + tipH * 0.95, cx - tipW, bottom);
+
+  // Bottom Edge Tip Base Left to Bottom-Left Corner
+  ctx.lineTo(x + r, bottom);
+  ctx.arcTo(x, bottom, x, bottom - r, r);
+
+  // Left Edge to Left Tip Base Bottom
+  ctx.lineTo(x, cy + tipW);
+
+  // Left Center Tip Pointing LEFT
+  ctx.quadraticCurveTo(x - tipH * 0.95, cy + tipW * 0.35, x - tipH, cy);
+  ctx.quadraticCurveTo(x - tipH * 0.95, cy - tipW * 0.35, x, cy - tipW);
+
+  // Left Edge Tip Base Top to Top-Left Corner
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+
+  ctx.closePath();
+};
+
+/**
+ * Draws the Scalloped Solid Gold Crest Rate Card (Exact match to PTR Jewellers reference image)
+ */
+const renderScallopedCrestCard = (ctx, x, y, w, h, titleStr, weightStr, priceStr, sc, sx, sy) => {
+  ctx.save();
+  const cxPos = x + w / 2;
+
+  // 1. Floating Outer Metallic Gold Thin Wireframe Border (Offset ~9px around badge)
+  ctx.save();
+  ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
+  ctx.shadowBlur = 14 * sc;
+  ctx.shadowOffsetY = 4 * sc;
+
+  const outerOffset = 9 * sc;
+  const wireGrad = ctx.createLinearGradient(x, y, x + w, y + h);
+  wireGrad.addColorStop(0, "#FFE875");
+  wireGrad.addColorStop(0.5, "#D89B1B");
+  wireGrad.addColorStop(1, "#A3750D");
+
+  ctx.strokeStyle = wireGrad;
+  ctx.lineWidth = 2.2 * sc;
+  drawScallopedCrestBadge(ctx, x - outerOffset, y - outerOffset, w + outerOffset * 2, h + outerOffset * 2, sc * 1.04);
+  ctx.stroke();
+  ctx.restore();
+
+  // 2. Main Solid Gold Gradient Fill (Warm, rich gold gradient fill matching reference image)
+  const badgeGrad = ctx.createLinearGradient(x, y, x + w, y + h);
+  badgeGrad.addColorStop(0.0, "#FBE37B"); // Bright yellow gold top-left
+  badgeGrad.addColorStop(0.3, "#F7CA3B"); // Warm gold body
+  badgeGrad.addColorStop(0.7, "#D89B1B"); // Deep rich gold
+  badgeGrad.addColorStop(1.0, "#A3750D"); // Polished gold shadow bottom-right
+
+  ctx.save();
+  ctx.shadowColor = "rgba(0, 0, 0, 0.55)";
+  ctx.shadowBlur = 12 * sc;
+  ctx.fillStyle = badgeGrad;
+  drawScallopedCrestBadge(ctx, x, y, w, h, sc);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // 3. Crisp Dark Black/Mahogany Outline around Badge (Matches exact reference dark rim)
+  ctx.strokeStyle = "#1A0E03";
+  ctx.lineWidth = 3.5 * sc;
+  drawScallopedCrestBadge(ctx, x, y, w, h, sc);
+  ctx.stroke();
+
+  // 4. Subtle Inner Golden Hairline Stroke (Inset ~3px)
+  ctx.strokeStyle = "rgba(255, 252, 235, 0.9)";
+  ctx.lineWidth = 1.4 * sc;
+  drawScallopedCrestBadge(ctx, x + 3 * sc, y + 3 * sc, w - 6 * sc, h - 6 * sc, sc * 0.96);
+  ctx.stroke();
+  ctx.restore();
+
+  // 5. TYPOGRAPHY & CONTENTS INSIDE BADGE (Clean dark mahogany brown `#1C0D01`)
+  const textColor = "#1C0D01";
+
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.fillStyle = textColor;
+
+  // Line 1: Title ("Gold Rate" / "Silver Rate")
+  ctx.font = `bold ${Math.round(44 * sc)}px Georgia, serif`;
+  ctx.fillText(titleStr, cxPos, y + 74 * sy);
+
+  // Line 2: Weight & Purity ("1GM  22K" / "1GM  999")
+  ctx.font = `bold ${Math.round(42 * sc)}px "Outfit", "Plus Jakarta Sans", sans-serif`;
+  ctx.fillText(weightStr, cxPos, y + 130 * sy);
+
+  // Line 3: Price Display ("₹ 13,710" / "₹ 245") - BIGGER VERY BIGGER (96px 900 weight)
+  let priceFontSize = Math.round(96 * sc);
+  ctx.font = `900 ${priceFontSize}px "Plus Jakarta Sans", "Outfit", sans-serif`;
+  const maxPriceW = w - 44 * sc;
+  const priceW = ctx.measureText(priceStr).width;
+  if (priceW > maxPriceW) {
+    priceFontSize = Math.max(Math.round(68 * sc), Math.floor(priceFontSize * (maxPriceW / priceW)));
+    ctx.font = `900 ${priceFontSize}px "Plus Jakarta Sans", "Outfit", sans-serif`;
+  }
+  ctx.fillText(priceStr, cxPos, y + 258 * sy);
+
+  ctx.restore();
+  ctx.restore();
+};
+
+// ==============================
+// TEMPLATE 1: Royal Heritage (Maroon & Gold PTR Shield)
+// ==============================
+const drawTemplate1_RoyalHeritage = (ctx, W, H, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null, rateNote = "") => {
   ctx.save();
   const sx = W / 1080, sy = H / 1920, sc = Math.min(sx, sy);
   const cx = W / 2;
   const now = new Date();
   const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
   const rates = getFormattedRates(livePrices);
-  const phone = shopInfo?.phonePrimary || shopInfo?.phone || "+91 99520 54493";
-  const address = shopInfo?.address || shopInfo?.city || "Tuticorin";
+  const phone = shopInfo?.phonePrimary || shopInfo?.phone || shopInfo?.whatsapp_no || "+91 99520 54493";
+  const rawAddress = (shopInfo?.address || shopInfo?.fullAddress || shopInfo?.showroomAddress || "").trim();
+  const rawCity = (shopInfo?.city || "").trim();
+  let address = rawAddress;
+  if (!address) {
+    address = rawCity ? `${rawCity}, Tamil Nadu` : "Tuticorin, Tamil Nadu";
+  } else if (rawCity && !address.toLowerCase().includes(rawCity.toLowerCase())) {
+    address = `${address}, ${rawCity}`;
+  }
 
-  ctx.fillStyle = "rgba(2, 6, 20, 0.18)";
+  // Base subtle dark overlay
+  ctx.fillStyle = "rgba(10, 2, 4, 0.22)";
   ctx.fillRect(0, 0, W, H);
 
-  // TOP HEADER: Soft Scrim Gradient
-  const topScrim2 = ctx.createLinearGradient(0, 0, 0, 240 * sy);
-  topScrim2.addColorStop(0, "rgba(4, 18, 64, 0.96)");
-  topScrim2.addColorStop(0.7, "rgba(4, 18, 64, 0.82)");
+  // TOP HEADER SCRIM
+  const topScrim = ctx.createLinearGradient(0, 0, 0, 420 * sy);
+  topScrim.addColorStop(0, "rgba(22, 4, 10, 0.98)");
+  topScrim.addColorStop(0.7, "rgba(22, 4, 10, 0.88)");
+  topScrim.addColorStop(1, "rgba(10, 2, 4, 0)");
+  ctx.fillStyle = topScrim;
+  ctx.fillRect(0, 0, W, 420 * sy);
+
+  // --- TOP HEADER LOGO & SHOP NAME (TIGHT UNIFIED CENTERED GROUP) ---
+  const topY = 25 * sy;
+  const maxLogoW = 560 * sx, maxLogoH = 340 * sy;
+  drawCenteredHeaderLogoAndShopName(ctx, W, topY, shopName, shopLogoImg, maxLogoW, maxLogoH, 68, sc, sx, sy, (c, cxPos, cyPos) => {
+    const nameGrad = c.createLinearGradient(cxPos - 180 * sx, 0, cxPos + 180 * sx, 0);
+    nameGrad.addColorStop(0, "#FFE566");
+    nameGrad.addColorStop(0.5, "#FFF6D4");
+    nameGrad.addColorStop(1, "#D4AF37");
+    return nameGrad;
+  }, "#FFE566");
+
+  // --- RATES HEADER LINE (TODAY'S GOLD RATE + DATE) AT Y = 1045px ---
+  const headerY = 1045 * sy;
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.95)"; ctx.shadowBlur = 14 * sc;
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = `bold ${Math.round(52 * sc)}px Georgia, "Playfair Display", serif`;
+  ctx.fillText("TODAY'S GOLD RATE", 60 * sx, headerY);
+
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#FFF6D4";
+  ctx.font = `bold ${Math.round(44 * sc)}px "Outfit", "Inter", sans-serif`;
+  ctx.fillText(dateStr, W - 60 * sx, headerY);
+  ctx.restore();
+
+  // --- SIDE-BY-SIDE SCALLOPED CREST CARDS (EXACT REF STYLE) ---
+  const cardY = 1080 * sy, cardH = 370 * sy, cardW = 390 * sx;
+  const leftX = cx - cardW - 25 * sx;
+  const rightX = cx + 25 * sx;
+
+  // Render LEFT: 1g Gold & RIGHT: 1g Silver
+  renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy);
+  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy);
+
+
+
+  // --- FOOTER SECTION (2/3 LEFT: PHONE ON TOP, ADDRESS ON BOTTOM | 1/3 RIGHT: BIS 916 HALLMARK) ---
+  const fY = 1640 * sy;
+
+  // Solid Dark Footer Bar Fill
+  ctx.fillStyle = "#0F0406";
+  ctx.fillRect(0, fY, W, H - fY);
+
+  // Top Thin Gold Line
+  ctx.strokeStyle = "rgba(212, 175, 55, 0.45)";
+  ctx.lineWidth = 1.6 * sc;
+  ctx.beginPath();
+  ctx.moveTo(60 * sx, fY);
+  ctx.lineTo(W - 60 * sx, fY);
+  ctx.stroke();
+
+  // LEFT COLUMN (x = 70 * sx) - Phone on Top, Address on Bottom
+  const footerLeftX = 70 * sx;
+
+  // 1. TOP LINE: Phone Icon + Phone Number (Font 72px bold style)
+  const phoneY = fY + 62 * sy;
+  drawVectorIconBadge(ctx, footerLeftX, phoneY, 30 * sc, "phone", sc, "#FFE566");
+
+  ctx.save();
+  ctx.textAlign = "left";
+  ctx.shadowColor = "rgba(255, 229, 102, 0.6)";
+  ctx.shadowBlur = 10 * sc;
+  ctx.fillStyle = "#FFE566";
+  ctx.font = `bold ${Math.round(72 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+  ctx.fillText(phone, footerLeftX + 56 * sx, phoneY + 22 * sy);
+  ctx.restore();
+
+  // 2. BOTTOM LINE: Location Pin Icon + Showroom Address (Font 45px thin style weight 300)
+  const pinY = fY + 150 * sy;
+  drawVectorIconBadge(ctx, footerLeftX, pinY + 8 * sy, 24 * sc, "pin", sc, "#D4AF37");
+
+  ctx.save();
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#F8FAFC";
+  ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+  ctx.shadowBlur = 8 * sc;
+  ctx.font = `300 ${Math.round(45 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 520 * sx, 52 * sy, 2);
+  ctx.restore();
+
+  // RIGHT COLUMN (x = W - 170 * sx) - BIS 916 Hallmark Badge
+  const rightCenterY = fY + 128 * sy;
+  drawRealBIS916Hallmark(ctx, W - 170 * sx, rightCenterY, sc * 0.98, "gold", hallmarkImg);
+
+  const bottomGoldGrad = ctx.createLinearGradient(0, 0, W, 0);
+  bottomGoldGrad.addColorStop(0, "rgba(212,175,55,0.2)");
+  bottomGoldGrad.addColorStop(0.5, "#D4AF37");
+  bottomGoldGrad.addColorStop(1, "rgba(212,175,55,0.2)");
+  ctx.fillStyle = bottomGoldGrad;
+  ctx.fillRect(0, H - 6 * sy, W, 6 * sy);
+  ctx.restore();
+};
+
+// ==============================
+// TEMPLATE 2: Midnight Navy & Sapphire PTR Shield
+// ==============================
+const drawTemplate2_ModernMinimalist = (ctx, W, H, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null, rateNote = "") => {
+  ctx.save();
+  const sx = W / 1080, sy = H / 1920, sc = Math.min(sx, sy);
+  const cx = W / 2;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
+  const rates = getFormattedRates(livePrices);
+  const phone = shopInfo?.phonePrimary || shopInfo?.phone || shopInfo?.whatsapp_no || "+91 99520 54493";
+  const rawAddress = (shopInfo?.address || shopInfo?.fullAddress || shopInfo?.showroomAddress || "").trim();
+  const rawCity = (shopInfo?.city || "").trim();
+  let address = rawAddress;
+  if (!address) {
+    address = rawCity ? `${rawCity}, Tamil Nadu` : "Tuticorin, Tamil Nadu";
+  } else if (rawCity && !address.toLowerCase().includes(rawCity.toLowerCase())) {
+    address = `${address}, ${rawCity}`;
+  }
+
+  ctx.fillStyle = "rgba(2, 6, 20, 0.22)";
+  ctx.fillRect(0, 0, W, H);
+
+  const topScrim2 = ctx.createLinearGradient(0, 0, 0, 420 * sy);
+  topScrim2.addColorStop(0, "rgba(4, 18, 64, 0.98)");
+  topScrim2.addColorStop(0.7, "rgba(4, 18, 64, 0.88)");
   topScrim2.addColorStop(1, "rgba(2, 6, 20, 0)");
   ctx.fillStyle = topScrim2;
-  ctx.fillRect(0, 0, W, 240 * sy);
+  ctx.fillRect(0, 0, W, 420 * sy);
 
-  // Silver top line
-  const slvGrad = ctx.createLinearGradient(0, 0, W, 0);
-  slvGrad.addColorStop(0, "rgba(180,200,255,0)"); slvGrad.addColorStop(0.5, "rgba(220,235,255,0.9)"); slvGrad.addColorStop(1, "rgba(180,200,255,0)");
-  ctx.fillStyle = slvGrad; ctx.fillRect(0, 0, W, 6 * sy);
+  // --- TOP HEADER LOGO & SHOP NAME (TIGHT UNIFIED CENTERED GROUP) ---
+  const topY = 25 * sy;
+  const maxLogoW = 560 * sx, maxLogoH = 340 * sy;
+  drawCenteredHeaderLogoAndShopName(ctx, W, topY, shopName, shopLogoImg, maxLogoW, maxLogoH, 68, sc, sx, sy, "#FFFFFF", "#7EB8FF");
 
-  // --- HEADER: TOP-LEFT LOGO MEDALLION, SHOP NAME, TOP-RIGHT DATE ---
-  const logoRadius = 48 * sc;
-  const logoCenterX = 55 * sx + logoRadius;
-  const logoCenterY = 40 * sy + logoRadius;
-  drawShopLogoBadge(ctx, logoCenterX, logoCenterY, logoRadius, shopLogoImg, shopName, sc);
-
-  const textStartX = logoCenterX + logoRadius + 20 * sx;
+  // RATES HEADER LINE
+  const headerY = 1045 * sy;
   ctx.save();
-  ctx.textAlign = "left";
-  ctx.shadowColor = "rgba(126,184,255,0.6)"; ctx.shadowBlur = 14 * sc;
-  ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(44 * sc)}px Georgia, serif`;
-  ctx.fillText(shopName, textStartX, logoCenterY - 4 * sy); ctx.shadowBlur = 0;
-
-  ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(16 * sc)}px Arial, sans-serif`;
-  ctx.fillText("BOUTIQUE FINE JEWELLERY", textStartX, logoCenterY + 28 * sy);
+  ctx.shadowColor = "rgba(0,0,0,0.95)"; ctx.shadowBlur = 14 * sc;
+  ctx.textAlign = "left"; ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(52 * sc)}px Georgia, "Playfair Display", serif`;
+  ctx.fillText("TODAY'S GOLD RATE", 60 * sx, headerY);
+  ctx.textAlign = "right"; ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(44 * sc)}px "Outfit", "Inter", sans-serif`;
+  ctx.fillText(dateStr, W - 60 * sx, headerY);
   ctx.restore();
 
-  // Top Right Date
-  ctx.save();
-  ctx.textAlign = "right";
-  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 8 * sc;
-  ctx.fillStyle = "#A5CFFF"; ctx.font = `bold ${Math.round(24 * sc)}px Georgia, serif`;
-  ctx.fillText(dateStr, W - 50 * sx, logoCenterY + 4 * sy);
-  ctx.restore();
+  // SIDE-BY-SIDE CARDS
+  const cardY = 1080 * sy, cardH = 370 * sy, cardW = 390 * sx;
+  const leftX = cx - cardW - 25 * sx;
+  const rightX = cx + 25 * sx;
 
-  const acLine = ctx.createLinearGradient(40 * sx, 0, W - 40 * sx, 0);
-  acLine.addColorStop(0, "rgba(126,184,255,0)"); acLine.addColorStop(0.5, "rgba(200,225,255,0.85)"); acLine.addColorStop(1, "rgba(126,184,255,0)");
-  ctx.strokeStyle = acLine; ctx.lineWidth = 1.2 * sc;
-  ctx.beginPath(); ctx.moveTo(40 * sx, 195 * sy); ctx.lineTo(W - 40 * sx, 195 * sy); ctx.stroke();
+  renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy);
+  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy);
 
-  // === SIDE-BY-SIDE RATE CARDS AT Y = 1240px ===
-  const cardY = 1240 * sy, cardH = 260 * sy, cardW = 480 * sx;
-  const leftX = 40 * sx, leftCx = leftX + cardW / 2;
-  const rightX = 560 * sx, rightCx = rightX + cardW / 2;
 
-  // LEFT CARD: GOLD 22K
-  ctx.save();
-  ctx.shadowColor = "rgba(0,100,255,0.3)"; ctx.shadowBlur = 18 * sc;
-  const gPanel2 = ctx.createLinearGradient(leftX, cardY, leftX, cardY + cardH);
-  gPanel2.addColorStop(0, "rgba(6, 25, 80, 0.94)"); gPanel2.addColorStop(1, "rgba(3, 12, 45, 0.96)");
-  ctx.fillStyle = gPanel2; ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.fill();
-  ctx.shadowBlur = 0; ctx.strokeStyle = "#7EB8FF"; ctx.lineWidth = 2.2 * sc;
-  ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
-  ctx.restore();
 
-  ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(19 * sc)}px Arial, sans-serif`;
-  ctx.textAlign = "center"; ctx.fillText("TODAY'S 22K GOLD RATE", leftCx, cardY + 40 * sy);
-  ctx.fillStyle = "#A5CFFF"; ctx.font = `bold ${Math.round(14 * sc)}px Arial, sans-serif`;
-  ctx.fillText("PER 1 GRAM", leftCx, cardY + 66 * sy);
+  // FOOTER SECTION (2/3 LEFT: PHONE & ADDRESS | 1/3 RIGHT: BIS 916 HALLMARK)
+  const fY = 1640 * sy;
+  ctx.fillStyle = "#020718";
+  ctx.fillRect(0, fY, W, H - fY);
 
-  ctx.strokeStyle = acLine; ctx.lineWidth = 1.2 * sc;
-  ctx.beginPath(); ctx.moveTo(leftX + 40 * sx, cardY + 90 * sy); ctx.lineTo(leftX + cardW - 40 * sx, cardY + 90 * sy); ctx.stroke();
+  ctx.strokeStyle = "rgba(126, 184, 255, 0.45)";
+  ctx.lineWidth = 1.6 * sc;
+  ctx.beginPath();
+  ctx.moveTo(60 * sx, fY);
+  ctx.lineTo(W - 60 * sx, fY);
+  ctx.stroke();
 
-  ctx.shadowColor = "rgba(126,184,255,0.8)"; ctx.shadowBlur = 18 * sc;
-  ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(64 * sc)}px Georgia, serif`;
-  ctx.fillText(rates.gold1gStr, leftCx, cardY + 186 * sy); ctx.shadowBlur = 0;
+  const footerLeftX = 70 * sx;
 
-  // RIGHT CARD: SILVER 999
-  ctx.save();
-  ctx.shadowColor = "rgba(0,100,255,0.3)"; ctx.shadowBlur = 18 * sc;
-  const sPanel2 = ctx.createLinearGradient(rightX, cardY, rightX, cardY + cardH);
-  sPanel2.addColorStop(0, "rgba(10, 30, 70, 0.94)"); sPanel2.addColorStop(1, "rgba(5, 15, 40, 0.96)");
-  ctx.fillStyle = sPanel2; ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.fill();
-  ctx.shadowBlur = 0; ctx.strokeStyle = "#CBD5E1"; ctx.lineWidth = 2.2 * sc;
-  ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
-  ctx.restore();
-
-  ctx.fillStyle = "#CBD5E1"; ctx.font = `bold ${Math.round(19 * sc)}px Arial, sans-serif`;
-  ctx.textAlign = "center"; ctx.fillText("TODAY'S 999 FINE SILVER", rightCx, cardY + 40 * sy);
-  ctx.fillStyle = "#94A3B8"; ctx.font = `bold ${Math.round(14 * sc)}px Arial, sans-serif`;
-  ctx.fillText("PER 1 GRAM", rightCx, cardY + 66 * sy);
-
-  ctx.strokeStyle = acLine; ctx.lineWidth = 1.2 * sc;
-  ctx.beginPath(); ctx.moveTo(rightX + 40 * sx, cardY + 90 * sy); ctx.lineTo(rightX + cardW - 40 * sx, cardY + 90 * sy); ctx.stroke();
-
-  ctx.shadowColor = "rgba(226,232,240,0.7)"; ctx.shadowBlur = 18 * sc;
-  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(64 * sc)}px Georgia, serif`;
-  ctx.fillText(rates.silver1gStr, rightCx, cardY + 186 * sy); ctx.shadowBlur = 0;
-
-  // === FOOTER: SEAMLESS VIGNETTE SCRIM, ENLARGED HIGH-CONTRAST PHONE & ADDRESS ===
-  const fY = 1530 * sy;
-  const fGrad2 = ctx.createLinearGradient(0, fY, 0, H);
-  fGrad2.addColorStop(0, "rgba(2, 6, 20, 0)");
-  fGrad2.addColorStop(0.2, "rgba(4, 16, 50, 0.88)");
-  fGrad2.addColorStop(1, "rgba(2, 8, 30, 0.98)");
-  ctx.fillStyle = fGrad2; ctx.fillRect(0, fY, W, H - fY);
-
-  ctx.strokeStyle = acLine; ctx.lineWidth = 1.2 * sc;
-  ctx.beginPath(); ctx.moveTo(40 * sx, fY + 30 * sy); ctx.lineTo(W - 40 * sx, fY + 30 * sy); ctx.stroke();
-
-  // Phone Vector Icon Badge & Text
-  const iconR = 20 * sc;
-  const phoneX2 = 60 * sx + iconR;
-  const phoneY2 = fY + 85 * sy;
-  drawVectorIconBadge(ctx, phoneX2, phoneY2, iconR, "phone", sc, "#7EB8FF");
+  // 1. TOP LINE: Phone
+  const phoneY = fY + 62 * sy;
+  drawVectorIconBadge(ctx, footerLeftX, phoneY, 30 * sc, "phone", sc, "#7EB8FF");
 
   ctx.save();
   ctx.textAlign = "left";
-  ctx.shadowColor = "rgba(126, 184, 255, 0.75)"; ctx.shadowBlur = 14 * sc;
-  ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(36 * sc)}px Arial, sans-serif`;
-  ctx.fillText(phone, phoneX2 + iconR + 16 * sx, phoneY2 + 12 * sy);
+  ctx.shadowColor = "rgba(126, 184, 255, 0.6)";
+  ctx.shadowBlur = 10 * sc;
+  ctx.fillStyle = "#7EB8FF";
+  ctx.font = `bold ${Math.round(72 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+  ctx.fillText(phone, footerLeftX + 56 * sx, phoneY + 22 * sy);
   ctx.restore();
 
-  // Showroom Address Vector Icon Badge & Text
-  const pinX2 = 60 * sx + iconR;
-  const pinY2 = phoneY2 + 56 * sy;
-  drawVectorIconBadge(ctx, pinX2, pinY2, iconR, "pin", sc, "#7EB8FF");
+  // 2. BOTTOM LINE: Address
+  const pinY = fY + 150 * sy;
+  drawVectorIconBadge(ctx, footerLeftX, pinY + 8 * sy, 24 * sc, "pin", sc, "#7EB8FF");
 
   ctx.save();
   ctx.textAlign = "left";
-  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(24 * sc)}px Arial, sans-serif`;
-  drawShowroomAddress(ctx, address, pinX2 + iconR + 16 * sx, pinY2 + 8 * sy, W - 440 * sx, 32 * sy, 2);
+  ctx.fillStyle = "#F8FAFC";
+  ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+  ctx.shadowBlur = 8 * sc;
+  ctx.font = `300 ${Math.round(45 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 520 * sx, 52 * sy, 2);
   ctx.restore();
 
-  // Right Bottom: BIS 916 Hallmark Badge
-  drawRealBIS916Hallmark(ctx, W - 150 * sx, fY + 115 * sy, sc * 0.82, "glass", hallmarkImg);
+  // 3. RIGHT COLUMN: Hallmark Logo
+  const rightCenterY = fY + 128 * sy;
+  drawRealBIS916Hallmark(ctx, W - 170 * sx, rightCenterY, sc * 0.98, "glass", hallmarkImg);
 
-  // Bottom Center: Tagline
-  ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(165,207,255,0.85)"; ctx.font = `italic ${Math.round(22 * sc)}px Georgia, serif`;
-  ctx.fillText('"Excellence in Every Carat"', cx, H - 30 * sy);
-
-  ctx.fillStyle = slvGrad; ctx.fillRect(0, H - 6 * sy, W, 6 * sy);
+  const btmSlvGrad = ctx.createLinearGradient(0, 0, W, 0);
+  btmSlvGrad.addColorStop(0, "rgba(180,200,255,0)"); btmSlvGrad.addColorStop(0.5, "rgba(220,235,255,0.9)"); btmSlvGrad.addColorStop(1, "rgba(180,200,255,0)");
+  ctx.fillStyle = btmSlvGrad; ctx.fillRect(0, H - 6 * sy, W, 6 * sy);
   ctx.restore();
 };
 
 // ==============================
-// TEMPLATE 3: Forest Emerald & Traditional Gold
+// TEMPLATE 3: Forest Emerald & Gold PTR Shield
 // ==============================
-const drawTemplate3_BridalEmerald = (ctx, W, H, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null) => {
+const drawTemplate3_BridalEmerald = (ctx, W, H, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null, rateNote = "") => {
   ctx.save();
   const sx = W / 1080, sy = H / 1920, sc = Math.min(sx, sy);
   const cx = W / 2;
   const now = new Date();
   const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
   const rates = getFormattedRates(livePrices);
-  const phone = shopInfo?.phonePrimary || shopInfo?.phone || "+91 99520 54493";
-  const address = shopInfo?.address || shopInfo?.city || "Tuticorin";
+  const phone = shopInfo?.phonePrimary || shopInfo?.phone || shopInfo?.whatsapp_no || "+91 99520 54493";
+  const rawAddress = (shopInfo?.address || shopInfo?.fullAddress || shopInfo?.showroomAddress || "").trim();
+  const rawCity = (shopInfo?.city || "").trim();
+  let address = rawAddress;
+  if (!address) {
+    address = rawCity ? `${rawCity}, Tamil Nadu` : "Tuticorin, Tamil Nadu";
+  } else if (rawCity && !address.toLowerCase().includes(rawCity.toLowerCase())) {
+    address = `${address}, ${rawCity}`;
+  }
 
-  ctx.fillStyle = "rgba(0, 10, 5, 0.18)";
+  ctx.fillStyle = "rgba(0, 10, 5, 0.22)";
   ctx.fillRect(0, 0, W, H);
 
-  // TOP HEADER: Soft Emerald Scrim
-  const topScrim3 = ctx.createLinearGradient(0, 0, 0, 240 * sy);
-  topScrim3.addColorStop(0, "rgba(1, 35, 15, 0.96)");
-  topScrim3.addColorStop(0.7, "rgba(1, 35, 15, 0.82)");
+  const topScrim3 = ctx.createLinearGradient(0, 0, 0, 360 * sy);
+  topScrim3.addColorStop(0, "rgba(1, 35, 15, 0.98)");
+  topScrim3.addColorStop(0.7, "rgba(1, 35, 15, 0.88)");
   topScrim3.addColorStop(1, "rgba(0, 10, 5, 0)");
   ctx.fillStyle = topScrim3;
-  ctx.fillRect(0, 0, W, 240 * sy);
+  ctx.fillRect(0, 0, W, 420 * sy);
 
-  // Gold top line
-  const topGoldGrad = ctx.createLinearGradient(0, 0, W, 0);
-  topGoldGrad.addColorStop(0, "rgba(212,175,55,0.2)"); topGoldGrad.addColorStop(0.5, "#D4AF37"); topGoldGrad.addColorStop(1, "rgba(212,175,55,0.2)");
-  ctx.fillStyle = topGoldGrad; ctx.fillRect(0, 0, W, 6 * sy);
+  // --- TOP HEADER LOGO & SHOP NAME (TIGHT UNIFIED CENTERED GROUP) ---
+  const topY = 25 * sy;
+  const maxLogoW = 560 * sx, maxLogoH = 340 * sy;
+  drawCenteredHeaderLogoAndShopName(ctx, W, topY, shopName, shopLogoImg, maxLogoW, maxLogoH, 68, sc, sx, sy, "#FFDA6A", "#6EE7B7");
 
-  // --- HEADER: TOP-LEFT LOGO MEDALLION, SHOP NAME, TOP-RIGHT DATE ---
-  const logoRadius = 48 * sc;
-  const logoCenterX = 55 * sx + logoRadius;
-  const logoCenterY = 40 * sy + logoRadius;
-  drawShopLogoBadge(ctx, logoCenterX, logoCenterY, logoRadius, shopLogoImg, shopName, sc);
-
-  const textStartX = logoCenterX + logoRadius + 20 * sx;
+  // RATES HEADER LINE
+  const headerY = 1045 * sy;
   ctx.save();
-  ctx.textAlign = "left";
-  ctx.shadowColor = "rgba(212,175,55,0.6)"; ctx.shadowBlur = 14 * sc;
-  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(44 * sc)}px Georgia, serif`;
-  ctx.fillText(shopName, textStartX, logoCenterY - 4 * sy); ctx.shadowBlur = 0;
-
-  ctx.fillStyle = "#6EE7B7"; ctx.font = `bold ${Math.round(16 * sc)}px Arial, sans-serif`;
-  ctx.fillText("BRIDAL & TRADITIONAL JEWELLERY", textStartX, logoCenterY + 28 * sy);
+  ctx.shadowColor = "rgba(0,0,0,0.95)"; ctx.shadowBlur = 14 * sc;
+  ctx.textAlign = "left"; ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(52 * sc)}px Georgia, "Playfair Display", serif`;
+  ctx.fillText("TODAY'S GOLD RATE", 60 * sx, headerY);
+  ctx.textAlign = "right"; ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(44 * sc)}px "Outfit", "Inter", sans-serif`;
+  ctx.fillText(dateStr, W - 60 * sx, headerY);
   ctx.restore();
 
-  // Top Right Date
-  ctx.save();
-  ctx.textAlign = "right";
-  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 8 * sc;
-  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(24 * sc)}px Georgia, serif`;
-  ctx.fillText(dateStr, W - 50 * sx, logoCenterY + 4 * sy);
-  ctx.restore();
+  // SIDE-BY-SIDE CARDS
+  const cardY = 1080 * sy, cardH = 370 * sy, cardW = 390 * sx;
+  const leftX = cx - cardW - 25 * sx;
+  const rightX = cx + 25 * sx;
 
-  drawOrnamentalRule(ctx, 40 * sx, 195 * sy, W - 80 * sx, "#D4AF37", sc);
+  renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy);
+  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy);
 
-  // === SIDE-BY-SIDE RATE CARDS AT Y = 1240px ===
-  const cardY = 1240 * sy, cardH = 260 * sy, cardW = 480 * sx;
-  const leftX = 40 * sx, leftCx = leftX + cardW / 2;
-  const rightX = 560 * sx, rightCx = rightX + cardW / 2;
 
-  // LEFT CARD: GOLD 22K
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.65)"; ctx.shadowBlur = 18 * sc;
-  const gPanel3 = ctx.createLinearGradient(leftX, cardY, leftX, cardY + cardH);
-  gPanel3.addColorStop(0, "rgba(0, 35, 15, 0.94)"); gPanel3.addColorStop(1, "rgba(0, 18, 8, 0.96)");
-  ctx.fillStyle = gPanel3; ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.fill();
-  ctx.shadowBlur = 0; ctx.strokeStyle = "#D4AF37"; ctx.lineWidth = 2.2 * sc;
-  ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
-  ctx.restore();
 
-  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(19 * sc)}px Arial, sans-serif`;
-  ctx.textAlign = "center"; ctx.fillText("TODAY'S 22K GOLD RATE", leftCx, cardY + 40 * sy);
-  ctx.fillStyle = "#6EE7B7"; ctx.font = `bold ${Math.round(14 * sc)}px Arial, sans-serif`;
-  ctx.fillText("PER 1 GRAM", leftCx, cardY + 66 * sy);
+  // FOOTER SECTION (2/3 LEFT: PHONE & ADDRESS | 1/3 RIGHT: BIS 916 HALLMARK)
+  const fY = 1640 * sy;
+  ctx.fillStyle = "#010A05";
+  ctx.fillRect(0, fY, W, H - fY);
 
-  drawOrnamentalRule(ctx, leftX + 40 * sx, cardY + 90 * sy, cardW - 80 * sx, "rgba(212,175,55,0.45)", sc);
+  ctx.strokeStyle = "rgba(212, 175, 55, 0.45)";
+  ctx.lineWidth = 1.6 * sc;
+  ctx.beginPath();
+  ctx.moveTo(60 * sx, fY);
+  ctx.lineTo(W - 60 * sx, fY);
+  ctx.stroke();
 
-  ctx.shadowColor = "rgba(212,175,55,0.7)"; ctx.shadowBlur = 18 * sc;
-  ctx.fillStyle = "#FFE566"; ctx.font = `bold ${Math.round(64 * sc)}px Georgia, serif`;
-  ctx.fillText(rates.gold1gStr, leftCx, cardY + 186 * sy); ctx.shadowBlur = 0;
+  const footerLeftX = 70 * sx;
 
-  // RIGHT CARD: SILVER 999
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.65)"; ctx.shadowBlur = 18 * sc;
-  const sPanel3 = ctx.createLinearGradient(rightX, cardY, rightX, cardY + cardH);
-  sPanel3.addColorStop(0, "rgba(5, 25, 20, 0.94)"); sPanel3.addColorStop(1, "rgba(2, 12, 10, 0.96)");
-  ctx.fillStyle = sPanel3; ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.fill();
-  ctx.shadowBlur = 0; ctx.strokeStyle = "#CBD5E1"; ctx.lineWidth = 2.2 * sc;
-  ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
-  ctx.restore();
-
-  ctx.fillStyle = "#CBD5E1"; ctx.font = `bold ${Math.round(19 * sc)}px Arial, sans-serif`;
-  ctx.textAlign = "center"; ctx.fillText("TODAY'S 999 FINE SILVER", rightCx, cardY + 40 * sy);
-  ctx.fillStyle = "#94A3B8"; ctx.font = `bold ${Math.round(14 * sc)}px Arial, sans-serif`;
-  ctx.fillText("PER 1 GRAM", rightCx, cardY + 66 * sy);
-
-  drawOrnamentalRule(ctx, rightX + 40 * sx, cardY + 90 * sy, cardW - 80 * sx, "rgba(203,213,225,0.45)", sc);
-
-  ctx.shadowColor = "rgba(226,232,240,0.7)"; ctx.shadowBlur = 18 * sc;
-  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(64 * sc)}px Georgia, serif`;
-  ctx.fillText(rates.silver1gStr, rightCx, cardY + 186 * sy); ctx.shadowBlur = 0;
-
-  // === FOOTER: SEAMLESS VIGNETTE SCRIM, ENLARGED HIGH-CONTRAST PHONE & ADDRESS ===
-  const fY = 1530 * sy;
-  const fGrad3 = ctx.createLinearGradient(0, fY, 0, H);
-  fGrad3.addColorStop(0, "rgba(0, 10, 5, 0)");
-  fGrad3.addColorStop(0.2, "rgba(0, 24, 12, 0.88)");
-  fGrad3.addColorStop(1, "rgba(0, 10, 5, 0.98)");
-  ctx.fillStyle = fGrad3; ctx.fillRect(0, fY, W, H - fY);
-
-  drawOrnamentalRule(ctx, 40 * sx, fY + 30 * sy, W - 80 * sx, "#D4AF37", sc);
-
-  // Phone Vector Icon Badge & Text
-  const iconR = 20 * sc;
-  const phoneX3 = 60 * sx + iconR;
-  const phoneY3 = fY + 85 * sy;
-  drawVectorIconBadge(ctx, phoneX3, phoneY3, iconR, "phone", sc, "#FFDA6A");
+  // 1. TOP LINE: Phone
+  const phoneY = fY + 62 * sy;
+  drawVectorIconBadge(ctx, footerLeftX, phoneY, 30 * sc, "phone", sc, "#FFDA6A");
 
   ctx.save();
   ctx.textAlign = "left";
-  ctx.shadowColor = "rgba(255, 218, 106, 0.75)"; ctx.shadowBlur = 14 * sc;
-  ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(36 * sc)}px Arial, sans-serif`;
-  ctx.fillText(phone, phoneX3 + iconR + 16 * sx, phoneY3 + 12 * sy);
+  ctx.shadowColor = "rgba(255, 218, 106, 0.6)";
+  ctx.shadowBlur = 10 * sc;
+  ctx.fillStyle = "#FFDA6A";
+  ctx.font = `bold ${Math.round(72 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+  ctx.fillText(phone, footerLeftX + 56 * sx, phoneY + 22 * sy);
   ctx.restore();
 
-  // Showroom Address Vector Icon Badge & Text
-  const pinX3 = 60 * sx + iconR;
-  const pinY3 = phoneY3 + 56 * sy;
-  drawVectorIconBadge(ctx, pinX3, pinY3, iconR, "pin", sc, "#D4AF37");
+  // 2. BOTTOM LINE: Address
+  const pinY = fY + 150 * sy;
+  drawVectorIconBadge(ctx, footerLeftX, pinY + 8 * sy, 24 * sc, "pin", sc, "#D4AF37");
 
   ctx.save();
   ctx.textAlign = "left";
-  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(24 * sc)}px Arial, sans-serif`;
-  drawShowroomAddress(ctx, address, pinX3 + iconR + 16 * sx, pinY3 + 8 * sy, W - 440 * sx, 32 * sy, 2);
+  ctx.fillStyle = "#F8FAFC";
+  ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+  ctx.shadowBlur = 8 * sc;
+  ctx.font = `300 ${Math.round(45 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 520 * sx, 52 * sy, 2);
   ctx.restore();
 
-  // Right Bottom: BIS 916 Hallmark Badge
-  drawRealBIS916Hallmark(ctx, W - 150 * sx, fY + 115 * sy, sc * 0.82, "emerald", hallmarkImg);
+  // 3. RIGHT COLUMN: Hallmark Logo
+  const rightCenterY = fY + 128 * sy;
+  drawRealBIS916Hallmark(ctx, W - 170 * sx, rightCenterY, sc * 0.98, "emerald", hallmarkImg);
 
-  // Bottom Center: Tagline
-  ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(200,255,210,0.85)"; ctx.font = `italic ${Math.round(22 * sc)}px Georgia, serif`;
-  ctx.fillText('"Your Heritage, Our Craft"', cx, H - 30 * sy);
-
-  ctx.fillStyle = topGoldGrad; ctx.fillRect(0, H - 6 * sy, W, 6 * sy);
+  const btmGoldGrad = ctx.createLinearGradient(0, 0, W, 0);
+  btmGoldGrad.addColorStop(0, "rgba(212,175,55,0.2)"); btmGoldGrad.addColorStop(0.5, "#D4AF37"); btmGoldGrad.addColorStop(1, "rgba(212,175,55,0.2)");
+  ctx.fillStyle = btmGoldGrad; ctx.fillRect(0, H - 6 * sy, W, 6 * sy);
   ctx.restore();
 };
 
 // ==============================
-// TEMPLATE 4: Champagne & Rose Gold
+// TEMPLATE 4: Champagne & Rose Gold PTR Shield
 // ==============================
-const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null) => {
+const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg = null, rateNote = "") => {
   ctx.save();
   const sx = W / 1080, sy = H / 1920, sc = Math.min(sx, sy);
   const cx = W / 2;
   const now = new Date();
   const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
   const rates = getFormattedRates(livePrices);
-  const phone = shopInfo?.phonePrimary || shopInfo?.phone || "+91 99520 54493";
-  const address = shopInfo?.address || shopInfo?.city || "Tuticorin";
+  const phone = shopInfo?.phonePrimary || shopInfo?.phone || shopInfo?.whatsapp_no || "+91 99520 54493";
+  const rawAddress = (shopInfo?.address || shopInfo?.fullAddress || shopInfo?.showroomAddress || "").trim();
+  const rawCity = (shopInfo?.city || "").trim();
+  let address = rawAddress;
+  if (!address) {
+    address = rawCity ? `${rawCity}, Tamil Nadu` : "Tuticorin, Tamil Nadu";
+  } else if (rawCity && !address.toLowerCase().includes(rawCity.toLowerCase())) {
+    address = `${address}, ${rawCity}`;
+  }
 
-  ctx.fillStyle = "rgba(15, 8, 4, 0.18)";
+  ctx.fillStyle = "rgba(15, 8, 4, 0.22)";
   ctx.fillRect(0, 0, W, H);
 
-  // TOP HEADER: Soft Rose Gold Scrim
-  const topScrim4 = ctx.createLinearGradient(0, 0, 0, 240 * sy);
-  topScrim4.addColorStop(0, "rgba(35, 18, 6, 0.96)");
-  topScrim4.addColorStop(0.7, "rgba(35, 18, 6, 0.82)");
+  const topScrim4 = ctx.createLinearGradient(0, 0, 0, 360 * sy);
+  topScrim4.addColorStop(0, "rgba(35, 18, 6, 0.98)");
+  topScrim4.addColorStop(0.7, "rgba(35, 18, 6, 0.88)");
   topScrim4.addColorStop(1, "rgba(15, 8, 4, 0)");
   ctx.fillStyle = topScrim4;
-  ctx.fillRect(0, 0, W, 240 * sy);
+  ctx.fillRect(0, 0, W, 360 * sy);
 
-  // Rose gold side stripes
   const lsW = 12 * sx;
   const lsGrad = ctx.createLinearGradient(0, 0, lsW, 0);
   lsGrad.addColorStop(0, "#A06040"); lsGrad.addColorStop(1, "#D4916A");
@@ -1017,123 +1274,75 @@ const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrice
 
   const roseBar = ctx.createLinearGradient(0, 0, W, 0);
   roseBar.addColorStop(0, "rgba(212,145,106,0.3)"); roseBar.addColorStop(0.5, "rgba(212,145,106,0.9)"); roseBar.addColorStop(1, "rgba(212,145,106,0.3)");
-  ctx.fillStyle = roseBar; ctx.fillRect(lsW, 0, W - lsW * 2, 6 * sy);
 
-  // --- HEADER: TOP-LEFT LOGO MEDALLION, SHOP NAME, TOP-RIGHT DATE ---
-  const logoRadius = 48 * sc;
-  const logoCenterX = 55 * sx + logoRadius;
-  const logoCenterY = 40 * sy + logoRadius;
-  drawShopLogoBadge(ctx, logoCenterX, logoCenterY, logoRadius, shopLogoImg, shopName, sc);
+  // --- TOP HEADER LOGO & SHOP NAME (TIGHT UNIFIED CENTERED GROUP) ---
+  const topY = 25 * sy;
+  const maxLogoW = 560 * sx, maxLogoH = 340 * sy;
+  drawCenteredHeaderLogoAndShopName(ctx, W, topY, shopName, shopLogoImg, maxLogoW, maxLogoH, 68, sc, sx, sy, "#F5E4C8", "#D4916A");
 
-  const textStartX = logoCenterX + logoRadius + 20 * sx;
+  // RATES HEADER LINE
+  const headerY = 1045 * sy;
   ctx.save();
-  ctx.textAlign = "left";
-  ctx.shadowColor = "rgba(212,145,106,0.55)"; ctx.shadowBlur = 14 * sc;
-  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(44 * sc)}px Georgia, serif`;
-  ctx.fillText(shopName, textStartX, logoCenterY - 4 * sy); ctx.shadowBlur = 0;
-
-  ctx.fillStyle = "#D4916A"; ctx.font = `bold ${Math.round(16 * sc)}px Arial, sans-serif`;
-  ctx.fillText("SOLITAIRE & FINE JEWELLERY", textStartX, logoCenterY + 28 * sy);
+  ctx.shadowColor = "rgba(0,0,0,0.95)"; ctx.shadowBlur = 14 * sc;
+  ctx.textAlign = "left"; ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(52 * sc)}px Georgia, "Playfair Display", serif`;
+  ctx.fillText("TODAY'S GOLD RATE", 60 * sx, headerY);
+  ctx.textAlign = "right"; ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(44 * sc)}px "Outfit", "Inter", sans-serif`;
+  ctx.fillText(dateStr, W - 60 * sx, headerY);
   ctx.restore();
 
-  // Top Right Date
-  ctx.save();
-  ctx.textAlign = "right";
-  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 8 * sc;
-  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(24 * sc)}px Georgia, serif`;
-  ctx.fillText(dateStr, W - 50 * sx, logoCenterY + 4 * sy);
-  ctx.restore();
+  // SIDE-BY-SIDE CARDS
+  const cardY = 1080 * sy, cardH = 370 * sy, cardW = 390 * sx;
+  const leftX = cx - cardW - 25 * sx;
+  const rightX = cx + 25 * sx;
 
-  drawOrnamentalRule(ctx, 40 * sx, 195 * sy, W - 80 * sx, "#D4916A", sc);
+  renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy);
+  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy);
 
-  // === SIDE-BY-SIDE RATE CARDS AT Y = 1240px ===
-  const cardY = 1240 * sy, cardH = 260 * sy, cardW = 480 * sx;
-  const leftX = 40 * sx, leftCx = leftX + cardW / 2;
-  const rightX = 560 * sx, rightCx = rightX + cardW / 2;
 
-  // LEFT CARD: GOLD 22K
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.65)"; ctx.shadowBlur = 18 * sc;
-  const gPanel4 = ctx.createLinearGradient(leftX, cardY, leftX, cardY + cardH);
-  gPanel4.addColorStop(0, "rgba(35, 18, 6, 0.94)"); gPanel4.addColorStop(1, "rgba(18, 8, 3, 0.96)");
-  ctx.fillStyle = gPanel4; ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.fill();
-  ctx.shadowBlur = 0; ctx.strokeStyle = "#D4916A"; ctx.lineWidth = 2.2 * sc;
-  ctx.beginPath(); roundRect(ctx, leftX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
-  ctx.restore();
 
-  ctx.fillStyle = "#D4916A"; ctx.font = `bold ${Math.round(19 * sc)}px Arial, sans-serif`;
-  ctx.textAlign = "center"; ctx.fillText("TODAY'S 22K GOLD RATE", leftCx, cardY + 40 * sy);
-  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(14 * sc)}px Arial, sans-serif`;
-  ctx.fillText("PER 1 GRAM", leftCx, cardY + 66 * sy);
+  // FOOTER SECTION (2/3 LEFT: PHONE & ADDRESS | 1/3 RIGHT: BIS 916 HALLMARK)
+  const fY = 1640 * sy;
+  ctx.fillStyle = "#0F0703";
+  ctx.fillRect(0, fY, W, H - fY);
 
-  drawOrnamentalRule(ctx, leftX + 40 * sx, cardY + 90 * sy, cardW - 80 * sx, "rgba(212,145,106,0.45)", sc);
+  ctx.strokeStyle = "rgba(212, 145, 106, 0.45)";
+  ctx.lineWidth = 1.6 * sc;
+  ctx.beginPath();
+  ctx.moveTo(60 * sx, fY);
+  ctx.lineTo(W - 60 * sx, fY);
+  ctx.stroke();
 
-  ctx.shadowColor = "rgba(212,145,106,0.7)"; ctx.shadowBlur = 18 * sc;
-  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(64 * sc)}px Georgia, serif`;
-  ctx.fillText(rates.gold1gStr, leftCx, cardY + 186 * sy); ctx.shadowBlur = 0;
+  const footerLeftX = 70 * sx;
 
-  // RIGHT CARD: SILVER 999
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.65)"; ctx.shadowBlur = 18 * sc;
-  const sPanel4 = ctx.createLinearGradient(rightX, cardY, rightX, cardY + cardH);
-  sPanel4.addColorStop(0, "rgba(20, 14, 10, 0.94)"); sPanel4.addColorStop(1, "rgba(8, 6, 4, 0.96)");
-  ctx.fillStyle = sPanel4; ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.fill();
-  ctx.shadowBlur = 0; ctx.strokeStyle = "#CBD5E1"; ctx.lineWidth = 2.2 * sc;
-  ctx.beginPath(); roundRect(ctx, rightX, cardY, cardW, cardH, 20 * sc); ctx.stroke();
-  ctx.restore();
-
-  ctx.fillStyle = "#CBD5E1"; ctx.font = `bold ${Math.round(19 * sc)}px Arial, sans-serif`;
-  ctx.textAlign = "center"; ctx.fillText("TODAY'S 999 FINE SILVER", rightCx, cardY + 40 * sy);
-  ctx.fillStyle = "#94A3B8"; ctx.font = `bold ${Math.round(14 * sc)}px Arial, sans-serif`;
-  ctx.fillText("PER 1 GRAM", rightCx, cardY + 66 * sy);
-
-  drawOrnamentalRule(ctx, rightX + 40 * sx, cardY + 90 * sy, cardW - 80 * sx, "rgba(203,213,225,0.45)", sc);
-
-  ctx.shadowColor = "rgba(226,232,240,0.7)"; ctx.shadowBlur = 18 * sc;
-  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(64 * sc)}px Georgia, serif`;
-  ctx.fillText(rates.silver1gStr, rightCx, cardY + 186 * sy); ctx.shadowBlur = 0;
-
-  // === FOOTER: SEAMLESS VIGNETTE SCRIM, ENLARGED HIGH-CONTRAST PHONE & ADDRESS ===
-  const fY = 1530 * sy;
-  const fGrad4 = ctx.createLinearGradient(0, fY, 0, H);
-  fGrad4.addColorStop(0, "rgba(15, 8, 4, 0)");
-  fGrad4.addColorStop(0.2, "rgba(24, 12, 5, 0.88)");
-  fGrad4.addColorStop(1, "rgba(12, 6, 2, 0.98)");
-  ctx.fillStyle = fGrad4; ctx.fillRect(0, fY, W, H - fY);
-
-  drawOrnamentalRule(ctx, 40 * sx, fY + 30 * sy, W - 80 * sx, "#C08050", sc);
-
-  // Phone Vector Icon Badge & Text
-  const iconR = 20 * sc;
-  const phoneX4 = 60 * sx + iconR;
-  const phoneY4 = fY + 85 * sy;
-  drawVectorIconBadge(ctx, phoneX4, phoneY4, iconR, "phone", sc, "#F5E4C8");
+  // 1. TOP LINE: Phone
+  const phoneY = fY + 62 * sy;
+  drawVectorIconBadge(ctx, footerLeftX, phoneY, 30 * sc, "phone", sc, "#F5E4C8");
 
   ctx.save();
   ctx.textAlign = "left";
-  ctx.shadowColor = "rgba(245, 228, 200, 0.75)"; ctx.shadowBlur = 14 * sc;
-  ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(36 * sc)}px Arial, sans-serif`;
-  ctx.fillText(phone, phoneX4 + iconR + 16 * sx, phoneY4 + 12 * sy);
+  ctx.shadowColor = "rgba(245, 228, 200, 0.6)";
+  ctx.shadowBlur = 10 * sc;
+  ctx.fillStyle = "#F5E4C8";
+  ctx.font = `bold ${Math.round(72 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+  ctx.fillText(phone, footerLeftX + 56 * sx, phoneY + 22 * sy);
   ctx.restore();
 
-  // Showroom Address Vector Icon Badge & Text
-  const pinX4 = 60 * sx + iconR;
-  const pinY4 = phoneY4 + 56 * sy;
-  drawVectorIconBadge(ctx, pinX4, pinY4, iconR, "pin", sc, "#D4916A");
+  // 2. BOTTOM LINE: Address
+  const pinY = fY + 150 * sy;
+  drawVectorIconBadge(ctx, footerLeftX, pinY + 8 * sy, 24 * sc, "pin", sc, "#D4916A");
 
   ctx.save();
   ctx.textAlign = "left";
-  ctx.fillStyle = "#F8FAFC"; ctx.font = `bold ${Math.round(24 * sc)}px Arial, sans-serif`;
-  drawShowroomAddress(ctx, address, pinX4 + iconR + 16 * sx, pinY4 + 8 * sy, W - 440 * sx, 32 * sy, 2);
+  ctx.fillStyle = "#F8FAFC";
+  ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+  ctx.shadowBlur = 8 * sc;
+  ctx.font = `300 ${Math.round(45 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 520 * sx, 52 * sy, 2);
   ctx.restore();
 
-  // Right Bottom: BIS 916 Hallmark Badge
-  drawRealBIS916Hallmark(ctx, W - 150 * sx, fY + 115 * sy, sc * 0.82, "gold", hallmarkImg);
-
-  // Bottom Center: Tagline
-  ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(245,228,200,0.85)"; ctx.font = `italic ${Math.round(22 * sc)}px Georgia, serif`;
-  ctx.fillText('"Where Luxury Meets Tradition"', cx, H - 30 * sy);
+  // 3. RIGHT COLUMN: Hallmark Logo
+  const rightCenterY = fY + 128 * sy;
+  drawRealBIS916Hallmark(ctx, W - 170 * sx, rightCenterY, sc * 0.98, "gold", hallmarkImg);
 
   ctx.fillStyle = roseBar; ctx.fillRect(lsW, H - 6 * sy, W - lsW * 2, 6 * sy);
   ctx.restore();
@@ -1142,28 +1351,28 @@ const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrice
 /**
  * Dispatcher function for drawing the selected overlay template
  */
-const drawStatusOverlay = (ctx, canvasWidth, canvasHeight, shopName, templateId = 1, shopLogoImg = null, livePrices = {}, shopInfo = {}, hallmarkImg = null) => {
+const drawStatusOverlay = (ctx, canvasWidth, canvasHeight, shopName, templateId = 1, shopLogoImg = null, livePrices = {}, shopInfo = {}, hallmarkImg = null, rateNote = "") => {
   switch (Number(templateId)) {
     case 1:
-      drawTemplate1_RoyalHeritage(ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg);
+      drawTemplate1_RoyalHeritage(ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg, rateNote);
       break;
     case 2:
-      drawTemplate2_ModernMinimalist(ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg);
+      drawTemplate2_ModernMinimalist(ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg, rateNote);
       break;
     case 3:
-      drawTemplate3_BridalEmerald(ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg);
+      drawTemplate3_BridalEmerald(ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg, rateNote);
       break;
     case 4:
-      drawTemplate4_SolitaireDark(ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg);
+      drawTemplate4_SolitaireDark(ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg, rateNote);
       break;
     default:
-      drawTemplate1_RoyalHeritage(ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg);
+      drawTemplate1_RoyalHeritage(ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg, rateNote);
       break;
   }
 };
 
 // ==========================================
-function ImageCanvasPreview({ imageUrl, shopName, templateId, drawOverlay, shopLogoImg, livePrices, shopInfo, hallmarkImg }) {
+function ImageCanvasPreview({ imageUrl, shopName, templateId, drawOverlay, shopLogoImg, livePrices, shopInfo, hallmarkImg, rateNote }) {
   const canvasRef = React.useRef(null);
   const [isLoaded, setIsLoaded] = React.useState(false);
 
@@ -1213,7 +1422,7 @@ function ImageCanvasPreview({ imageUrl, shopName, templateId, drawOverlay, shopL
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
-      drawOverlay(ctx, canvas.width, canvas.height, shopName, templateId, shopLogoImg, livePrices, shopInfo, hallmarkImg);
+      drawOverlay(ctx, canvas.width, canvas.height, shopName, templateId, shopLogoImg, livePrices, shopInfo, hallmarkImg, rateNote);
       setIsLoaded(true);
     };
 
@@ -1222,7 +1431,7 @@ function ImageCanvasPreview({ imageUrl, shopName, templateId, drawOverlay, shopL
     return () => {
       isSubscribed = false;
     };
-  }, [imageUrl, shopName, templateId, drawOverlay, shopLogoImg, livePrices, shopInfo, hallmarkImg]);
+  }, [imageUrl, shopName, templateId, drawOverlay, shopLogoImg, livePrices, shopInfo, hallmarkImg, rateNote]);
 
   return (
     <div className="relative w-full h-full overflow-hidden rounded-2xl bg-stone-900 flex items-center justify-center">
@@ -1237,7 +1446,7 @@ function ImageCanvasPreview({ imageUrl, shopName, templateId, drawOverlay, shopL
   );
 }
 
-function VideoCanvasPreview({ videoUrl, shopName, templateId, drawOverlay, shopLogoImg, livePrices, shopInfo, hallmarkImg }) {
+function VideoCanvasPreview({ videoUrl, shopName, templateId, drawOverlay, shopLogoImg, livePrices, shopInfo, hallmarkImg, rateNote }) {
   const canvasRef = React.useRef(null);
   const videoRef = React.useRef(null);
   const [isPlaying, setIsPlaying] = React.useState(true);
@@ -1280,7 +1489,7 @@ function VideoCanvasPreview({ videoUrl, shopName, templateId, drawOverlay, shopL
       canvas.height = 960;
       const ctx = canvas.getContext("2d");
 
-      video.play().catch(() => {});
+      video.play().catch(() => { });
 
       const render = (currentTime) => {
         if (!isMounted) return;
@@ -1292,7 +1501,7 @@ function VideoCanvasPreview({ videoUrl, shopName, templateId, drawOverlay, shopL
           if (ctx && canvas && video.readyState >= 2) {
             try {
               ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              drawOverlay(ctx, canvas.width, canvas.height, shopName, templateId, shopLogoImg, livePrices, shopInfo, hallmarkImg);
+              drawOverlay(ctx, canvas.width, canvas.height, shopName, templateId, shopLogoImg, livePrices, shopInfo, hallmarkImg, rateNote);
             } catch (err) {
               console.warn("Video canvas render warning:", err);
             }
@@ -1314,7 +1523,7 @@ function VideoCanvasPreview({ videoUrl, shopName, templateId, drawOverlay, shopL
         video.load();
       }
     };
-  }, [videoUrl, shopName, templateId, drawOverlay, shopLogoImg, livePrices, shopInfo, hallmarkImg]);
+  }, [videoUrl, shopName, templateId, drawOverlay, shopLogoImg, livePrices, shopInfo, hallmarkImg, rateNote]);
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -1393,6 +1602,9 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
   const [loadedShopLogo, setLoadedShopLogo] = useState(null);
   const [loadedHallmarkLogo, setLoadedHallmarkLogo] = useState(null);
 
+  // Daily Rate Note / Change Text (e.g. Tamil price drop note from PTR poster)
+  const [rateNote, setRateNote] = useState("தங்கத்தின் விலை கிராமுக்கு 15 ரூபாய் குறைந்தது.");
+
   const [basicAssets, setBasicAssets] = useState({
     images: [],
     videos: [
@@ -1439,7 +1651,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
         parsed2?.siteInfoData?.logo ||
         parsed2?.siteInfoData?.logoUrl ||
         "";
-    } catch (e) {}
+    } catch (e) { }
 
     const rawLogoUrl = shopInfo?.logo || shopInfo?.logoUrl || cachedLogo;
     loadLogoWithFallback(rawLogoUrl).then((loadedImg) => {
@@ -1499,7 +1711,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
     {
       id: 1,
       label: "Royal Maroon & Gold",
-      desc: "Deep Burgundy, Filigree Mandala",
+      desc: "Deep Burgundy & Scalloped PTR Shield",
       theme: {
         bg: "bg-gradient-to-br from-[#6B0014] via-[#950020] to-[#3D0010] hover:from-[#950020] hover:to-[#6B0014]",
         border: "border-[#D4AF37]/60 hover:border-[#FFFFFF]",
@@ -1513,7 +1725,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
     {
       id: 2,
       label: "Midnight Navy & Diamond",
-      desc: "Deep Blue, Geometric Diamond Grid",
+      desc: "Deep Sapphire & PTR Gold Shield",
       theme: {
         bg: "bg-gradient-to-br from-[#06174A] via-[#0A2568] to-[#020D30] hover:from-[#0A2568] hover:to-[#06174A]",
         border: "border-blue-400/50 hover:border-blue-100",
@@ -1527,7 +1739,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
     {
       id: 3,
       label: "Forest Emerald Traditional",
-      desc: "Deep Green, Lotus Floral Pattern",
+      desc: "Deep Emerald & PTR Gold Shield",
       theme: {
         bg: "bg-gradient-to-br from-[#013018] via-[#024E28] to-[#000D06] hover:from-[#024E28] hover:to-[#013018]",
         border: "border-emerald-400/50 hover:border-[#D4AF37]",
@@ -1541,7 +1753,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
     {
       id: 4,
       label: "Champagne Rose Gold",
-      desc: "Warm Brown, Editorial Layout",
+      desc: "Warm Espresso & PTR Gold Shield",
       theme: {
         bg: "bg-gradient-to-br from-[#2E1A0A] via-[#3D2210] to-[#1A0D05] hover:from-[#3D2210] hover:to-[#2E1A0A]",
         border: "border-[#D4916A]/50 hover:border-amber-300",
@@ -1554,12 +1766,11 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
     },
   ];
 
-
   const statusVideos = [
     {
       id: 1,
       label: "Royal Heritage Reel",
-      desc: "Regal Gold Frame Reel",
+      desc: "Regal Gold Shield Reel",
       theme: {
         bg: "bg-gradient-to-br from-[#881337] via-[#BE123C] to-[#4C0519] hover:from-[#BE123C] hover:to-[#881337]",
         border: "border-rose-400/60 hover:border-white",
@@ -1573,7 +1784,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
     {
       id: 2,
       label: "Minimalist Glass Reel",
-      desc: "Frosted Glass Reel",
+      desc: "Frosted Glass Shield Reel",
       theme: {
         bg: "bg-gradient-to-br from-[#0E7490] via-[#0891B2] to-[#155E75] hover:from-[#0891B2] hover:to-[#0E7490]",
         border: "border-cyan-300/60 hover:border-white",
@@ -1592,7 +1803,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
   /**
    * Generates a high-resolution 1080x1920 9:16 Status Card PNG using binary Blob URLs
    */
-  const generateImageCardBlobUrl = (label, cardNum, templateId = 1, bgImageUrl = null) => {
+  const generateImageCardBlobUrl = (label, cardNum, templateId = 1, bgImageUrl = null, customRateNote = "") => {
     return new Promise(async (resolve) => {
       try {
         const canvas = document.createElement("canvas");
@@ -1621,7 +1832,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
             parsed2?.siteInfoData?.logo ||
             parsed2?.siteInfoData?.logoUrl ||
             "";
-        } catch (e) {}
+        } catch (e) { }
 
         const targetShopLogoUrl = shopInfo?.logo || shopInfo?.logoUrl || cachedLogo;
         let activeShopLogo = loadedShopLogo || null;
@@ -1673,7 +1884,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
           ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-        drawStatusOverlay(ctx, canvas.width, canvas.height, shopNameStr, templateId, activeShopLogo, livePrices, shopInfo, activeHallmarkLogo);
+        drawStatusOverlay(ctx, canvas.width, canvas.height, shopNameStr, templateId, activeShopLogo, livePrices, shopInfo, activeHallmarkLogo, customRateNote || rateNote);
 
         const exportCanvas = () => {
           return new Promise((resExp) => {
@@ -1809,7 +2020,6 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
     const fullVideoUrl = resolveFullImageUrl(videoPath);
 
     try {
-      // 1. Preload Shop Logo & Hallmark Logo
       const shopPrefix = getShopPrefix(activeSubdomain);
       let cachedLogo = "";
       try {
@@ -1825,7 +2035,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
           parsed2?.siteInfoData?.logo ||
           parsed2?.siteInfoData?.logoUrl ||
           "";
-      } catch (e) {}
+      } catch (e) { }
 
       const targetShopLogoUrl = shopInfo?.logo || shopInfo?.logoUrl || cachedLogo;
       let activeShopLogo = loadedShopLogo || null;
@@ -1839,7 +2049,6 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
       setDownloadProgress(10);
 
-      // 2. Setup Video Element with local Blob URL fetching to guarantee no canvas tainting
       const video = document.createElement("video");
       video.muted = false;
       video.volume = 1.0;
@@ -1887,7 +2096,6 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
       setDownloadProgress(20);
 
-      // 3. Create Canvas for Branded Overlay Rendering
       const canvas = document.createElement("canvas");
       canvas.width = video.videoWidth || 720;
       canvas.height = video.videoHeight || 1280;
@@ -1899,20 +2107,17 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
       const videoLogoOverlay = activeShopLogo || null;
 
-      // Draw initial frame
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      drawStatusOverlay(ctx, canvas.width, canvas.height, shopNameStr, templateId, videoLogoOverlay, livePrices, shopInfo, activeHallmarkLogo);
+      drawStatusOverlay(ctx, canvas.width, canvas.height, shopNameStr, templateId, videoLogoOverlay, livePrices, shopInfo, activeHallmarkLogo, rateNote);
 
       const canvasStream = canvas.captureStream(30);
       const compositeStream = new MediaStream();
 
-      // Add visual track from canvas
       const canvasVideoTrack = canvasStream.getVideoTracks()[0];
       if (canvasVideoTrack) {
         compositeStream.addTrack(canvasVideoTrack);
       }
 
-      // Route Audio using Web Audio API Destination Node
       let audioCtx = null;
       try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -1933,7 +2138,6 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
         console.warn("Could not route silent audio stream:", audioErr);
       }
 
-      // Determine Best Supported MIME Type & Matching File Extension
       let mimeType = "video/webm";
       let ext = "webm";
 
@@ -2007,7 +2211,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
         try {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          drawStatusOverlay(ctx, canvas.width, canvas.height, shopNameStr, templateId, videoLogoOverlay, livePrices, shopInfo, activeHallmarkLogo);
+          drawStatusOverlay(ctx, canvas.width, canvas.height, shopNameStr, templateId, videoLogoOverlay, livePrices, shopInfo, activeHallmarkLogo, rateNote);
         } catch (e) {
           console.warn("Canvas overlay render frame error:", e);
         }
@@ -2018,7 +2222,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
       await recordPromise;
 
       if (audioCtx) {
-        audioCtx.close().catch(() => {});
+        audioCtx.close().catch(() => { });
       }
 
       setDownloadingId(null);
@@ -2090,12 +2294,13 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
             Luxury Branded Templates for Status & Reels
           </h2>
           <p className="text-stone-600 text-xs sm:text-sm font-light leading-relaxed">
-            Choose from 4 elegant image templates and 2 video reel templates stamped with live gold & silver rates, official BIS 916 Hallmark logo, and your showroom emblem.
+            Choose from 4 elegant image templates and 2 video reel templates stamped with live gold & silver rates (1GM & 8GM), official BIS 916 Hallmark logo, and your showroom emblem.
           </p>
         </div>
 
         {/* Action Container Card */}
         <div className="bg-white border border-[#D4AF37]/30 rounded-3xl p-6 sm:p-10 shadow-xl max-w-4xl mx-auto space-y-8 relative">
+
           {/* Row 1: 4 Status Image Templates */}
           <div>
             <div className="flex items-center justify-between mb-4">
@@ -2297,6 +2502,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
                     livePrices={livePrices}
                     shopInfo={shopInfo}
                     hallmarkImg={loadedHallmarkLogo}
+                    rateNote={rateNote}
                   />
                 ) : (
                   <VideoCanvasPreview
@@ -2308,6 +2514,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
                     livePrices={livePrices}
                     shopInfo={shopInfo}
                     hallmarkImg={loadedHallmarkLogo}
+                    rateNote={rateNote}
                   />
                 )}
               </div>
@@ -2343,14 +2550,21 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
                     <span className="text-stone-400">Shop Logo:</span>
                     <span className="font-bold text-emerald-400">{loadedShopLogo ? "Loaded (Custom)" : "Default Luxury Emblem"}</span>
                   </div>
+
                   <div className="flex items-center justify-between text-xs border-b border-stone-800 pb-2">
-                    <span className="text-stone-400">Live Gold Rate (22K):</span>
-                    <span className="font-number font-bold text-amber-300 text-sm">{livePrices.gold22k} /g</span>
+                    <span className="text-stone-400">Live Silver Rate (999 1g):</span>
+                    <span className="font-number font-bold text-stone-200 text-sm">{livePrices.silver999}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs border-b border-stone-800 pb-2">
-                    <span className="text-stone-400">Live Silver Rate (999):</span>
-                    <span className="font-number font-bold text-stone-200 text-sm">{livePrices.silver999} /g</span>
+                    <span className="text-stone-400">Live Gold Rate (22K 1g):</span>
+                    <span className="font-number font-bold text-amber-300 text-sm">{livePrices.gold22k}</span>
                   </div>
+                  {rateNote && (
+                    <div className="flex items-start justify-between text-xs border-b border-stone-800 pb-2 gap-2">
+                      <span className="text-stone-400 shrink-0">Poster Note:</span>
+                      <span className="font-medium text-amber-200 text-right truncate max-w-[200px]">{rateNote}</span>
+                    </div>
+                  )}
                   <div className="flex items-start justify-between text-xs pt-0.5 gap-2">
                     <span className="text-stone-400 shrink-0">Showroom Address:</span>
                     <span className="font-medium text-stone-300 text-right truncate max-w-[200px]">
@@ -2360,7 +2574,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
                 </div>
 
                 <p className="text-[11px] text-stone-400 font-light leading-relaxed">
-                  Stamped with official 100% BIS Hallmarked 916 gold emblem, live metal rates in Cinzel typography, showroom logo, contact phone number, and physical showroom address.
+                  Stamped with official 100% BIS Hallmarked 916 gold emblem, scalloped gold rate shield cards (1GM & 8GM), silver capsule pill, showroom logo, contact phone number, and physical showroom address.
                 </p>
               </div>
 
@@ -2369,7 +2583,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
                 {previewData.type === "image" ? (
                   <button
                     onClick={async () => {
-                      const res = await generateImageCardBlobUrl(previewData.title, previewData.cardNum, previewData.templateId, previewData.previewUrl);
+                      const res = await generateImageCardBlobUrl(previewData.title, previewData.cardNum, previewData.templateId, previewData.previewUrl, rateNote);
                       if (res?.blobUrl) {
                         triggerImageDownloadFromBlobUrl(res.blobUrl, previewData.title, previewData.cardNum, previewData.templateId);
                       }
@@ -2390,7 +2604,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
                   >
                     {downloadingId ? (
                       <>
-                        <div 
+                        <div
                           className="absolute left-0 top-0 bottom-0 bg-emerald-500/40 transition-all duration-200"
                           style={{ width: `${downloadProgress}%` }}
                         />
