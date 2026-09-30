@@ -25,7 +25,6 @@ import {
   TrendingUp,
   Coins,
   Scale,
-  ShieldCheck,
   Upload,
   MessageCircle,
   MapPin,
@@ -68,7 +67,6 @@ import {
   getSiteInfo,
   adminUpdateSiteInfo,
   adminUploadImages,
-  adminActivateSubdomain,
   DEFAULT_GOLD_THUMBNAIL
 } from "../services/api";
 import { mockSlides, mockShopInfo } from "../services/mockData";
@@ -93,11 +91,8 @@ export default function AdminDashboard() {
     asked_question: 0,
     priceData: [],
   });
-  const [priceForm, setPriceForm] = useState({
-    material: "gold",
-    purity: "22k",
-    price: "",
-  });
+  const [goldRateInput, setGoldRateInput] = useState("");
+  const [silverRateInput, setSilverRateInput] = useState("");
 
   // 1. Categories State
   const [categories, setCategories] = useState([]);
@@ -369,27 +364,51 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleUpdatePrice = async (e) => {
+  const handleUpdateGoldRate = async (e) => {
     e.preventDefault();
-    if (!priceForm.price || isNaN(Number(priceForm.price))) {
-      triggerToast("Please enter a valid price amount.", "error");
+    if (!goldRateInput || isNaN(Number(goldRateInput)) || Number(goldRateInput) <= 0) {
+      triggerToast("Please enter a valid 22K Gold price amount.", "error");
       return;
     }
 
     setIsLoading(true);
     const res = await adminUpdatePrice({
-      material: priceForm.material,
-      purity: priceForm.purity,
-      price: priceForm.price.trim(),
+      material: "gold",
+      purity: "22k",
+      price: String(goldRateInput).trim(),
     });
     setIsLoading(false);
 
     if (res.status === 1) {
-      triggerToast(`Updated ${priceForm.purity.toUpperCase()} ${priceForm.material.toUpperCase()} to ₹${priceForm.price}/gm`);
-      setPriceForm({ ...priceForm, price: "" });
+      triggerToast(`Updated 22K Gold rate to ₹${Number(goldRateInput).toLocaleString("en-IN")}/gm`);
+      setGoldRateInput("");
       loadDashboardStats();
     } else {
-      triggerToast(res.message || "Failed to update price", "error");
+      triggerToast(res.message || "Failed to update gold price", "error");
+    }
+  };
+
+  const handleUpdateSilverRate = async (e) => {
+    e.preventDefault();
+    if (!silverRateInput || isNaN(Number(silverRateInput)) || Number(silverRateInput) <= 0) {
+      triggerToast("Please enter a valid 925 Silver price amount.", "error");
+      return;
+    }
+
+    setIsLoading(true);
+    const res = await adminUpdatePrice({
+      material: "silver",
+      purity: "925",
+      price: String(silverRateInput).trim(),
+    });
+    setIsLoading(false);
+
+    if (res.status === 1) {
+      triggerToast(`Updated 925 Silver rate to ₹${Number(silverRateInput).toLocaleString("en-IN")}/gm`);
+      setSilverRateInput("");
+      loadDashboardStats();
+    } else {
+      triggerToast(res.message || "Failed to update silver price", "error");
     }
   };
 
@@ -789,26 +808,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleActivateSite = async () => {
-    if (!adminUser?.id) {
-      triggerToast("Showroom account ID not detected.", "error");
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const res = await adminActivateSubdomain(adminUser.id);
-      setIsLoading(false);
-      if (res && res.status === 1) {
-        triggerToast("Showroom site activated successfully!");
-      } else {
-        triggerToast(res?.message || "Site activation failed.", "error");
-      }
-    } catch (err) {
-      setIsLoading(false);
-      triggerToast("Failed to activate showroom site.", "error");
-    }
-  };
-
   const handleLogout = () => {
     localStorage.removeItem("aadagam_current_admin");
     localStorage.removeItem("aadagam_auth_token");
@@ -1160,140 +1159,193 @@ export default function AdminDashboard() {
           {/* ===================================================================
            * TAB 0: DAILY METAL RATES MANAGER (POST /opxXxolN7m6CU/price_update)
            * =================================================================== */}
-          {activeTab === "rates" && (
-            <div className="space-y-6 animate-fade-in">
-              {/* Price Update Form */}
-              <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm">
-                <div className="mb-6 flex items-center justify-between gap-3">
+          {activeTab === "rates" && (() => {
+            const goldItem = dashboardStats.priceData.find(
+              (p) => (p.material || "").toLowerCase() === "gold" && (p.purity || "").toLowerCase().includes("22")
+            ) || dashboardStats.priceData.find((p) => (p.material || "").toLowerCase() === "gold");
+
+            const silverItem = dashboardStats.priceData.find(
+              (p) => (p.material || "").toLowerCase() === "silver" && (p.purity || "").toLowerCase().includes("925")
+            ) || dashboardStats.priceData.find((p) => (p.material || "").toLowerCase() === "silver");
+
+            const goldPrice = goldItem ? Number(goldItem.price) : 0;
+            const silverPrice = silverItem ? Number(silverItem.price) : 0;
+
+            return (
+              <div className="space-y-6 animate-fade-in">
+                {/* Section Header Banner */}
+                <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-5 sm:p-6 lg:p-7 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h3 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
                       Daily Bullion Rates Manager
                     </h3>
                     <p className="text-xs text-stone-500 mt-1">
-                      Manually update live showroom prices for 24K, 22K, 18K gold and 999 fine silver.
+                      Update your storefront's live bullion market benchmark rates for 22K Standard Gold and 925 Fine Silver.
                     </p>
                   </div>
                   <button
                     onClick={loadDashboardStats}
-                    className="p-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors shrink-0"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition-colors shrink-0 cursor-pointer self-start sm:self-auto"
                     title="Refresh price data"
                   >
                     <RefreshCw className="w-4 h-4" />
+                    <span>Refresh Rates</span>
                   </button>
                 </div>
 
-                <form onSubmit={handleUpdatePrice} className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                  <div className="sm:col-span-3">
-                    <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-1">
-                      Material
-                    </label>
-                    <select
-                      value={priceForm.material}
-                      onChange={(e) => {
-                        const mat = e.target.value;
-                        setPriceForm({
-                          ...priceForm,
-                          material: mat,
-                          purity: mat === "silver" ? "18k" : "22k",
-                        });
-                      }}
-                      className="w-full px-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
-                    >
-                      <option value="gold">Gold</option>
-                      <option value="silver">Silver</option>
-                    </select>
-                  </div>
-
-                  <div className="sm:col-span-3">
-                    <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-1">
-                      Purity Standard
-                    </label>
-                    <select
-                      value={priceForm.purity}
-                      onChange={(e) => setPriceForm({ ...priceForm, purity: e.target.value })}
-                      className="w-full px-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
-                    >
-                      {priceForm.material === "gold" ? (
-                        <>
-                          <option value="22k">22K Gold</option>
-                        </>
-                      ) : (
-                        <>
-                          <option value="925">925 Silver</option>
-                        </>
-                      )}
-                    </select>
-                  </div>
-
-                  <div className="sm:col-span-4">
-                    <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider mb-1">
-                      Price (₹ per gram)
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      placeholder="e.g. 7195"
-                      value={priceForm.price}
-                      onChange={(e) => setPriceForm({ ...priceForm, price: e.target.value })}
-                      className="w-full px-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37]"
-                      required
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2 flex items-end">
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="w-full inline-flex items-center justify-center gap-1.5 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-50 min-h-[44px]"
-                    >
-                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" /> : <TrendingUp className="w-4 h-4 text-[#D4AF37]" />}
-                      <span>Update</span>
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              {/* Current Active Metal Rates Cards */}
-              <div className="bg-white border border-stone-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm space-y-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-stone-400 block">
-                  Current Live Showroom Rates
-                </span>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                  {dashboardStats.priceData.length > 0 ? (
-                    dashboardStats.priceData.map((p, idx) => (
-                      <div
-                        key={p.id || idx}
-                        className="bg-[#FAF9F5] border border-[#D4AF37]/30 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between space-y-3"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold uppercase tracking-wider text-[#B8860B]">
-                            {p.purity?.toUpperCase()} {p.material?.toUpperCase()}
-                          </span>
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                {/* 2 Dedicated Metal Rate Cards */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* 1. 22K Standard Gold Card */}
+                  <div className="bg-white border-2 border-[#D4AF37]/40 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col justify-between space-y-5 relative overflow-hidden">
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#D4AF37]/10 rounded-full blur-2xl pointer-events-none" />
+                    
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center shrink-0">
+                            <Coins className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <span className="font-serif font-bold text-base text-stone-900 block">
+                              22 Karat Standard Gold
+                            </span>
+                            <span className="text-[10px] uppercase font-bold text-[#B8860B] tracking-wider block">
+                              Fine Gold Bullion (BIS 916)
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-[10px] text-stone-400 uppercase font-bold tracking-wider block">
-                            Rate Per Gram
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Live
+                        </span>
+                      </div>
+
+                      <div className="p-4 bg-[#FAF9F5] border border-stone-200 rounded-2xl">
+                        <span className="text-[10px] text-stone-400 uppercase font-bold tracking-wider block">
+                          Current Live Rate (Per Gram)
+                        </span>
+                        <div className="flex items-baseline justify-between mt-1">
+                          <span className="font-serif text-3xl font-bold text-stone-900">
+                            {goldPrice > 0 ? `₹${goldPrice.toLocaleString("en-IN")}` : "Not Set"}
                           </span>
-                          <span className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight block mt-0.5">
-                            ₹{Number(p.price).toLocaleString("en-IN")}
-                          </span>
-                        </div>
-                        <div className="pt-2 border-t border-stone-200 text-[11px] font-mono text-stone-500 flex items-center justify-between">
-                          <span>8g (1 Pavan): ₹{(Number(p.price) * 8).toLocaleString("en-IN")}</span>
+                          {goldPrice > 0 && (
+                            <span className="text-xs font-mono text-stone-500">
+                              8g (1 Pavan): <strong className="text-stone-800 font-bold">₹{(goldPrice * 8).toLocaleString("en-IN")}</strong>
+                            </span>
+                          )}
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    <div className="sm:col-span-3 text-center py-6 text-stone-400 text-xs italic">
-                      No custom price data set yet. Showing default showroom benchmarks.
                     </div>
-                  )}
+
+                    {/* Quick Update Form */}
+                    <form onSubmit={handleUpdateGoldRate} className="space-y-3 pt-2 border-t border-stone-100">
+                      <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider">
+                        Set New 22K Gold Price (₹ per gram)
+                      </label>
+                      <div className="flex gap-2.5">
+                        <div className="relative flex-1">
+                          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400 font-serif font-bold text-sm">
+                            ₹
+                          </span>
+                          <input
+                            type="number"
+                            step="any"
+                            placeholder="e.g. 7195"
+                            value={goldRateInput}
+                            onChange={(e) => setGoldRateInput(e.target.value)}
+                            className="w-full pl-8 pr-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37] font-mono font-semibold"
+                            required
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={isLoading || !goldRateInput}
+                          className="inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3 px-5 rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-50 min-h-[44px] shrink-0 cursor-pointer"
+                        >
+                          {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" /> : <TrendingUp className="w-4 h-4 text-[#D4AF37]" />}
+                          <span>Update Gold</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* 2. 925 Fine Silver Card */}
+                  <div className="bg-white border-2 border-slate-300/80 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col justify-between space-y-5 relative overflow-hidden">
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-slate-400/10 rounded-full blur-2xl pointer-events-none" />
+                    
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-300 text-slate-700 flex items-center justify-center shrink-0">
+                            <Scale className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <span className="font-serif font-bold text-base text-stone-900 block">
+                              Pure 925 Fine Silver
+                            </span>
+                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">
+                              Pure Silver Bullion (92.5%)
+                            </span>
+                          </div>
+                        </div>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Live
+                        </span>
+                      </div>
+
+                      <div className="p-4 bg-[#FAF9F5] border border-stone-200 rounded-2xl">
+                        <span className="text-[10px] text-stone-400 uppercase font-bold tracking-wider block">
+                          Current Live Rate (Per Gram)
+                        </span>
+                        <div className="flex items-baseline justify-between mt-1">
+                          <span className="font-serif text-3xl font-bold text-stone-900">
+                            {silverPrice > 0 ? `₹${silverPrice.toLocaleString("en-IN")}` : "Not Set"}
+                          </span>
+                          {silverPrice > 0 && (
+                            <span className="text-xs font-mono text-stone-500">
+                              8g: <strong className="text-stone-800 font-bold">₹{(silverPrice * 8).toLocaleString("en-IN")}</strong>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Update Form */}
+                    <form onSubmit={handleUpdateSilverRate} className="space-y-3 pt-2 border-t border-stone-100">
+                      <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider">
+                        Set New 925 Silver Price (₹ per gram)
+                      </label>
+                      <div className="flex gap-2.5">
+                        <div className="relative flex-1">
+                          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400 font-serif font-bold text-sm">
+                            ₹
+                          </span>
+                          <input
+                            type="number"
+                            step="any"
+                            placeholder="e.g. 95"
+                            value={silverRateInput}
+                            onChange={(e) => setSilverRateInput(e.target.value)}
+                            className="w-full pl-8 pr-3.5 py-3 bg-[#FAF9F5] border border-stone-300 rounded-xl text-xs focus:outline-none focus:border-[#D4AF37] font-mono font-semibold"
+                            required
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={isLoading || !silverRateInput}
+                          className="inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3 px-5 rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-50 min-h-[44px] shrink-0 cursor-pointer"
+                        >
+                          {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" /> : <TrendingUp className="w-4 h-4 text-[#D4AF37]" />}
+                          <span>Update Silver</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ===================================================================
            * TAB 1: CATEGORIES MANAGEMENT
@@ -2425,33 +2477,6 @@ export default function AdminDashboard() {
                   </button>
                 </div>
               </form>
-
-              {/* Showroom Subdomain Activation Card (POST /opxXxolN7m6CU/activate_subdomain) */}
-              <div className="bg-[#FAF9F5] border-2 border-[#D4AF37]/30 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-sm space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <div className="inline-flex items-center gap-2 text-[#B8860B] text-xs font-semibold uppercase tracking-wider mb-1">
-                      <ShieldCheck className="w-4 h-4" />
-                      <span>Subdomain & Subscription Status</span>
-                    </div>
-                    <h4 className="font-serif text-lg sm:text-xl font-bold text-stone-900">
-                      Showroom Activation
-                    </h4>
-                    <p className="text-xs text-stone-600 font-light mt-0.5">
-                      Subdomain: <span className="font-mono font-bold text-[#B8860B]">{adminUser.domain}</span>
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleActivateSite}
-                    disabled={isLoading}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all disabled:opacity-50 min-h-[44px]"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Activate Showroom Site</span>
-                  </button>
-                </div>
-              </div>
             </div>
           )}
         </main>

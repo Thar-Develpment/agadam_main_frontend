@@ -114,22 +114,22 @@ export default function AboutSection({ aboutContent, galleryImages = [], shopInf
 
                   {/* Showroom Logo if uploaded, otherwise Diamond/Gem Icon */}
                   {shopInfo?.logo ? (
-                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white border border-[#D4AF37] p-1 flex items-center justify-center shadow-lg shrink-0 overflow-hidden">
+                    <div className="flex items-center justify-center shrink-0">
                       <img
                         src={resolveFullImageUrl(shopInfo.logo)}
                         alt={shopName}
-                        className="w-full h-full object-contain"
+                        className="h-11 sm:h-12 w-auto max-w-[140px] max-h-12 object-contain"
                         onError={(e) => {
                           e.target.style.display = "none";
                           if (e.target.nextSibling) e.target.nextSibling.style.display = "flex";
                         }}
                       />
-                      <div className="hidden w-full h-full rounded-full bg-stone-900 items-center justify-center">
+                      <div className="hidden w-11 h-11 rounded-xl bg-stone-900 border border-[#D4AF37]/40 items-center justify-center shadow-md">
                         <Gem className="w-5 h-5 text-[#D4AF37]" />
                       </div>
                     </div>
                   ) : (
-                    <div className="w-11 h-11 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/40 flex items-center justify-center shadow-md shrink-0">
+                    <div className="w-11 h-11 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/40 flex items-center justify-center shadow-md shrink-0">
                       <Gem className="w-6 h-6 text-[#D4AF37]" />
                     </div>
                   )}

@@ -71,22 +71,22 @@ export default function Footer({ shopInfo }) {
           <div className="lg:col-span-5 space-y-4">
             <div className="flex items-center gap-3">
               {shopInfo?.logo ? (
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/10 border border-[#D4AF37] p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="flex items-center justify-center shrink-0">
                   <img
                     src={resolveFullImageUrl(shopInfo.logo)}
                     alt={shopInfo?.name || "Logo"}
-                    className="w-full h-full object-contain"
+                    className="h-10 sm:h-12 w-auto max-w-[140px] sm:max-w-[180px] max-h-12 object-contain"
                     onError={(e) => {
                       e.target.style.display = "none";
                       if (e.target.nextSibling) e.target.nextSibling.style.display = "flex";
                     }}
                   />
-                  <div className="hidden w-full h-full rounded-full items-center justify-center">
+                  <div className="hidden w-10 h-10 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37] items-center justify-center">
                     <Gem className="w-5 h-5 text-[#D4AF37]" />
                   </div>
                 </div>
               ) : (
-                <div className="w-10 h-10 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37] flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37] flex items-center justify-center shrink-0">
                   <Gem className="w-5 h-5 text-[#D4AF37]" />
                 </div>
               )}
