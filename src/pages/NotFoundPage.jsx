@@ -245,7 +245,7 @@ export default function NotFoundPage() {
                         Account Recovery
                       </span>
                       <span className="text-[10px] text-stone-400 block">
-                        Reset admin credentials
+                        Reset admin Password
                       </span>
                     </div>
                   </Link>
