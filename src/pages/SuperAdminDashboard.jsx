@@ -154,17 +154,19 @@ export default function SuperAdminDashboard() {
   const loadPlatformRates = async () => {
     setIsLoadingRates(true);
     try {
+      // 1. Query default site info to retrieve master rate list
+      const siteInfo = await getSiteInfo("default");
+      if (siteInfo && Array.isArray(siteInfo.priceData) && siteInfo.priceData.length > 0) {
+        setPriceData(siteInfo.priceData);
+        setLastRateSync(new Date());
+        return;
+      }
+
+      // 2. Fallback to admin dashboard stats
       const res = await adminGetDashboardStats();
       if (res && res.status === 1 && Array.isArray(res.priceData) && res.priceData.length > 0) {
         setPriceData(res.priceData);
         setLastRateSync(new Date());
-      } else {
-        // Fallback: Query default site info to retrieve master rate list
-        const siteInfo = await getSiteInfo("default");
-        if (siteInfo && Array.isArray(siteInfo.priceData) && siteInfo.priceData.length > 0) {
-          setPriceData(siteInfo.priceData);
-          setLastRateSync(new Date());
-        }
       }
     } catch (err) {
       console.error("Failed to load platform benchmark rates:", err);
@@ -275,51 +277,119 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  // Handle Update Rate for any material / purity (POST /opxXxolN7m6CU/price_update)
-  const handleUpdateMetalRate = async (material, purity, rawPrice, setInputFn, label) => {
-    const numPrice = parseFloat(rawPrice);
+  // Handle Update 22K Gold Benchmark Rate (POST /opxXxolN7m6CU/price_update)
+  const handleUpdateGoldRate = async (e) => {
+    if (e) e.preventDefault();
+    const numPrice = parseFloat(gold22Input);
     if (isNaN(numPrice) || numPrice <= 0) {
-      triggerToast(`Please enter a valid price for ${label}`, "error");
+      triggerToast("Please enter a valid 22K Gold price per gram.", "error");
       return;
     }
 
-    setIsUpdatingRate(purity);
+    setIsUpdatingRate("22k");
     try {
       const res = await adminUpdatePrice({
-        material,
-        purity,
+        material: "gold",
+        purity: "22k",
         price: numPrice,
       });
 
       if (res && (res.status === 1 || res.success === 1)) {
-        triggerToast(`Master ${label} benchmark updated to ₹${numPrice.toLocaleString("en-IN")}/g!`);
-        setInputFn("");
-        
-        // Optimistically update local price data
+        triggerToast(`Platform 22K Gold benchmark updated to ₹${numPrice.toLocaleString("en-IN")}/g!`);
+        setGold22Input("");
+
+        // Optimistically update local price data so UI updates instantly
         setPriceData((prev) => {
           const list = Array.isArray(prev) ? [...prev] : [];
           const idx = list.findIndex(
             (p) =>
-              (p.material || "").toLowerCase() === material.toLowerCase() &&
-              (p.purity || "").toLowerCase() === purity.toLowerCase()
+              (p.material || "").toLowerCase() === "gold" &&
+              ((p.purity || "").toLowerCase().includes("22") ||
+                (p.purity || "").toLowerCase().includes("916"))
           );
           if (idx >= 0) {
             list[idx] = { ...list[idx], price: numPrice };
           } else {
-            list.push({ material, purity, price: numPrice });
+            const anyGoldIdx = list.findIndex(
+              (p) => (p.material || "").toLowerCase() === "gold"
+            );
+            if (anyGoldIdx >= 0) {
+              list[anyGoldIdx] = { ...list[anyGoldIdx], price: numPrice };
+            } else {
+              list.unshift({
+                id: Date.now(),
+                material: "gold",
+                purity: "22K (91.6% Pure)",
+                price: numPrice,
+              });
+            }
           }
           return list;
         });
         setLastRateSync(new Date());
 
-        // Refresh stats from backend
-        loadPlatformRates();
+        // Refresh from default site info backend
+        await loadPlatformRates();
       } else {
-        triggerToast(res?.message || `Failed to update ${label} price.`, "error");
+        triggerToast(res?.message || "Failed to update 22K Gold price.", "error");
       }
     } catch (err) {
-      console.error(`Error updating ${label} rate:`, err);
-      triggerToast(`Failed to update ${label} price.`, "error");
+      console.error("Error updating 22K Gold rate:", err);
+      triggerToast("Failed to update 22K Gold price.", "error");
+    } finally {
+      setIsUpdatingRate(null);
+    }
+  };
+
+  // Handle Update 925 Silver Benchmark Rate (POST /opxXxolN7m6CU/price_update)
+  const handleUpdateSilverRate = async (e) => {
+    if (e) e.preventDefault();
+    const numPrice = parseFloat(silverInput);
+    if (isNaN(numPrice) || numPrice <= 0) {
+      triggerToast("Please enter a valid 925 Silver price per gram.", "error");
+      return;
+    }
+
+    setIsUpdatingRate("925");
+    try {
+      const res = await adminUpdatePrice({
+        material: "silver",
+        purity: "925",
+        price: numPrice,
+      });
+
+      if (res && (res.status === 1 || res.success === 1)) {
+        triggerToast(`Platform Pure 925 Silver benchmark updated to ₹${numPrice.toLocaleString("en-IN")}/g!`);
+        setSilverInput("");
+
+        // Optimistically update local price data so UI updates instantly
+        setPriceData((prev) => {
+          const list = Array.isArray(prev) ? [...prev] : [];
+          const idx = list.findIndex(
+            (p) => (p.material || "").toLowerCase() === "silver"
+          );
+          if (idx >= 0) {
+            list[idx] = { ...list[idx], price: numPrice };
+          } else {
+            list.push({
+              id: Date.now(),
+              material: "silver",
+              purity: "Pure 925 Fine Silver",
+              price: numPrice,
+            });
+          }
+          return list;
+        });
+        setLastRateSync(new Date());
+
+        // Refresh from default site info backend
+        await loadPlatformRates();
+      } else {
+        triggerToast(res?.message || "Failed to update 925 Silver price.", "error");
+      }
+    } catch (err) {
+      console.error("Error updating 925 Silver rate:", err);
+      triggerToast("Failed to update 925 Silver price.", "error");
     } finally {
       setIsUpdatingRate(null);
     }
@@ -1149,10 +1219,7 @@ export default function SuperAdminDashboard() {
 
                 {/* Quick Update Form */}
                 <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleUpdateMetalRate("gold", "22k", gold22Input, setGold22Input, "22K Gold");
-                  }}
+                  onSubmit={handleUpdateGoldRate}
                   className="space-y-3 pt-2 border-t border-stone-100"
                 >
                   <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider">
@@ -1231,10 +1298,7 @@ export default function SuperAdminDashboard() {
 
                 {/* Quick Update Form */}
                 <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleUpdateMetalRate("silver", "925", silverInput, setSilverInput, "925 Silver");
-                  }}
+                  onSubmit={handleUpdateSilverRate}
                   className="space-y-3 pt-2 border-t border-stone-100"
                 >
                   <label className="block text-[10px] font-bold text-stone-600 uppercase tracking-wider">

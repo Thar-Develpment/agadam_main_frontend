@@ -476,7 +476,9 @@ export async function getSiteInfo(shopName = "") {
     targetShop = "mycompany";
   }
 
-  if (!subdomain && targetShop && targetShop !== "mycompany") {
+  if (targetShop === "default") {
+    subdomain = "default";
+  } else if (!subdomain && targetShop && targetShop !== "mycompany") {
     subdomain = `${targetShop}.aadagam.com`;
   }
 
