@@ -453,11 +453,36 @@ const DEFAULT_PRICE_DATA = [
  * @returns {Promise<Object>} { success: number, priceData: Array<{ id, material, purity, price }>, siteInfoData: Object|null, paymentPending?: boolean }
  */
 export async function getSiteInfo(shopName = "") {
-  const subdomain = getTenantSubdomain();
-  const targetShop = shopName || getShopPrefix(subdomain);
+  let targetShop = shopName;
+  let subdomain = getTenantSubdomain();
+
+  if (!targetShop) {
+    if (subdomain) {
+      targetShop = getShopPrefix(subdomain);
+    } else {
+      try {
+        const adminSession = localStorage.getItem("aadagam_current_admin");
+        if (adminSession) {
+          const user = JSON.parse(adminSession);
+          if (user?.domain) {
+            targetShop = getShopPrefix(user.domain);
+          }
+        }
+      } catch (e) {}
+    }
+  }
+
+  if (!targetShop) {
+    targetShop = "mycompany";
+  }
+
+  if (!subdomain && targetShop && targetShop !== "mycompany") {
+    subdomain = `${targetShop}.aadagam.com`;
+  }
+
   const payload = {
     shop_name: targetShop,
-    subdomain: subdomain,
+    subdomain: subdomain || targetShop,
   };
 
   try {
@@ -488,6 +513,12 @@ export async function getSiteInfo(shopName = "") {
         if (siteInfoData && typeof siteInfoData === "object") {
           try {
             localStorage.setItem(`aadagam_site_info_${targetShop}`, JSON.stringify(siteInfoData));
+          } catch (e) {}
+        }
+
+        if (priceData && Array.isArray(priceData)) {
+          try {
+            localStorage.setItem(`aadagam_prices_${targetShop}`, JSON.stringify(priceData));
           } catch (e) {}
         }
 
@@ -530,6 +561,14 @@ export async function getSiteInfo(shopName = "") {
     }
   } catch (e) {}
 
+  let cachedPrices = null;
+  try {
+    const localP = localStorage.getItem(`aadagam_prices_${targetShop}`);
+    if (localP) {
+      cachedPrices = JSON.parse(localP);
+    }
+  } catch (e) {}
+
   const mergedSiteInfo = {
     shop_name: cachedSiteInfo?.shop_name || basicData?.shop_name || targetShop,
     logo: cachedSiteInfo?.logo || "",
@@ -544,7 +583,7 @@ export async function getSiteInfo(shopName = "") {
   return {
     success: 1,
     paymentPending: false,
-    priceData: DEFAULT_PRICE_DATA,
+    priceData: cachedPrices || DEFAULT_PRICE_DATA,
     siteInfoData: mergedSiteInfo,
     message: "Site info loaded via fallback",
   };
@@ -571,9 +610,9 @@ export async function getBasicInfo() {
 }
 
 /**
- * Fetch default platform assets (images & videos) from backend `GET /basic/get_basic_assets`
- * Used for WhatsApp status templates, video reels, and platform banners
- * @returns {Promise<Object>} { status: number, image: { data: string[], count: number }, video: { data: string[], count: number } }
+ * Fetch default platform assets (images & videos & special festival assets) from backend `GET /basic/get_basic_assets`
+ * Used for WhatsApp status templates, video reels, and festival marketing posters
+ * @returns {Promise<Object>} { status: number, image: { data: string[], count: number }, video: { data: string[], count: number }, specialImage: { data: string[], count: number }, specialVideo: { data: string[], count: number } }
  */
 export async function getBasicAssets() {
   try {
@@ -583,12 +622,26 @@ export async function getBasicAssets() {
         status: 1,
         image: res.data.image || { data: [], count: 0 },
         video: res.data.video || { data: [], count: 0 },
+        specialImage: res.data.specialImage || { data: [], count: 0 },
+        specialVideo: res.data.specialVideo || { data: [], count: 0 },
       };
     }
-    return { status: 0, image: { data: [], count: 0 }, video: { data: [], count: 0 } };
+    return {
+      status: 0,
+      image: { data: [], count: 0 },
+      video: { data: [], count: 0 },
+      specialImage: { data: [], count: 0 },
+      specialVideo: { data: [], count: 0 },
+    };
   } catch (err) {
     console.error("Error in getBasicAssets:", err);
-    return { status: 0, image: { data: [], count: 0 }, video: { data: [], count: 0 } };
+    return {
+      status: 0,
+      image: { data: [], count: 0 },
+      video: { data: [], count: 0 },
+      specialImage: { data: [], count: 0 },
+      specialVideo: { data: [], count: 0 },
+    };
   }
 }
 
@@ -802,6 +855,76 @@ export async function adminLogin(email, password) {
     }
     return {
       status: 0,
+      message: errMsg,
+    };
+  }
+}
+
+/**
+ * Authenticate Super Admin via `POST /opxXxolN7m6CU/login` with type: "super"
+ * @param {string} email 
+ * @param {string} password 
+ * @returns {Promise<Object>} { status: number, success: number, authTkn: string, message: string, user: object }
+ */
+export async function superAdminLogin(email, password) {
+  try {
+    const cleanEmail = (email || "").trim();
+
+    const res = await apiClient.post("/opxXxolN7m6CU/login", {
+      email: cleanEmail,
+      password: password || "",
+      type: "super",
+    });
+
+    if (res.data && (res.data.status === 1 || res.data.success === 1) && res.data.authTkn) {
+      const token = res.data.authTkn;
+      const decoded = parseJwt(token) || {};
+
+      const userSession = {
+        token,
+        authTkn: token,
+        id: decoded.id || null,
+        email: decoded.email || cleanEmail,
+        isSuper: true,
+      };
+
+      // Store superadmin session and token
+      localStorage.setItem("aadagam_superadmin_session", JSON.stringify(userSession));
+      localStorage.setItem("aadagam_auth_token", token);
+
+      return {
+        status: 1,
+        success: 1,
+        authTkn: token,
+        message: res.data.message || "Super Admin login successful",
+        user: userSession,
+      };
+    }
+
+    return {
+      status: 0,
+      success: 0,
+      message: res.data?.message || "Invalid Super Admin credentials.",
+    };
+  } catch (err) {
+    console.error("Error in superAdminLogin:", err);
+    let errMsg = "Invalid Super Admin credentials.";
+    if (err.response?.data?.message) {
+      errMsg = err.response.data.message;
+    } else if (err.response?.data?.errors) {
+      if (Array.isArray(err.response.data.errors)) {
+        errMsg = err.response.data.errors.join("\n");
+      } else if (typeof err.response.data.errors === "object") {
+        errMsg = Object.values(err.response.data.errors)
+          .map((e) => (typeof e === "object" ? e.message || JSON.stringify(e) : e))
+          .join("\n");
+      }
+    } else if (err.message) {
+      errMsg = err.message;
+    }
+    return {
+      status: 0,
+      success: 0,
       message: errMsg,
     };
   }
@@ -1564,3 +1687,116 @@ export const uploadHeroImage = adminUploadImages;
 export const addHeroSlide = adminAddHeroSlide;
 export const getHeroSlides = adminGetAllHeroSlide;
 export const updateHeroSlide = adminUpdateHeroSlide;
+
+/* ------------------ H. SPECIAL BASIC ASSETS (FESTIVAL POSTERS & VIDEOS) ------------------ */
+
+/**
+ * Add special festival poster or promo video to am_basic_assets via `POST /opxXxolN7m6CU/add_basic_asset`
+ * @param {Object} param0 { type: 'special_image'|'special_video'|'image'|'video', url: string }
+ * @param {string} [token] Optional JWT token override
+ * @returns {Promise<Object>} { status: number, message: string }
+ */
+export async function adminAddBasicAsset({ type = "special_image", url = "" }, token = null) {
+  try {
+    const cleanUrl = (url || "").trim();
+    if (!cleanUrl) {
+      return { status: 0, message: "Asset URL is required." };
+    }
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/add_basic_asset",
+      {
+        type: type || "special_image",
+        url: cleanUrl,
+      },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminAddBasicAsset:", err);
+    return {
+      status: 0,
+      message: err.response?.data?.message || "Failed to add special asset.",
+    };
+  }
+}
+
+/**
+ * List all basic assets (posters, videos) for Super Admin via `POST /opxXxolN7m6CU/get_all_basic_asset`
+ * @param {number} [pageNo=0] Page index
+ * @param {number} [pageSize=50] Items per page
+ * @param {string} [token] Optional JWT token override
+ * @returns {Promise<Object>} { status: number, totalRecords: number, data: Array }
+ */
+export async function adminGetAllBasicAssets(pageNo = 0, pageSize = 50, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/get_all_basic_asset",
+      {
+        pageNo: Number(pageNo) || 0,
+        pageSize: Number(pageSize) || 50,
+      },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminGetAllBasicAssets:", err);
+    return {
+      status: 0,
+      totalRecords: 0,
+      data: [],
+      message: err.response?.data?.message || "Failed to fetch basic assets.",
+    };
+  }
+}
+
+/**
+ * Get a single basic asset by ID via `POST /opxXxolN7m6CU/get_single_basic_asset`
+ * @param {number|string} id Asset ID
+ * @param {string} [token] Optional JWT token override
+ * @returns {Promise<Object>} { status: number, data: Object }
+ */
+export async function adminGetSingleBasicAsset(id, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/get_single_basic_asset",
+      { id: Number(id) },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminGetSingleBasicAsset:", err);
+    return {
+      status: 0,
+      message: err.response?.data?.message || "Failed to fetch single asset.",
+    };
+  }
+}
+
+/**
+ * Update or soft-delete a basic asset via `POST /opxXxolN7m6CU/update_basic_asset`
+ * @param {Object} param0 { id, type, url, status } (Set status: 0 to disable/delete)
+ * @param {string} [token] Optional JWT token override
+ * @returns {Promise<Object>} { status: number, message: string }
+ */
+export async function adminUpdateBasicAsset({ id, type, url, status = 1 }, token = null) {
+  try {
+    const res = await apiClient.post(
+      "/opxXxolN7m6CU/update_basic_asset",
+      {
+        id: Number(id),
+        type: type || "special_image",
+        url: url || "",
+        status: status !== undefined ? Number(status) : 1,
+      },
+      { headers: getAuthHeader(token) }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Error in adminUpdateBasicAsset:", err);
+    return {
+      status: 0,
+      message: err.response?.data?.message || "Failed to update asset.",
+    };
+  }
+}
+

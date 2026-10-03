@@ -65,12 +65,13 @@ import {
   adminGetDashboardStats,
   adminUpdatePrice,
   getSiteInfo,
+  getBasicInfo,
   adminUpdateSiteInfo,
   adminUploadImages,
   DEFAULT_GOLD_THUMBNAIL
 } from "../services/api";
 import { mockSlides, mockShopInfo } from "../services/mockData";
-import { getShopPrefix, getStorefrontUrl } from "../services/apiClient";
+import { getShopPrefix, getStorefrontUrl, getCleanWhatsAppNumber } from "../services/apiClient";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -84,7 +85,13 @@ export default function AdminDashboard() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
 
-  // 0. Dashboard Stats & Live Metal Rates State
+  // 0. Trial Expiration & Payment Pending Guard State
+  const [isCheckingPayment, setIsCheckingPayment] = useState(true);
+  const [isPaymentPending, setIsPaymentPending] = useState(false);
+  const [paymentPendingMessage, setPaymentPendingMessage] = useState("");
+  const [superAdminWhatsApp, setSuperAdminWhatsApp] = useState("919952054493");
+
+  // 0.1 Dashboard Stats & Live Metal Rates State
   const [dashboardStats, setDashboardStats] = useState({
     category_count: 0,
     gallery_count: 0,
@@ -160,6 +167,18 @@ export default function AdminDashboard() {
     setTimeout(() => setShowToast(false), 3000);
   };
 
+  // Platform SuperAdmin Contact Fetch
+  useEffect(() => {
+    getBasicInfo()
+      .then((res) => {
+        if (res && res.status === 1 && res.data) {
+          const num = res.data.whatsapp_no || res.data.phone || "919952054493";
+          setSuperAdminWhatsApp(getCleanWhatsAppNumber(num));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // Auth Guard & Session Load
   useEffect(() => {
     const currentAdmin = localStorage.getItem("aadagam_current_admin");
@@ -175,47 +194,102 @@ export default function AdminDashboard() {
     }
   }, [navigate]);
 
-  // Initial Data Fetching from Backend APIs
+  // Initial Data Fetching & 48-Hour Trial / Payment Status Guard
   useEffect(() => {
     if (!adminUser) return;
     const shopPrefix = getShopPrefix(adminUser.domain);
 
-    // LocalStorage Fallbacks
-    const localSlides = localStorage.getItem(`aadagam_carousel_slides_${shopPrefix}`);
-    setSlides(localSlides ? JSON.parse(localSlides) : mockSlides);
+    async function initializeDashboard() {
+      setIsCheckingPayment(true);
+      try {
+        // Step 1: Guard Check - verify site_info first for trial / payment status
+        const siteInfoRes = await getSiteInfo(shopPrefix);
 
-    const localContact = localStorage.getItem(`aadagam_contact_info_${shopPrefix}`);
-    const parsedContact = localContact ? JSON.parse(localContact) : {};
-    let parsedSocials = parsedContact.social_urls || {};
-    if (typeof parsedSocials === "string") {
-      try { parsedSocials = JSON.parse(parsedSocials); } catch (e) {}
+        if (siteInfoRes && siteInfoRes.paymentPending) {
+          setIsPaymentPending(true);
+          setPaymentPendingMessage(
+            siteInfoRes.message === "Payment pending"
+              ? "Your 2-day free trial period has ended. Please contact Aadagam Admin to complete your subscription payment and continue managing your showroom website."
+              : (siteInfoRes.message || "Your trial period has ended. Please contact Aadagam Admin.")
+          );
+          setIsCheckingPayment(false);
+          return; // STOP: do not load remaining admin CRUD modules
+        }
+
+        // If payment is active or trial is valid, proceed
+        setIsPaymentPending(false);
+        setIsCheckingPayment(false);
+
+        // LocalStorage Fallbacks for instant UX
+        const localSlides = localStorage.getItem(`aadagam_carousel_slides_${shopPrefix}`);
+        setSlides(localSlides ? JSON.parse(localSlides) : mockSlides);
+
+        const localContact = localStorage.getItem(`aadagam_contact_info_${shopPrefix}`);
+        const parsedContact = localContact ? JSON.parse(localContact) : {};
+        let parsedSocials = parsedContact.social_urls || {};
+        if (typeof parsedSocials === "string") {
+          try { parsedSocials = JSON.parse(parsedSocials); } catch (e) {}
+        }
+        setContactInfo({
+          logo: parsedContact.logo || "",
+          tamil_shop_name: parsedContact.tamil_shop_name || "",
+          city: parsedContact.city || "",
+          address: parsedContact.address || mockShopInfo.address,
+          phone: parsedContact.phone || parsedContact.phonePrimary || mockShopInfo.phonePrimary,
+          phonePrimary: parsedContact.phonePrimary || mockShopInfo.phonePrimary,
+          contact_us: parsedContact.contact_us || adminUser.email,
+          email: parsedContact.email || adminUser.email,
+          whatsapp_no: parsedContact.whatsapp_no || parsedContact.whatsapp || mockShopInfo.whatsapp,
+          whatsapp: parsedContact.whatsapp || mockShopInfo.whatsapp,
+          facebook: parsedContact.facebook || parsedSocials.facebook || "",
+          instagram: parsedContact.instagram || parsedSocials.instagram || "",
+          twitter: parsedContact.twitter || parsedSocials.twitter || "",
+          youtube: parsedContact.youtube || parsedSocials.youtube || "",
+          telegram: parsedContact.telegram || parsedSocials.telegram || "",
+        });
+
+        if (siteInfoRes && siteInfoRes.siteInfoData) {
+          const d = siteInfoRes.siteInfoData;
+          let socialLinks = {};
+          if (d.social_urls) {
+            try {
+              socialLinks = typeof d.social_urls === "string" ? JSON.parse(d.social_urls) : d.social_urls;
+            } catch (e) {}
+          }
+          setContactInfo((prev) => ({
+            ...prev,
+            logo: d.logo || prev.logo || "",
+            tamil_shop_name: d.tamil_shop_name || prev.tamil_shop_name || "",
+            city: d.city || prev.city || "",
+            address: d.address || prev.address || "",
+            phone: d.phone || prev.phone || prev.phonePrimary || "",
+            phonePrimary: d.phone || prev.phonePrimary || "",
+            contact_us: d.contact_us || prev.contact_us || prev.email || "",
+            email: d.contact_us || prev.email || "",
+            whatsapp_no: d.whatsapp_no || prev.whatsapp_no || prev.whatsapp || "",
+            whatsapp: d.whatsapp_no || prev.whatsapp || "",
+            facebook: socialLinks?.facebook || d.facebook || prev.facebook || "",
+            instagram: socialLinks?.instagram || d.instagram || prev.instagram || "",
+            twitter: socialLinks?.twitter || d.twitter || prev.twitter || "",
+            youtube: socialLinks?.youtube || d.youtube || prev.youtube || "",
+            telegram: socialLinks?.telegram || d.telegram || prev.telegram || "",
+          }));
+        }
+
+        // Parallel Fetch Remaining Admin Modules
+        loadDashboardStats(shopPrefix);
+        loadCategories(0);
+        loadGallery(0);
+        loadEnquiries(0);
+        loadStories(0);
+        loadSlides(0);
+      } catch (err) {
+        console.warn("Error during dashboard initialization:", err);
+        setIsCheckingPayment(false);
+      }
     }
-    setContactInfo({
-      logo: parsedContact.logo || "",
-      tamil_shop_name: parsedContact.tamil_shop_name || "",
-      city: parsedContact.city || "",
-      address: parsedContact.address || mockShopInfo.address,
-      phone: parsedContact.phone || parsedContact.phonePrimary || mockShopInfo.phonePrimary,
-      phonePrimary: parsedContact.phonePrimary || mockShopInfo.phonePrimary,
-      contact_us: parsedContact.contact_us || adminUser.email,
-      email: parsedContact.email || adminUser.email,
-      whatsapp_no: parsedContact.whatsapp_no || parsedContact.whatsapp || mockShopInfo.whatsapp,
-      whatsapp: parsedContact.whatsapp || mockShopInfo.whatsapp,
-      facebook: parsedContact.facebook || parsedSocials.facebook || "",
-      instagram: parsedContact.instagram || parsedSocials.instagram || "",
-      twitter: parsedContact.twitter || parsedSocials.twitter || "",
-      youtube: parsedContact.youtube || parsedSocials.youtube || "",
-      telegram: parsedContact.telegram || parsedSocials.telegram || "",
-    });
 
-    // Backend APIs
-    loadDashboardStats();
-    loadCategories(0);
-    loadGallery(0);
-    loadEnquiries(0);
-    loadStories(0);
-    loadSlides(0);
-    loadShowroomSiteInfo();
+    initializeDashboard();
   }, [adminUser]);
 
   const loadShowroomSiteInfo = async () => {
@@ -346,18 +420,28 @@ export default function AdminDashboard() {
   /* ==========================================================================
    * 0. DASHBOARD STATS & PRICE UPDATE HANDLERS
    * ========================================================================== */
-  const loadDashboardStats = async () => {
+  const loadDashboardStats = async (overrideShopPrefix = null) => {
     try {
+      const currentAdmin = localStorage.getItem("aadagam_current_admin");
+      const user = currentAdmin ? JSON.parse(currentAdmin) : adminUser;
+      const targetShop = overrideShopPrefix || (user?.domain ? getShopPrefix(user.domain) : getShopPrefix(getTenantSubdomain()));
+
       const [res, siteRes] = await Promise.all([
         adminGetDashboardStats(),
-        getSiteInfo(),
+        getSiteInfo(targetShop),
       ]);
+
+      const priceList = (siteRes?.priceData && Array.isArray(siteRes.priceData) && siteRes.priceData.length > 0)
+        ? siteRes.priceData
+        : (res?.priceData && Array.isArray(res.priceData) && res.priceData.length > 0)
+          ? res.priceData
+          : [];
 
       setDashboardStats({
         category_count: res?.category_count ?? 0,
         gallery_count: res?.gallery_count ?? 0,
         asked_question: res?.asked_question ?? 0,
-        priceData: siteRes?.priceData || res?.priceData || [],
+        priceData: priceList,
       });
     } catch (e) {
       console.error("Failed to load dashboard stats:", e);
@@ -371,6 +455,7 @@ export default function AdminDashboard() {
       return;
     }
 
+    const newPriceNum = Number(goldRateInput);
     setIsLoading(true);
     const res = await adminUpdatePrice({
       material: "gold",
@@ -379,10 +464,23 @@ export default function AdminDashboard() {
     });
     setIsLoading(false);
 
-    if (res.status === 1) {
-      triggerToast(`Updated 22K Gold rate to ₹${Number(goldRateInput).toLocaleString("en-IN")}/gm`);
+    if (res.status === 1 || res.success === 1) {
+      setDashboardStats((prev) => {
+        const existing = Array.isArray(prev.priceData) ? [...prev.priceData] : [];
+        const idx = existing.findIndex(
+          (p) => (p.material || "").toLowerCase() === "gold" && ((p.purity || "").toLowerCase().includes("22") || (p.purity || "").toLowerCase().includes("916"))
+        );
+        if (idx !== -1) {
+          existing[idx] = { ...existing[idx], price: newPriceNum };
+        } else {
+          existing.push({ id: Date.now(), material: "gold", purity: "22K (91.6% Pure)", price: newPriceNum });
+        }
+        return { ...prev, priceData: existing };
+      });
+      triggerToast(`Updated 22K Gold rate to ₹${newPriceNum.toLocaleString("en-IN")}/gm`);
       setGoldRateInput("");
-      loadDashboardStats();
+      const shopPrefix = adminUser?.domain ? getShopPrefix(adminUser.domain) : null;
+      loadDashboardStats(shopPrefix);
     } else {
       triggerToast(res.message || "Failed to update gold price", "error");
     }
@@ -395,6 +493,7 @@ export default function AdminDashboard() {
       return;
     }
 
+    const newPriceNum = Number(silverRateInput);
     setIsLoading(true);
     const res = await adminUpdatePrice({
       material: "silver",
@@ -403,10 +502,23 @@ export default function AdminDashboard() {
     });
     setIsLoading(false);
 
-    if (res.status === 1) {
-      triggerToast(`Updated 925 Silver rate to ₹${Number(silverRateInput).toLocaleString("en-IN")}/gm`);
+    if (res.status === 1 || res.success === 1) {
+      setDashboardStats((prev) => {
+        const existing = Array.isArray(prev.priceData) ? [...prev.priceData] : [];
+        const idx = existing.findIndex(
+          (p) => (p.material || "").toLowerCase() === "silver"
+        );
+        if (idx !== -1) {
+          existing[idx] = { ...existing[idx], price: newPriceNum };
+        } else {
+          existing.push({ id: Date.now(), material: "silver", purity: "Pure 925 Fine Silver", price: newPriceNum });
+        }
+        return { ...prev, priceData: existing };
+      });
+      triggerToast(`Updated 925 Silver rate to ₹${newPriceNum.toLocaleString("en-IN")}/gm`);
       setSilverRateInput("");
-      loadDashboardStats();
+      const shopPrefix = adminUser?.domain ? getShopPrefix(adminUser.domain) : null;
+      loadDashboardStats(shopPrefix);
     } else {
       triggerToast(res.message || "Failed to update silver price", "error");
     }
@@ -816,6 +928,120 @@ export default function AdminDashboard() {
 
   if (!adminUser) return null;
 
+  if (isCheckingPayment) {
+    return (
+      <div className="min-h-screen bg-[#FAF9F5] flex flex-col items-center justify-center p-6 text-center select-none animate-fade-in">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-stone-950 border border-[#D4AF37] flex items-center justify-center shadow-2xl mb-4">
+          <Gem className="w-8 h-8 sm:w-9 sm:h-9 text-[#D4AF37] animate-pulse" />
+        </div>
+        <div className="flex items-center gap-2 text-stone-700 text-xs font-semibold uppercase tracking-wider">
+          <Loader2 className="w-4 h-4 animate-spin text-[#B8860B]" />
+          <span>Verifying Showroom Access & Subscription...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (isPaymentPending) {
+    const currentShopName = adminUser?.shopName || (adminUser?.domain ? getShopPrefix(adminUser.domain) : "Showroom");
+    const currentDomain = adminUser?.domain || `${currentShopName}.aadagam.com`;
+    const initialMsg = `Hello Aadagam Admin, my showroom trial period for ${currentShopName} (${currentDomain}) has ended. I would like to make the subscription payment and activate my showroom website.`;
+    const whatsappActivationUrl = `https://wa.me/${superAdminWhatsApp}?text=${encodeURIComponent(initialMsg)}`;
+
+    return (
+      <div className="min-h-screen bg-[#FAF9F5] flex flex-col justify-between font-sans selection:bg-[#D4AF37] selection:text-stone-950 relative overflow-hidden">
+        {/* Background Decorative Ambient Blurs */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#D4AF37]/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Top Minimal Header */}
+        <header className="p-4 sm:p-6 max-w-7xl w-full mx-auto flex items-center justify-between relative z-10">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-stone-950 border border-[#D4AF37] flex items-center justify-center shadow-md">
+              <Gem className="w-4 h-4 text-[#D4AF37]" />
+            </div>
+            <div>
+              <span className="font-serif font-bold text-base sm:text-lg text-stone-900 block leading-tight">
+                AADAGAM CONTROL CENTER
+              </span>
+              <span className="text-[9px] text-[#B8860B] font-bold tracking-widest uppercase block">
+                Showroom Subscription Gateway
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-stone-700 hover:text-rose-700 hover:bg-rose-50 text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
+          </button>
+        </header>
+
+        {/* Main Content Modal Card */}
+        <main className="flex-1 flex items-center justify-center p-4 sm:p-6 relative z-10">
+          <div className="max-w-lg w-full bg-white border border-stone-200/90 rounded-3xl p-6 sm:p-9 shadow-2xl shadow-stone-900/10 space-y-6 text-center relative overflow-hidden animate-fade-in">
+            {/* Top Gold Accent Line */}
+            <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-amber-400 via-[#D4AF37] to-amber-500" />
+
+            {/* Trial Expired Alert Badge */}
+            <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-900 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>2-Day Free Trial Expired</span>
+            </div>
+
+            {/* Animated Luxury Lock Badge */}
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-stone-950 via-stone-900 to-stone-950 border border-[#D4AF37]/60 flex items-center justify-center mx-auto shadow-xl shadow-stone-950/20">
+              <Lock className="w-9 h-9 text-[#D4AF37] animate-pulse" />
+            </div>
+
+            {/* Headings & Descriptive Notice */}
+            <div className="space-y-3">
+              <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 tracking-wide">
+                Showroom Activation Required
+              </h1>
+              <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed">
+                Your 2-day free trial period for <strong className="text-stone-900 font-bold">{currentShopName}</strong> (<span className="font-mono text-stone-800 font-medium">{currentDomain}</span>) has completed.
+              </p>
+              <p className="text-xs sm:text-sm text-stone-500 leading-relaxed bg-[#FAF9F5] border border-stone-200 p-3.5 rounded-2xl">
+                Please contact Aadagam Admin to complete your subscription payment. Once activated by the admin, your storefront and full management dashboard will be instantly restored.
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-3 pt-2">
+              <a
+                href={whatsappActivationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center gap-2.5 bg-[#D4AF37] hover:bg-[#b8952b] text-stone-950 font-bold py-3.5 sm:py-4 px-6 rounded-2xl text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-[#D4AF37]/25 hover:shadow-xl hover:shadow-[#D4AF37]/35 transition-all cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4 text-stone-950 shrink-0" />
+                <span>Contact Aadagam Admin on WhatsApp</span>
+              </a>
+
+              <div className="flex items-center justify-center gap-4 pt-1">
+                <button
+                  onClick={handleLogout}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-500 hover:text-stone-800 transition-colors py-1 cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5 text-stone-400" />
+                  <span>Switch Account / Sign Out</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        {/* Footer */}
+        <footer className="p-4 sm:p-6 text-center text-xs text-stone-400 font-light border-t border-stone-200 relative z-10">
+          <p>© {new Date().getFullYear()} AaDaGaM SaaS Platform. All rights reserved.</p>
+        </footer>
+      </div>
+    );
+  }
+
   const shopPrefix = getShopPrefix(adminUser.domain);
   const publicStorefrontUrl = getStorefrontUrl(shopPrefix);
 
@@ -1160,13 +1386,14 @@ export default function AdminDashboard() {
            * TAB 0: DAILY METAL RATES MANAGER (POST /opxXxolN7m6CU/price_update)
            * =================================================================== */}
           {activeTab === "rates" && (() => {
-            const goldItem = dashboardStats.priceData.find(
-              (p) => (p.material || "").toLowerCase() === "gold" && (p.purity || "").toLowerCase().includes("22")
-            ) || dashboardStats.priceData.find((p) => (p.material || "").toLowerCase() === "gold");
+            const priceList = Array.isArray(dashboardStats.priceData) ? dashboardStats.priceData : [];
+            const goldItem = priceList.find(
+              (p) => (p.material || "").toLowerCase() === "gold" && ((p.purity || "").toLowerCase().includes("22") || (p.purity || "").toLowerCase().includes("916"))
+            ) || priceList.find((p) => (p.material || "").toLowerCase() === "gold");
 
-            const silverItem = dashboardStats.priceData.find(
-              (p) => (p.material || "").toLowerCase() === "silver" && (p.purity || "").toLowerCase().includes("925")
-            ) || dashboardStats.priceData.find((p) => (p.material || "").toLowerCase() === "silver");
+            const silverItem = priceList.find(
+              (p) => (p.material || "").toLowerCase() === "silver" && ((p.purity || "").toLowerCase().includes("925") || (p.purity || "").toLowerCase().includes("999") || (p.purity || "").toLowerCase().includes("silver"))
+            ) || priceList.find((p) => (p.material || "").toLowerCase() === "silver");
 
             const goldPrice = goldItem ? Number(goldItem.price) : 0;
             const silverPrice = silverItem ? Number(silverItem.price) : 0;

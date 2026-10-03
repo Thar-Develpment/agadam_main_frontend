@@ -1349,9 +1349,118 @@ const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrice
 };
 
 /**
+ * Renders the Festival Poster Overlay:
+ * Overlays Showroom Logo & Name in the exact header location as WhatsApp status cards,
+ * and overlays Showroom Contact & BIS 916 Hallmark emblem at the bottom.
+ */
+const drawFestivalPosterOverlay = (ctx, W, H, shopName, shopLogoImg = null, shopInfo = {}, hallmarkImg = null) => {
+  ctx.save();
+  const sc = W / 1080;
+  const sx = W / 1080;
+  const sy = H / 1920;
+
+  // 1. Top Header Scrim Gradient for text/logo contrast
+  const topScrim = ctx.createLinearGradient(0, 0, 0, 380 * sy);
+  topScrim.addColorStop(0, "rgba(10, 4, 2, 0.94)");
+  topScrim.addColorStop(0.65, "rgba(10, 4, 2, 0.65)");
+  topScrim.addColorStop(1, "rgba(10, 4, 2, 0)");
+  ctx.fillStyle = topScrim;
+  ctx.fillRect(0, 0, W, 380 * sy);
+
+  // 2. Center Top Header Logo & Shop Name (Exact same position and dimensions as WhatsApp status templates)
+  const topY = 25 * sy;
+  const maxLogoW = 560 * sx;
+  const maxLogoH = 340 * sy;
+  const maxFontSize = 68;
+
+  drawCenteredHeaderLogoAndShopName(
+    ctx,
+    W,
+    topY,
+    shopName,
+    shopLogoImg,
+    maxLogoW,
+    maxLogoH,
+    maxFontSize,
+    sc,
+    sx,
+    sy,
+    "#FFFFFF",
+    "#D4AF37"
+  );
+
+  // 3. Bottom Footer Section with Showroom Details & Hallmark Badge
+  const fY = 1640 * sy;
+  const footerH = H - fY;
+
+  // Dark Luxury Scrim
+  const bottomScrim = ctx.createLinearGradient(0, fY - 140 * sy, 0, H);
+  bottomScrim.addColorStop(0, "rgba(0, 0, 0, 0)");
+  bottomScrim.addColorStop(0.35, "rgba(8, 4, 2, 0.88)");
+  bottomScrim.addColorStop(1, "rgba(5, 2, 1, 0.98)");
+  ctx.fillStyle = bottomScrim;
+  ctx.fillRect(0, fY - 140 * sy, W, footerH + 140 * sy);
+
+  // Gold Divider Line
+  ctx.strokeStyle = "rgba(212, 175, 55, 0.65)";
+  ctx.lineWidth = 2 * sc;
+  ctx.beginPath();
+  ctx.moveTo(60 * sx, fY);
+  ctx.lineTo(W - 60 * sx, fY);
+  ctx.stroke();
+
+  const footerLeftX = 70 * sx;
+
+  // Contact Info
+  const phone = shopInfo?.whatsapp_no || shopInfo?.phone || "";
+  let address = shopInfo?.address || shopInfo?.city || "Tamil Nadu";
+  if (shopInfo?.city && !address.toLowerCase().includes(shopInfo.city.toLowerCase())) {
+    address = `${address}, ${shopInfo.city}`;
+  }
+
+  // 3A. Phone line
+  if (phone) {
+    const phoneY = fY + 62 * sy;
+    drawVectorIconBadge(ctx, footerLeftX, phoneY, 30 * sc, "phone", sc, "#FEF08A");
+
+    ctx.save();
+    ctx.textAlign = "left";
+    ctx.shadowColor = "rgba(254, 240, 138, 0.6)";
+    ctx.shadowBlur = 10 * sc;
+    ctx.fillStyle = "#FEF08A";
+    ctx.font = `bold ${Math.round(72 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+    ctx.fillText(phone, footerLeftX + 56 * sx, phoneY + 22 * sy);
+    ctx.restore();
+  }
+
+  // 3B. Address line
+  const pinY = fY + 150 * sy;
+  drawVectorIconBadge(ctx, footerLeftX, pinY + 8 * sy, 24 * sc, "pin", sc, "#D4AF37");
+
+  ctx.save();
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#F8FAFC";
+  ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+  ctx.shadowBlur = 8 * sc;
+  ctx.font = `300 ${Math.round(45 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 520 * sx, 52 * sy, 2);
+  ctx.restore();
+
+  // 3C. Hallmark Badge on Right
+  const rightCenterY = fY + 128 * sy;
+  drawRealBIS916Hallmark(ctx, W - 170 * sx, rightCenterY, sc * 0.98, "gold", hallmarkImg);
+
+  ctx.restore();
+};
+
+/**
  * Dispatcher function for drawing the selected overlay template
  */
 const drawStatusOverlay = (ctx, canvasWidth, canvasHeight, shopName, templateId = 1, shopLogoImg = null, livePrices = {}, shopInfo = {}, hallmarkImg = null, rateNote = "") => {
+  if (templateId === "festival" || templateId === 99 || String(templateId).includes("festival")) {
+    drawFestivalPosterOverlay(ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, shopInfo, hallmarkImg);
+    return;
+  }
   switch (Number(templateId)) {
     case 1:
       drawTemplate1_RoyalHeritage(ctx, canvasWidth, canvasHeight, shopName, shopLogoImg, livePrices, shopInfo, hallmarkImg, rateNote);
@@ -1618,12 +1727,14 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
       'https://s3.in-west3.purestore.io/aadagam/images/aadagam8.mp4',
       'https://s3.in-west3.purestore.io/aadagam/images/aadagam9.mp4',
       'https://s3.in-west3.purestore.io/aadagam/images/aadagam10.mp4',
-    ]
+    ],
+    specialImages: [],
+    specialVideos: [],
   });
 
   const [livePrices, setLivePrices] = useState({
-    gold22k: "\u20b97,195",
-    silver999: "\u20b994.50",
+    gold22k: "₹7,195",
+    silver999: "₹94.50",
   });
 
   // Preload Official Golden BIS 916 Hallmark Logo Image
@@ -1669,18 +1780,18 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
         if (siteRes && siteRes.success === 1) {
           if (Array.isArray(siteRes.priceData)) {
-            let goldVal = "\u20b97,195";
-            let silverVal = "\u20b994.50";
+            let goldVal = "₹7,195";
+            let silverVal = "₹94.50";
             siteRes.priceData.forEach((item) => {
               const mat = (item.material || "").toLowerCase();
               const purity = (item.purity || "").toLowerCase();
               const price = Number(item.price);
               if (!isNaN(price) && price > 0) {
                 if (mat === "gold" && purity.includes("22")) {
-                  goldVal = `\u20b9${price.toLocaleString("en-IN")}`;
+                  goldVal = `₹${price.toLocaleString("en-IN")}`;
                 }
                 if (mat === "silver" && (purity.includes("24") || purity.includes("925"))) {
-                  silverVal = `\u20b9${price.toLocaleString("en-IN")}`;
+                  silverVal = `₹${price.toLocaleString("en-IN")}`;
                 }
               }
             });
@@ -1698,6 +1809,8 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
           setBasicAssets({
             images: assetsRes.image?.data || [],
             videos: assetsRes.video?.data || [],
+            specialImages: assetsRes.specialImage?.data || [],
+            specialVideos: assetsRes.specialVideo?.data || [],
           });
         }
       } catch (err) {
@@ -2278,6 +2391,29 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
     handleOpenVideoPreview(target);
   };
 
+  const handleOpenFestivalPoster = () => {
+    const activeSubdomain = getTenantSubdomain();
+    const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
+    const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
+
+    let targetUrl = "";
+    if (basicAssets.specialImages && basicAssets.specialImages.length > 0) {
+      const item = basicAssets.specialImages[0];
+      targetUrl = typeof item === "string" ? item : (item?.url || item?.image || item?.src || "");
+    }
+    const finalUrl = targetUrl ? resolveFullImageUrl(targetUrl) : "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=1080&q=80";
+
+    setPreviewData({
+      type: "image",
+      title: "Festival Special Poster",
+      subtitle: "Festival Creative with Showroom Logo Branding",
+      previewUrl: finalUrl,
+      cardNum: 1,
+      templateId: "festival",
+      shopName: shopName,
+    });
+  };
+
   return (
     <section id="status" className="py-16 sm:py-20 bg-gradient-to-b from-[#FAF9F5] via-stone-100/60 to-[#FAF9F5] text-stone-800 border-t border-stone-200 relative overflow-hidden">
       {/* Background Decorative Accent */}
@@ -2405,14 +2541,17 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
               <span>Preview & Download Branded Video Reel</span>
             </button>
 
-            {/* Grand, Styled & Catchy Festival Posters Announcement Button */}
+            {/* Grand, Styled & Catchy Festival Posters Button */}
             <div className="w-full sm:w-auto">
-              <div className="relative group inline-flex items-center justify-center w-full sm:w-auto">
+              <button
+                onClick={handleOpenFestivalPoster}
+                className="relative group inline-flex items-center justify-center w-full sm:w-auto cursor-pointer"
+              >
                 {/* Ambient Festive Luxury Glow */}
                 <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 via-[#F59E0B] to-yellow-400 rounded-3xl blur-md opacity-60 group-hover:opacity-100 transition duration-500 animate-pulse" />
 
                 {/* Grand Announcement Container */}
-                <div className="relative w-full sm:w-auto inline-flex items-center justify-center gap-3.5 sm:gap-5 bg-gradient-to-r from-[#1C1205] via-[#331C04] to-[#1C1205] text-[#FAF9F5] border-2 border-[#FDE047] py-3.5 sm:py-4 px-6 sm:px-10 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden cursor-default select-none">
+                <div className="relative w-full sm:w-auto inline-flex items-center justify-center gap-3.5 sm:gap-5 bg-gradient-to-r from-[#1C1205] via-[#331C04] to-[#1C1205] text-[#FAF9F5] border-2 border-[#FDE047] py-3.5 sm:py-4 px-6 sm:px-10 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden hover:scale-[1.02] transition-transform">
                   {/* Subtle Shimmer Ray */}
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
 
@@ -2427,10 +2566,10 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
                     </div>
                   </div>
 
-                  {/* Catchy Announcement Content (Prominent & Bold) */}
+                  {/* Catchy Content */}
                   <div className="text-center px-1 sm:px-2">
                     <span className="font-serif font-bold text-base sm:text-lg md:text-xl tracking-wider text-white drop-shadow-sm block">
-                      Festival Posters are coming soon
+                      Festival Posters
                     </span>
                   </div>
 
@@ -2445,7 +2584,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
                     </span>
                   </div>
                 </div>
-              </div>
+              </button>
             </div>
           </div>
 
@@ -2477,7 +2616,9 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
         </div>
       </div>
 
-      {/* PREVIEW MODAL PANEL */}
+      {/* ===================================================================
+       * PREVIEW MODAL PANEL (FOR TEMPLATES & FESTIVAL POSTERS)
+       * =================================================================== */}
       {previewData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-fade-in">
           <div className="bg-stone-950 border border-[#D4AF37]/40 rounded-3xl max-w-3xl w-full text-white shadow-2xl relative overflow-hidden flex flex-col md:flex-row gap-6 p-6 sm:p-8 max-h-[92vh] overflow-y-auto">
@@ -2519,7 +2660,9 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
                 )}
               </div>
               <span className="text-[11px] text-stone-400 font-mono mt-2">
-                9:16 HD WhatsApp Status Format (Template #{previewData.templateId || 1})
+                {previewData.templateId === "festival"
+                  ? "Branded 9:16 HD Festival Poster Format"
+                  : `9:16 HD WhatsApp Status Format (Template #${previewData.templateId || 1})`}
               </span>
             </div>
 
@@ -2528,7 +2671,11 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
               <div className="space-y-4">
                 <div className="inline-flex items-center gap-2 bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-widest">
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Template {previewData.templateId || 1} Preview</span>
+                  <span>
+                    {previewData.templateId === "festival"
+                      ? "Festival Creative Preview"
+                      : `Template ${previewData.templateId || 1} Preview`}
+                  </span>
                 </div>
 
                 <div>
@@ -2547,34 +2694,37 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
                     <span className="font-bold text-[#D4AF37]">{previewData.shopName}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs border-b border-stone-800 pb-2">
-                    <span className="text-stone-400">Shop Logo:</span>
-                    <span className="font-bold text-emerald-400">{loadedShopLogo ? "Loaded (Custom)" : "Default Luxury Emblem"}</span>
+                    <span className="text-stone-400">Showroom Logo:</span>
+                    <span className="font-bold text-emerald-400">
+                      {loadedShopLogo ? "Loaded (Custom Showroom Logo)" : "Default Luxury Emblem"}
+                    </span>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs border-b border-stone-800 pb-2">
-                    <span className="text-stone-400">Live Silver Rate (999 1g):</span>
-                    <span className="font-number font-bold text-stone-200 text-sm">{livePrices.silver999}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs border-b border-stone-800 pb-2">
-                    <span className="text-stone-400">Live Gold Rate (22K 1g):</span>
-                    <span className="font-number font-bold text-amber-300 text-sm">{livePrices.gold22k}</span>
-                  </div>
-                  {rateNote && (
-                    <div className="flex items-start justify-between text-xs border-b border-stone-800 pb-2 gap-2">
-                      <span className="text-stone-400 shrink-0">Poster Note:</span>
-                      <span className="font-medium text-amber-200 text-right truncate max-w-[200px]">{rateNote}</span>
-                    </div>
+                  {previewData.templateId !== "festival" && (
+                    <>
+                      <div className="flex items-center justify-between text-xs border-b border-stone-800 pb-2">
+                        <span className="text-stone-400">Live Silver Rate (999 1g):</span>
+                        <span className="font-number font-bold text-stone-200 text-sm">{livePrices.silver999}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs border-b border-stone-800 pb-2">
+                        <span className="text-stone-400">Live Gold Rate (22K 1g):</span>
+                        <span className="font-number font-bold text-amber-300 text-sm">{livePrices.gold22k}</span>
+                      </div>
+                    </>
                   )}
+
                   <div className="flex items-start justify-between text-xs pt-0.5 gap-2">
                     <span className="text-stone-400 shrink-0">Showroom Address:</span>
                     <span className="font-medium text-stone-300 text-right truncate max-w-[200px]">
-                      {shopInfo?.address || shopInfo?.city || "Tuticorin"}
+                      {shopInfo?.address || shopInfo?.city || "Tamil Nadu"}
                     </span>
                   </div>
                 </div>
 
                 <p className="text-[11px] text-stone-400 font-light leading-relaxed">
-                  Stamped with official 100% BIS Hallmarked 916 gold emblem, scalloped gold rate shield cards (1GM & 8GM), silver capsule pill, showroom logo, contact phone number, and physical showroom address.
+                  {previewData.templateId === "festival"
+                    ? "Stamped with your official showroom logo and name in the exact header location, physical showroom address, contact number, and 100% BIS Hallmarked 916 gold emblem."
+                    : "Stamped with official 100% BIS Hallmarked 916 gold emblem, scalloped gold rate shield cards (1GM & 8GM), silver capsule pill, showroom logo, contact phone number, and physical showroom address."}
                 </p>
               </div>
 
@@ -2583,21 +2733,41 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
                 {previewData.type === "image" ? (
                   <button
                     onClick={async () => {
-                      const res = await generateImageCardBlobUrl(previewData.title, previewData.cardNum, previewData.templateId, previewData.previewUrl, rateNote);
+                      const res = await generateImageCardBlobUrl(
+                        previewData.title,
+                        previewData.cardNum,
+                        previewData.templateId,
+                        previewData.previewUrl,
+                        rateNote
+                      );
                       if (res?.blobUrl) {
-                        triggerImageDownloadFromBlobUrl(res.blobUrl, previewData.title, previewData.cardNum, previewData.templateId);
+                        triggerImageDownloadFromBlobUrl(
+                          res.blobUrl,
+                          previewData.title,
+                          previewData.cardNum,
+                          previewData.templateId
+                        );
                       }
                       setPreviewData(null);
                     }}
                     className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-stone-950 font-bold py-3.5 px-6 rounded-2xl text-xs sm:text-sm tracking-wider uppercase shadow-lg shadow-amber-500/20 hover:scale-[1.01] transition-all cursor-pointer"
                   >
                     <Download className="w-4 h-4 text-stone-950" />
-                    <span>Download Template #{previewData.templateId} Image</span>
+                    <span>
+                      {previewData.templateId === "festival"
+                        ? "Download Festival Poster with Logo"
+                        : `Download Template #${previewData.templateId} Image`}
+                    </span>
                   </button>
                 ) : (
                   <button
                     onClick={() => {
-                      handleVideoDownloadItem(previewData.videoNumber, previewData.title, previewData.fileName, previewData.templateId);
+                      handleVideoDownloadItem(
+                        previewData.videoNumber,
+                        previewData.title,
+                        previewData.fileName,
+                        previewData.templateId
+                      );
                     }}
                     disabled={downloadingId !== null}
                     className="w-full relative overflow-hidden inline-flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 via-emerald-700 to-emerald-800 hover:from-emerald-700 hover:to-emerald-900 text-white font-bold py-3.5 px-6 rounded-2xl text-xs sm:text-sm tracking-wider uppercase shadow-lg shadow-emerald-900/20 hover:scale-[1.01] transition-all disabled:opacity-90 cursor-pointer"
