@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Download, Sparkles, Video, Image, CheckCircle2, Loader2, X, Play } from "lucide-react";
-import { getSiteInfo, getBasicAssets } from "../services/api";
+import { getSiteInfo, getBasicAssets, adminGetAllBasicAssets } from "../services/api";
 import { getTenantSubdomain, getShopPrefix, resolveFullImageUrl } from "../services/apiClient";
 
 // ==========================================
@@ -1805,13 +1805,38 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
           });
         }
 
+        let fetchedSpecialImages = assetsRes.specialImage?.data || [];
+        
+        if (fetchedSpecialImages.length === 0) {
+          try {
+            const adminRes = await adminGetAllBasicAssets(0, 100);
+            if (adminRes && adminRes.status === 1 && Array.isArray(adminRes.data) && adminRes.data.length > 0) {
+              fetchedSpecialImages = adminRes.data
+                .filter((a) => a.type === "special_image" || a.type === "image")
+                .map((a) => a.url || a.image);
+            }
+          } catch (e) {}
+        }
+
+        if (fetchedSpecialImages.length === 0) {
+          try {
+            const local = JSON.parse(localStorage.getItem("aadagam_special_assets") || "[]");
+            fetchedSpecialImages = local;
+          } catch (e) {}
+        }
+
         if (assetsRes && assetsRes.status === 1) {
           setBasicAssets({
             images: assetsRes.image?.data || [],
             videos: assetsRes.video?.data || [],
-            specialImages: assetsRes.specialImage?.data || [],
+            specialImages: fetchedSpecialImages,
             specialVideos: assetsRes.specialVideo?.data || [],
           });
+        } else if (fetchedSpecialImages.length > 0) {
+          setBasicAssets((prev) => ({
+            ...prev,
+            specialImages: fetchedSpecialImages,
+          }));
         }
       } catch (err) {
         console.warn("Error loading WhatsApp status assets/prices:", err);
@@ -2391,14 +2416,34 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
     handleOpenVideoPreview(target);
   };
 
-  const handleOpenFestivalPoster = () => {
+  const handleOpenFestivalPoster = async () => {
     const activeSubdomain = getTenantSubdomain();
     const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
     const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
 
     let targetUrl = "";
-    if (basicAssets.specialImages && basicAssets.specialImages.length > 0) {
-      const item = basicAssets.specialImages[0];
+    let specialList = basicAssets.specialImages || [];
+
+    if (specialList.length === 0) {
+      try {
+        const adminRes = await adminGetAllBasicAssets(0, 100);
+        if (adminRes && adminRes.status === 1 && Array.isArray(adminRes.data) && adminRes.data.length > 0) {
+          specialList = adminRes.data
+            .filter((a) => a.type === "special_image" || a.type === "image")
+            .map((a) => a.url || a.image);
+        }
+      } catch (e) {}
+    }
+
+    if (specialList.length === 0) {
+      try {
+        const local = JSON.parse(localStorage.getItem("aadagam_special_assets") || "[]");
+        specialList = local;
+      } catch (e) {}
+    }
+
+    if (specialList && specialList.length > 0) {
+      const item = specialList[0];
       targetUrl = typeof item === "string" ? item : (item?.url || item?.image || item?.src || "");
     }
     const finalUrl = targetUrl ? resolveFullImageUrl(targetUrl) : "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=1080&q=80";

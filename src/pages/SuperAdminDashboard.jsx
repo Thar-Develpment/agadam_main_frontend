@@ -48,6 +48,7 @@ import {
   Calendar,
   Check,
   Download,
+  X,
 } from "lucide-react";
 
 export default function SuperAdminDashboard() {
@@ -89,6 +90,7 @@ export default function SuperAdminDashboard() {
 
   // Special Festival Images State
   const [specialAssets, setSpecialAssets] = useState([]);
+  const [assetMediaFilter, setAssetMediaFilter] = useState("all");
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [isUploadingAsset, setIsUploadingAsset] = useState(false);
   const [selectedAssetFile, setSelectedAssetFile] = useState(null);
@@ -180,8 +182,9 @@ export default function SuperAdminDashboard() {
     setIsLoadingAssets(true);
     try {
       const res = await adminGetAllBasicAssets(0, 100);
-      if (res && res.status === 1 && Array.isArray(res.data)) {
+      if (res && res.status === 1 && Array.isArray(res.data) && res.data.length > 0) {
         setSpecialAssets(res.data);
+        localStorage.setItem("aadagam_special_assets", JSON.stringify(res.data));
       } else {
         // Local cache fallback
         const local = JSON.parse(localStorage.getItem("aadagam_special_assets") || "[]");
@@ -189,6 +192,8 @@ export default function SuperAdminDashboard() {
       }
     } catch (err) {
       console.error("Failed to load special basic assets:", err);
+      const local = JSON.parse(localStorage.getItem("aadagam_special_assets") || "[]");
+      setSpecialAssets(local);
     } finally {
       setIsLoadingAssets(false);
     }
@@ -433,6 +438,36 @@ export default function SuperAdminDashboard() {
 
       if (addRes && (addRes.status === 1 || addRes.success === 1)) {
         triggerToast("Festival image uploaded and added successfully!");
+
+        const newAssetId = addRes.id || addRes.insertId || Date.now();
+        const newAsset = {
+          id: newAssetId,
+          type: "special_image",
+          url: targetUrl,
+          status: 1,
+          created_at: new Date().toISOString(),
+        };
+
+        // Explicitly set status: 1 in database via adminUpdateBasicAsset so storefront getBasicAssets queries find it
+        if (addRes.id || addRes.insertId) {
+          try {
+            await adminUpdateBasicAsset({
+              id: newAssetId,
+              type: "special_image",
+              url: targetUrl,
+              status: 1,
+            });
+          } catch (e) {
+            console.warn("Status activation sync error:", e);
+          }
+        }
+
+        setSpecialAssets((prev) => {
+          const updated = [newAsset, ...prev];
+          localStorage.setItem("aadagam_special_assets", JSON.stringify(updated));
+          return updated;
+        });
+
         setSelectedAssetFile(null);
         setAssetFilePreview("");
         loadSpecialAssets();
@@ -1443,23 +1478,23 @@ export default function SuperAdminDashboard() {
                   Uploaded Festival Images
                 </h4>
                 <p className="text-xs text-stone-500">
-                  {specialAssets.length} image{specialAssets.length === 1 ? "" : "s"} uploaded.
+                  {filteredAssets.length} image{filteredAssets.length === 1 ? "" : "s"} uploaded.
                 </p>
               </div>
 
-              {isLoadingAssets && specialAssets.length === 0 ? (
+              {isLoadingAssets && filteredAssets.length === 0 ? (
                 <div className="py-12 text-center text-stone-400 space-y-2">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#D4AF37]" />
                   <p className="text-xs">Loading festival images...</p>
                 </div>
-              ) : specialAssets.length === 0 ? (
+              ) : filteredAssets.length === 0 ? (
                 <div className="py-12 text-center text-stone-400 italic text-xs">
                   No festival images uploaded yet. Upload your first festival image above!
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {specialAssets.map((asset) => {
-                    const fullUrl = resolveFullImageUrl(asset.url);
+                  {filteredAssets.map((asset) => {
+                    const fullUrl = resolveFullImageUrl(asset.url || asset.image);
                     return (
                       <div
                         key={asset.id}
