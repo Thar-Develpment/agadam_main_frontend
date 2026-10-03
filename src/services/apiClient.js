@@ -52,12 +52,6 @@ export function resolveFullImageUrl(url) {
     return clean;
   }
 
-  // Handle S3 CloudPe storage keys (e.g. "images/172890-xxx.png")
-  if (clean.startsWith("images/") || clean.startsWith("/images/")) {
-    const s3Path = clean.startsWith("/") ? clean.slice(1) : clean;
-    return `https://s3.in-west3.purestore.io/aadagam/${s3Path}`;
-  }
-
   const pathToCheck = clean.startsWith("/") ? clean : `/${clean}`;
   const isFrontendStatic = 
     pathToCheck.startsWith("/logo_without_backround") ||
