@@ -1547,7 +1547,6 @@ export async function adminUploadImages(files, token = null) {
         timeout: 0,
         headers: {
           ...getAuthHeader(token),
-          "Content-Type": "multipart/form-data",
         },
       }
     );

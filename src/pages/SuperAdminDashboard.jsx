@@ -435,6 +435,8 @@ export default function SuperAdminDashboard() {
         triggerToast("Festival image uploaded and added successfully!");
         setSelectedAssetFile(null);
         setAssetFilePreview("");
+        const fileInput = document.getElementById("superadmin-festival-file");
+        if (fileInput) fileInput.value = "";
         loadSpecialAssets();
       } else {
         triggerToast(addRes?.message || "Failed to save festival image.", "error");

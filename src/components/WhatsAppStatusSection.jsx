@@ -1806,11 +1806,14 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
         }
 
         if (assetsRes && assetsRes.status === 1) {
+          const rawSpecialImages = assetsRes.specialImage?.data || [];
+          const rawSpecialVideos = assetsRes.specialVideo?.data || [];
           setBasicAssets({
             images: assetsRes.image?.data || [],
             videos: assetsRes.video?.data || [],
-            specialImages: assetsRes.specialImage?.data || [],
-            specialVideos: assetsRes.specialVideo?.data || [],
+            // Reverse so newest uploaded assets appear first
+            specialImages: [...rawSpecialImages].reverse(),
+            specialVideos: [...rawSpecialVideos].reverse(),
           });
         }
       } catch (err) {
@@ -2391,14 +2394,17 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
     handleOpenVideoPreview(target);
   };
 
-  const handleOpenFestivalPoster = () => {
+  const handleOpenFestivalPoster = (index = 0) => {
     const activeSubdomain = getTenantSubdomain();
     const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
     const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
 
+    const specialList = basicAssets.specialImages || [];
+    const validIdx = typeof index === "number" && index >= 0 && index < specialList.length ? index : 0;
+
     let targetUrl = "";
-    if (basicAssets.specialImages && basicAssets.specialImages.length > 0) {
-      const item = basicAssets.specialImages[0];
+    if (specialList.length > 0) {
+      const item = specialList[validIdx];
       targetUrl = typeof item === "string" ? item : (item?.url || item?.image || item?.src || "");
     }
     const finalUrl = targetUrl ? resolveFullImageUrl(targetUrl) : "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=1080&q=80";
@@ -2406,11 +2412,13 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
     setPreviewData({
       type: "image",
       title: "Festival Special Poster",
-      subtitle: "Festival Creative with Showroom Logo Branding",
+      subtitle: `Festival Creative with Showroom Logo Branding${specialList.length > 1 ? ` (${validIdx + 1} of ${specialList.length})` : ""}`,
       previewUrl: finalUrl,
       cardNum: 1,
       templateId: "festival",
       shopName: shopName,
+      festivalIdx: validIdx,
+      totalFestivals: specialList.length,
     });
   };
 
@@ -2685,6 +2693,31 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
                   <p className="text-xs text-stone-400 font-light mt-1">
                     {previewData.subtitle}
                   </p>
+                  {previewData.templateId === "festival" && previewData.totalFestivals > 1 && (
+                    <div className="flex items-center gap-2 mt-3">
+                      <button
+                        onClick={() => {
+                          const prevIdx = (previewData.festivalIdx - 1 + previewData.totalFestivals) % previewData.totalFestivals;
+                          handleOpenFestivalPoster(prevIdx);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold cursor-pointer border border-stone-700"
+                      >
+                        ← Previous Poster
+                      </button>
+                      <span className="text-xs text-stone-400 font-mono">
+                        {previewData.festivalIdx + 1} / {previewData.totalFestivals}
+                      </span>
+                      <button
+                        onClick={() => {
+                          const nextIdx = (previewData.festivalIdx + 1) % previewData.totalFestivals;
+                          handleOpenFestivalPoster(nextIdx);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold cursor-pointer border border-amber-500/40"
+                      >
+                        Next Poster →
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Rates & Branding Badge Box */}
