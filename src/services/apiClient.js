@@ -26,7 +26,7 @@ function resolveApiBaseUrl() {
   return "https://aadagamback.in";
 }
 
-const API_BASE_URL = resolveApiBaseUrl();
+export const API_BASE_URL = resolveApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

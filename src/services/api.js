@@ -1,4 +1,5 @@
-import { apiClient, getTenantSubdomain, getShopPrefix, parseJwt, resolveFullImageUrl } from "./apiClient";
+import axios from "axios";
+import { apiClient, API_BASE_URL, getTenantSubdomain, getShopPrefix, parseJwt, resolveFullImageUrl } from "./apiClient";
 import {
   mockShopInfo,
   mockSlides,
@@ -1540,14 +1541,11 @@ export async function adminUploadImages(files, token = null) {
       formData.append("images", file);
     });
 
-    const res = await apiClient.post(
-      "/opxXxolN7m6CU/upload",
+    const res = await axios.post(
+      `${API_BASE_URL}/opxXxolN7m6CU/upload`,
       formData,
       {
-        timeout: 0,
-        headers: {
-          ...getAuthHeader(token),
-        },
+        headers: getAuthHeader(token),
       }
     );
     return res.data;
