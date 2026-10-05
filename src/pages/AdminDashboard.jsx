@@ -202,10 +202,17 @@ export default function AdminDashboard() {
     async function initializeDashboard() {
       setIsCheckingPayment(true);
       try {
-        // Step 1: Guard Check - verify site_info first for trial / payment status
+        // Step 1: Guard Check - verify site_info first for shop existence and trial / payment status
         const siteInfoRes = await getSiteInfo(shopPrefix);
 
-        if (siteInfoRes && siteInfoRes.paymentPending) {
+        // 1.1 Status 2: Shop Not Found / Inactive
+        if (siteInfoRes && (siteInfoRes.status === 2 || siteInfoRes.notFound)) {
+          window.location.href = `/404?domain=${encodeURIComponent(shopPrefix)}`;
+          return;
+        }
+
+        // 1.2 Status 3: Payment Pending / Trial Expired
+        if (siteInfoRes && (siteInfoRes.status === 3 || siteInfoRes.paymentPending)) {
           setIsPaymentPending(true);
           setPaymentPendingMessage(
             siteInfoRes.message === "Payment pending"

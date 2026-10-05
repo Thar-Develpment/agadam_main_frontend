@@ -492,18 +492,33 @@ export async function getSiteInfo(shopName = "") {
     const res = await apiClient.post("/user/site_info", payload);
 
     if (res.data) {
-      // 1. Explicit Payment Pending check from backend checkPayment middleware
-      if (res.data.message === "Payment pending") {
+      // 1. Explicit Status 2: Shop Not Found / Inactive Subdomain
+      if (res.data.status === 2 || res.data.message === "Shop not found!") {
         return {
+          status: 2,
           success: 0,
-          paymentPending: true,
+          notFound: true,
+          paymentPending: false,
           priceData: DEFAULT_PRICE_DATA,
           siteInfoData: null,
-          message: res.data.message,
+          message: res.data.message || "Shop not found!",
         };
       }
 
-      // 2. Successful response from registered shop
+      // 2. Explicit Status 3: Payment Pending / Trial Expired
+      if (res.data.status === 3 || res.data.message === "Payment pending") {
+        return {
+          status: 3,
+          success: 0,
+          notFound: false,
+          paymentPending: true,
+          priceData: DEFAULT_PRICE_DATA,
+          siteInfoData: null,
+          message: res.data.message || "Payment pending",
+        };
+      }
+
+      // 3. Successful response from registered shop (status: 1 / success: 1)
       if (res.data.success === 1 || res.data.status === 1) {
         const priceData = (Array.isArray(res.data.priceData) && res.data.priceData.length > 0)
           ? res.data.priceData
@@ -526,7 +541,9 @@ export async function getSiteInfo(shopName = "") {
         }
 
         return {
+          status: 1,
           success: 1,
+          notFound: false,
           paymentPending: false,
           priceData: priceData,
           siteInfoData: siteInfoData,
@@ -535,14 +552,28 @@ export async function getSiteInfo(shopName = "") {
       }
     }
   } catch (err) {
+    const resStatus = err.response?.data?.status;
     const errMsg = err.response?.data?.message || err.message;
-    if (errMsg === "Payment pending") {
+    if (resStatus === 2 || errMsg === "Shop not found!") {
       return {
+        status: 2,
         success: 0,
+        notFound: true,
+        paymentPending: false,
+        priceData: DEFAULT_PRICE_DATA,
+        siteInfoData: null,
+        message: errMsg || "Shop not found!",
+      };
+    }
+    if (resStatus === 3 || errMsg === "Payment pending") {
+      return {
+        status: 3,
+        success: 0,
+        notFound: false,
         paymentPending: true,
         priceData: DEFAULT_PRICE_DATA,
         siteInfoData: null,
-        message: errMsg,
+        message: errMsg || "Payment pending",
       };
     }
   }
@@ -584,7 +615,9 @@ export async function getSiteInfo(shopName = "") {
   };
 
   return {
+    status: 1,
     success: 1,
+    notFound: false,
     paymentPending: false,
     priceData: cachedPrices || DEFAULT_PRICE_DATA,
     siteInfoData: mergedSiteInfo,

@@ -61,15 +61,28 @@ function ClientStorefrontPage() {
         const subdomain = getTenantSubdomain();
         const shopPrefix = getShopPrefix(subdomain);
 
-        // 1. Guard Check: Verify payment status via site_info first
+        // 1. Guard Check: Verify site existence (status: 2) and payment status (status: 3) via site_info first
         const siteInfoRes = await getSiteInfo(shopPrefix);
 
-        if (siteInfoRes && siteInfoRes.paymentPending) {
+        // 1.1 Status 2: Shop Not Found / Inactive Subdomain
+        if (siteInfoRes && (siteInfoRes.status === 2 || siteInfoRes.notFound)) {
+          if (isTenantSubdomainHost()) {
+            window.location.href = `/404?domain=${encodeURIComponent(shopPrefix || subdomain)}`;
+            return;
+          }
+          setIsSuspended(true);
+          setSuspendedMessage("Showroom not found or deactivated.");
+          setIsLoading(false);
+          return;
+        }
+
+        // 1.2 Status 3: Payment Pending / Trial Expired
+        if (siteInfoRes && (siteInfoRes.status === 3 || siteInfoRes.paymentPending)) {
           setIsSuspended(true);
           setSuspendedMessage(
             siteInfoRes.message === "Payment pending"
               ? "Your showroom subscription payment is pending. Please contact platform support to activate your showroom."
-              : "Showroom not found or deactivated."
+              : (siteInfoRes.message || "Showroom subscription payment is pending.")
           );
           setIsLoading(false);
           return;
@@ -368,6 +381,9 @@ function MainLayout() {
         {/* Standalone Onboarding Registration */}
         <Route path="/register" element={<RegisterPage />} />
 
+        {/* Dedicated 404 Route */}
+        <Route path="/404" element={<NotFoundPage />} />
+
         {/* 404 Fallback for subdomain routes */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
@@ -398,6 +414,9 @@ function MainLayout() {
 
       {/* Page 6: Super Admin Portal */}
       <Route path="/superadmin" element={<SuperAdminDashboard />} />
+
+      {/* Dedicated 404 Route */}
+      <Route path="/404" element={<NotFoundPage />} />
 
       {/* 404 Fallback route for main domain */}
       <Route path="*" element={<NotFoundPage />} />

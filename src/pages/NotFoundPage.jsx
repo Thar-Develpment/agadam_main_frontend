@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Home,
   Gem,
@@ -11,6 +11,7 @@ import {
   Layers,
   HelpCircle,
   MessageCircle,
+  UserPlus,
 } from "lucide-react";
 import {
   isTenantSubdomainHost,
@@ -18,12 +19,15 @@ import {
   getShopPrefix,
   resolveFullImageUrl,
   getCleanWhatsAppNumber,
+  PRIMARY_DOMAIN,
 } from "../services/apiClient";
 import { getBasicInfo } from "../services/api";
 import AadagamLogo from "../components/AadagamLogo";
 
 export default function NotFoundPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const domainParam = (searchParams.get("domain") || searchParams.get("subdomain") || searchParams.get("shop") || "").trim();
   const isSubdomain = isTenantSubdomainHost();
   const subdomain = getTenantSubdomain();
   const shopPrefix = getShopPrefix(subdomain);
@@ -31,16 +35,23 @@ export default function NotFoundPage() {
   const [basicInfo, setBasicInfo] = useState(null);
 
   useEffect(() => {
-    if (!isSubdomain) {
-      getBasicInfo()
-        .then((res) => {
-          if (res && res.status === 1 && res.data) {
-            setBasicInfo(res.data);
-          }
-        })
-        .catch(() => {});
-    }
-  }, [isSubdomain]);
+    getBasicInfo()
+      .then((res) => {
+        if (res && res.status === 1 && res.data) {
+          setBasicInfo(res.data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Determine if this 404 is for an invalid/non-existent showroom domain
+  const isInvalidShowroom = Boolean(domainParam) || (isSubdomain && domainParam);
+  const targetDomainName = domainParam || (isSubdomain ? shopPrefix : "");
+
+  // Platform URLs
+  const isLocalhost = typeof window !== "undefined" && window.location.hostname.includes("localhost");
+  const platformHomeUrl = isLocalhost ? "http://localhost:5173" : `https://${PRIMARY_DOMAIN}`;
+  const platformRegisterUrl = isLocalhost ? "http://localhost:5173/register" : `https://${PRIMARY_DOMAIN}/register`;
 
   // Cached showroom info for subdomains
   const cachedContact = typeof window !== "undefined"
@@ -59,7 +70,7 @@ export default function NotFoundPage() {
   // Platform WhatsApp link
   const rawWhatsApp = basicInfo?.whatsapp_no || basicInfo?.phone || "919952054493";
   const cleanWhatsApp = getCleanWhatsAppNumber(rawWhatsApp);
-  const platformMessage = "Hello Aadagam, I am interested in creating a jewellery website for my showroom. Please share the registration details.";
+  const platformMessage = `Hello Aadagam, I was trying to visit ${targetDomainName ? `showroom "${targetDomainName}"` : "a showroom website"} and need assistance.`;
   const platformWhatsAppUrl = `https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(platformMessage)}`;
 
   return (
@@ -70,7 +81,7 @@ export default function NotFoundPage() {
 
       {/* Top Header */}
       <header className="p-4 sm:p-6 max-w-7xl w-full mx-auto flex items-center justify-between relative z-10">
-        {isSubdomain ? (
+        {isSubdomain && !isInvalidShowroom ? (
           <Link to="/" className="flex items-center gap-3 group">
             {showroomLogo ? (
               <img
@@ -91,9 +102,9 @@ export default function NotFoundPage() {
             </span>
           </Link>
         ) : (
-          <Link to="/" className="flex items-center gap-2">
+          <a href={platformHomeUrl} className="flex items-center gap-2">
             <AadagamLogo variant="horizontal" size="sm" iconSrc="/logo_without_backround.png" theme="light" />
-          </Link>
+          </a>
         )}
 
         <button
@@ -108,12 +119,16 @@ export default function NotFoundPage() {
       {/* Main 404 Hero Container */}
       <main className="flex-1 flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12 relative z-10">
         <div className="max-w-xl w-full text-center space-y-6">
-          {/* Badge & Prominent 404 Number (Cleanly stacked, not overlapping) */}
+          {/* Badge & Prominent 404 Number */}
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 bg-white border border-[#D4AF37]/40 shadow-xs px-4 py-1.5 rounded-full">
               <Sparkles className="w-4 h-4 text-[#D4AF37]" />
               <span className="font-serif font-bold text-xs sm:text-sm text-stone-900 uppercase tracking-wider">
-                {isSubdomain ? "Piece Not Found" : "Page Not Found"}
+                {isInvalidShowroom
+                  ? "Showroom Not Found"
+                  : isSubdomain
+                    ? "Piece Not Found"
+                    : "Page Not Found"}
               </span>
             </div>
 
@@ -127,18 +142,41 @@ export default function NotFoundPage() {
           {/* Heading & Contextual Description */}
           <div className="space-y-2.5">
             <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 tracking-wide">
-              {isSubdomain ? "This Page is No Longer Available" : "Lost in the Diamond Vault?"}
+              {isInvalidShowroom
+                ? "Showroom Not Found"
+                : isSubdomain
+                  ? "This Page is No Longer Available"
+                  : "Lost in the Diamond Vault?"}
             </h1>
             <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed max-w-md mx-auto">
-              {isSubdomain
-                ? `The link or collection you are trying to visit at ${showroomName} does not exist or has been moved.`
-                : "The page you are looking for might have been removed, had its name changed, or is temporarily unavailable."}
+              {isInvalidShowroom
+                ? `The showroom "${targetDomainName}" does not exist, has been deactivated, or is not yet registered on AaDaGaM.`
+                : isSubdomain
+                  ? `The link or collection you are trying to visit at ${showroomName} does not exist or has been moved.`
+                  : "The page you are looking for might have been removed, had its name changed, or is temporarily unavailable."}
             </p>
           </div>
 
           {/* Action Button Grid */}
           <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-lg mx-auto">
-            {isSubdomain ? (
+            {isInvalidShowroom ? (
+              <>
+                <a
+                  href={platformRegisterUrl}
+                  className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 bg-[#D4AF37] hover:bg-[#b8952b] text-stone-950 font-bold py-3.5 px-6 rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-[#D4AF37]/25 transition-all min-h-[46px]"
+                >
+                  <UserPlus className="w-4 h-4 text-stone-950" />
+                  <span>Register This Showroom</span>
+                </a>
+                <a
+                  href={platformHomeUrl}
+                  className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-stone-900 text-white font-bold py-3.5 px-6 rounded-2xl text-xs uppercase tracking-wider shadow-md transition-all min-h-[46px]"
+                >
+                  <Home className="w-4 h-4 text-[#D4AF37]" />
+                  <span>Platform Home</span>
+                </a>
+              </>
+            ) : isSubdomain ? (
               <>
                 <Link
                   to="/"
@@ -180,7 +218,44 @@ export default function NotFoundPage() {
           {/* Quick Helpful Links Card */}
           <div className="pt-4">
             <div className="bg-white border border-stone-200 rounded-2xl p-4 sm:p-5 shadow-xs text-left grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {isSubdomain ? (
+              {isInvalidShowroom ? (
+                <>
+                  <a
+                    href={platformRegisterUrl}
+                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#FAF9F5] transition-colors group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center shrink-0">
+                      <Store className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="font-semibold text-xs text-stone-900 block group-hover:text-[#B8860B] transition-colors">
+                        Launch Your Storefront
+                      </span>
+                      <span className="text-[10px] text-stone-400 block">
+                        Get your digital showroom in 2 minutes
+                      </span>
+                    </div>
+                  </a>
+                  <a
+                    href={platformWhatsAppUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#FAF9F5] transition-colors group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shrink-0">
+                      <MessageCircle className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="font-semibold text-xs text-stone-900 block group-hover:text-emerald-700 transition-colors">
+                        AaDaGaM Support
+                      </span>
+                      <span className="text-[10px] text-stone-400 block">
+                        WhatsApp assistance & onboarding
+                      </span>
+                    </div>
+                  </a>
+                </>
+              ) : isSubdomain ? (
                 <>
                   <a
                     href="/#rates"
@@ -259,7 +334,7 @@ export default function NotFoundPage() {
       {/* Footer */}
       <footer className="p-4 sm:p-6 text-center text-xs text-stone-400 font-light border-t border-stone-200 relative z-10">
         <p>
-          © {new Date().getFullYear()} {isSubdomain ? showroomName : "AaDaGaM"}. All rights reserved.
+          © {new Date().getFullYear()} {isSubdomain && !isInvalidShowroom ? showroomName : "AaDaGaM"}. All rights reserved.
         </p>
       </footer>
     </div>
