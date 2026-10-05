@@ -35,6 +35,7 @@ import {
   Sparkles,
   Send,
   Share2,
+  Lock,
 } from "lucide-react";
 import {
   FacebookIcon,

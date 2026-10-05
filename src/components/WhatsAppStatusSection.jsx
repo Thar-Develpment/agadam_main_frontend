@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Download, Sparkles, Video, Image, CheckCircle2, Loader2, X, Play } from "lucide-react";
+import { Download, Sparkles, Video, Image as ImageIcon, CheckCircle2, Loader2, X, Play } from "lucide-react";
 import { getSiteInfo, getBasicAssets } from "../services/api";
 import { getTenantSubdomain, getShopPrefix, resolveFullImageUrl } from "../services/apiClient";
 
@@ -2472,7 +2472,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
                       {isLoading ? (
                         <Loader2 className="w-5 h-5 animate-spin text-current" />
                       ) : (
-                        <Image className="w-5 h-5 sm:w-6 sm:h-6" />
+                        <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6" />
                       )}
                     </div>
 
