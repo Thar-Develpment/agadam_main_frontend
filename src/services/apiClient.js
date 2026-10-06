@@ -158,12 +158,12 @@ export function isTenantSubdomainHost() {
   if (typeof window === "undefined") return false;
   const hostname = window.location.hostname.toLowerCase().trim();
 
-  // 1. Wildcard Localhost: e.g. "srilakshmi.localhost"
+  // 1. Wildcard Localhost: e.g. "srilakshmi.localhost", "demo.localhost"
   if (hostname.endsWith(".localhost") && hostname !== "localhost") {
     return true;
   }
 
-  // 2. Production wildcard subdomain (e.g. "srilakshmi.aadagam.com")
+  // 2. Production wildcard subdomain (e.g. "srilakshmi.aadagam.com", "demo.aadagam.com")
   const parts = hostname.split(".");
   if (parts.length >= 3) {
     const prefix = parts[0];
@@ -188,7 +188,7 @@ export function getTenantSubdomain() {
   if (typeof window === "undefined") return `mycompany.${PLATFORM_DOMAIN}`;
   const hostname = window.location.hostname.toLowerCase().trim();
 
-  // Wildcard Localhost (e.g. "srilakshmi.localhost")
+  // Wildcard Localhost (e.g. "srilakshmi.localhost", "demo.localhost")
   if (hostname.endsWith(".localhost") && hostname !== "localhost") {
     const prefix = hostname.split(".")[0];
     return `${prefix}.${PLATFORM_DOMAIN}`;

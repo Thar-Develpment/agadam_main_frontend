@@ -19,8 +19,11 @@ export default function ContactSection({ shopInfo }) {
   const rawWhatsApp = shopInfo?.whatsapp_no || shopInfo?.whatsapp || shopInfo?.phone || phone;
   const cleanWhatsApp = getCleanWhatsAppNumber(rawWhatsApp);
   const formattedWhatsApp = formatIndianPhoneNumber(rawWhatsApp);
+  const greetingName = (shopInfo?.name || "").trim();
   const whatsappUrl = `https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(
-    `Hello ${shopInfo?.name || "Showroom"}, I visited your website and would like to enquire about jewellery collections.`
+    greetingName
+      ? `Hello ${greetingName}, I visited your website and would like to enquire about jewellery collections.`
+      : "Hello, I visited your website and would like to enquire about jewellery collections."
   )}`;
 
   return (

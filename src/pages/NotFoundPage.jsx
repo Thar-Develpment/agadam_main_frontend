@@ -64,7 +64,10 @@ export default function NotFoundPage() {
       })()
     : {};
 
-  const showroomName = cachedContact.tamil_shop_name || cachedContact.name || (shopPrefix && shopPrefix !== "mycompany" ? shopPrefix.toUpperCase() : "Jewellery Boutique");
+  const isDemoShowroom = ["demo", "sample", "test", "mycompany"].includes(shopPrefix);
+  const showroomName = isDemoShowroom
+    ? (cachedContact.tamil_shop_name || "AADAGAM JEWELLERY")
+    : (cachedContact.tamil_shop_name || cachedContact.name || "").trim();
   const showroomLogo = cachedContact.logo ? resolveFullImageUrl(cachedContact.logo) : "";
 
   // Platform WhatsApp link
@@ -86,7 +89,7 @@ export default function NotFoundPage() {
             {showroomLogo ? (
               <img
                 src={showroomLogo}
-                alt={showroomName}
+                alt={showroomName || "Logo"}
                 className="h-10 sm:h-11 w-auto max-w-[140px] max-h-11 object-contain"
                 onError={(e) => {
                   e.target.style.display = "none";
@@ -97,9 +100,11 @@ export default function NotFoundPage() {
             <div className={`w-9 h-9 rounded-xl bg-stone-900 border border-[#D4AF37] flex items-center justify-center shadow-md ${showroomLogo ? "hidden" : "flex"}`}>
               <Gem className="w-4 h-4 text-[#D4AF37]" />
             </div>
-            <span className="font-serif font-bold text-lg sm:text-xl text-stone-900 group-hover:text-[#B8860B] transition-colors">
-              {showroomName}
-            </span>
+            {showroomName && (
+              <span className="font-serif font-bold text-lg sm:text-xl text-stone-900 group-hover:text-[#B8860B] transition-colors">
+                {showroomName}
+              </span>
+            )}
           </Link>
         ) : (
           <a href={platformHomeUrl} className="flex items-center gap-2">

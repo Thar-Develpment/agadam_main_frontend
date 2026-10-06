@@ -242,7 +242,7 @@ export default function GallerySection({
                     shopInfo?.phonePrimary ||
                     ""
                   )}?text=${encodeURIComponent(
-                    `Hello ${shopInfo?.name || "Jewellery Boutique"}, I am interested in enquiry for item "${currentImage.title}" (Code: ${currentImage.code || "AG-JEWEL"}) from your website catalogue.`
+                    `${(shopInfo?.name || "").trim() ? `Hello ${(shopInfo?.name || "").trim()}, ` : "Hello, "}I am interested in enquiry for item "${currentImage.title}" (Code: ${currentImage.code || "AG-JEWEL"}) from your website catalogue.`
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"

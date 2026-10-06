@@ -1209,7 +1209,7 @@ export default function AdminDashboard() {
                     Active Showroom
                   </span>
                   <span className="font-serif font-bold text-stone-900 text-xs truncate block -mt-0.5">
-                    {adminUser.shopName || shopPrefix.toUpperCase()}
+                    {contactInfo.tamil_shop_name || adminUser.shopName || shopPrefix.toUpperCase()}
                   </span>
                   <span className="text-[10px] text-stone-500 font-mono truncate block">
                     {adminUser.email}
@@ -1309,7 +1309,7 @@ export default function AdminDashboard() {
                 Active Showroom
               </span>
               <span className="font-serif font-bold text-stone-900 text-sm truncate block -mt-0.5">
-                {adminUser.shopName || shopPrefix.toUpperCase()}
+                {contactInfo.tamil_shop_name || adminUser.shopName || shopPrefix.toUpperCase()}
               </span>
               <span className="text-[10px] text-stone-500 font-mono truncate block">
                 {adminUser.email}
@@ -2431,7 +2431,7 @@ export default function AdminDashboard() {
                     />
                   </div>
                   <p className="text-[11px] text-stone-500 mt-1 font-light">
-                    Display name shown on your storefront header, footer, and brand profile (supports spaces, Tamil script, etc.). If left empty, your domain prefix <strong className="font-semibold text-stone-700">({getShopPrefix(adminUser?.domain)})</strong> is displayed by default.
+                    Display name shown on your storefront header, footer, and brand profile (supports spaces, Tamil script, etc.). If left empty, the showroom display name remains blank.
                   </p>
                 </div>
 

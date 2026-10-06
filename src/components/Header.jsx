@@ -117,7 +117,7 @@ export default function Header({ shopInfo }) {
             )}
             <div className="text-left">
               <span className="block font-serif text-xl sm:text-2xl font-bold tracking-wider text-stone-900 group-hover:text-[#B8860B] transition-colors">
-                {shopInfo?.name || "JEWELLERY BOUTIQUE"}
+                {shopInfo?.name || ""}
               </span>
               <span className="block text-[10px] tracking-widest uppercase text-[#B8860B] font-semibold -mt-1">
                 {shopInfo?.tagline || "Fine Jewels & Diamonds"}
@@ -211,7 +211,7 @@ export default function Header({ shopInfo }) {
                     </div>
                   )}
                   <span className="font-serif font-bold text-base sm:text-lg text-stone-900 truncate">
-                    {shopInfo?.name || "JEWELLERY BOUTIQUE"}
+                    {shopInfo?.name || ""}
                   </span>
                 </div>
                 <button

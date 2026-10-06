@@ -1,5 +1,5 @@
 import axios from "axios";
-import { apiClient, API_BASE_URL, getTenantSubdomain, getShopPrefix, parseJwt, resolveFullImageUrl } from "./apiClient";
+import { apiClient, API_BASE_URL, getTenantSubdomain, getShopPrefix, parseJwt, resolveFullImageUrl, isTenantSubdomainHost } from "./apiClient";
 import {
   mockShopInfo,
   mockSlides,
@@ -687,10 +687,18 @@ export async function getBasicAssets() {
  */
 export async function getContactInfo() {
   const subdomain = getTenantSubdomain();
-  const shopNamePrefix = getShopPrefix(subdomain).toUpperCase();
+  const shopPrefix = getShopPrefix(subdomain);
+  const isDemoOrSample = ["demo", "sample", "test", "mycompany"].includes(shopPrefix) || !isTenantSubdomainHost();
+
+  if (isDemoOrSample) {
+    return {
+      ...mockShopInfo,
+    };
+  }
+
   return {
     ...mockShopInfo,
-    name: shopNamePrefix !== "MYCOMPANY" ? shopNamePrefix : mockShopInfo.name,
+    name: "",
     phonePrimary: "",
     phone: "",
     whatsapp_no: "",

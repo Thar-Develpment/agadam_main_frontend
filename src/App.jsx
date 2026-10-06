@@ -16,6 +16,7 @@ import {
   getGalleryCategories,
   checkTenantStatus,
 } from "./services/api";
+import { mockShopInfo, mockSlides } from "./services/mockData";
 
 import Header from "./components/Header";
 import Slideshow from "./components/Slideshow";
@@ -64,16 +65,20 @@ function ClientStorefrontPage() {
         // 1. Guard Check: Verify site existence (status: 2) and payment status (status: 3) via site_info first
         const siteInfoRes = await getSiteInfo(shopPrefix);
 
+        const isDemoShowroom = ["demo", "sample", "test", "mycompany"].includes(shopPrefix) || !isTenantSubdomainHost();
+
         // 1.1 Status 2: Shop Not Found / Inactive Subdomain
         if (siteInfoRes && (siteInfoRes.status === 2 || siteInfoRes.notFound)) {
-          if (isTenantSubdomainHost()) {
+          if (isTenantSubdomainHost() && !isDemoShowroom) {
             window.location.href = `/404?domain=${encodeURIComponent(shopPrefix || subdomain)}`;
             return;
           }
-          setIsSuspended(true);
-          setSuspendedMessage("Showroom not found or deactivated.");
-          setIsLoading(false);
-          return;
+          if (!isDemoShowroom) {
+            setIsSuspended(true);
+            setSuspendedMessage("Showroom not found or deactivated.");
+            setIsLoading(false);
+            return;
+          }
         }
 
         // 1.2 Status 3: Payment Pending / Trial Expired
@@ -134,14 +139,13 @@ function ClientStorefrontPage() {
         ).trim();
 
         const rawDisplayName = (liveSiteData.tamil_shop_name || baseContact.tamil_shop_name || "").trim();
-        const fallbackName = (liveSiteData.shop_name || shopPrefix || "").trim().toUpperCase();
-        const displayName = rawDisplayName || fallbackName;
+        const displayName = isDemoShowroom ? (rawDisplayName || mockShopInfo.name || "AADAGAM JEWELLERY") : rawDisplayName;
 
         setShopInfo({
           ...baseContact,
           name: displayName,
-          tamil_shop_name: rawDisplayName,
-          shop_name: fallbackName,
+          tamil_shop_name: isDemoShowroom ? (rawDisplayName || displayName) : rawDisplayName,
+          shop_name: displayName,
           logo: resolveFullImageUrl(liveSiteData.logo || baseContact.logo || ""),
           email: liveSiteData.contact_us || baseContact.email || `contact@${shopPrefix}jewellery.com`,
           contact_us: liveSiteData.contact_us || baseContact.email || `contact@${shopPrefix}jewellery.com`,
@@ -299,7 +303,7 @@ function ClientStorefrontPage() {
         <div className="max-w-md space-y-3">
           <div className="inline-flex items-center gap-2 bg-[#D4AF37]/15 text-[#B8860B] border border-[#D4AF37]/30 px-3.5 py-1 rounded-full text-xs font-semibold uppercase tracking-widest">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>{shopInfo?.name || (shopPrefix && shopPrefix !== "mycompany" ? shopPrefix.toUpperCase() : "Curating Fine Masterpieces")}</span>
+            <span>{shopInfo?.name || "Curating Fine Masterpieces"}</span>
           </div>
 
           <h2 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 tracking-wide">

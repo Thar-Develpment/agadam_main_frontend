@@ -6,9 +6,7 @@ import { parseStoryContent } from "../services/api";
 export default function AboutSection({ aboutContent, galleryImages = [], shopInfo = null }) {
   if (!aboutContent) return null;
 
-  const activeSubdomain = getTenantSubdomain();
-  const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
-  const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
+  const shopName = (shopInfo?.name || "").trim().toUpperCase();
   const brandNameOnly = shopName;
 
   // Parse raw content if it contains JSON payload
@@ -33,9 +31,9 @@ export default function AboutSection({ aboutContent, galleryImages = [], shopInf
   const showcaseImage =
     customStoryImage ||
     "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=800&q=80";
-  const showcaseTitle = customStoryImage
-    ? `${brandNameOnly} Heritage & Craft`
-    : `${brandNameOnly} Signature Collection`;
+  const showcaseTitle = brandNameOnly
+    ? (customStoryImage ? `${brandNameOnly} Heritage & Craft` : `${brandNameOnly} Signature Collection`)
+    : (customStoryImage ? "Heritage & Craft" : "Signature Collection");
 
   // Process history paragraphs (handling single strings with line breaks or array of paragraphs)
   const allParagraphs = cleanStoryText
@@ -45,6 +43,9 @@ export default function AboutSection({ aboutContent, galleryImages = [], shopInf
   // Dynamically replace default brand names in history paragraphs with the current shop's name
   const formattedParagraphs = allParagraphs.map((paragraph) => {
     if (typeof paragraph !== "string") return paragraph;
+    if (!shopName) {
+      return paragraph;
+    }
     return paragraph
       .replace(/Rajeshwar Aadagam, Aadagam Jewellery/gi, `${shopName}`)
       .replace(/Aadagam Jewellery/gi, `${shopName}`)

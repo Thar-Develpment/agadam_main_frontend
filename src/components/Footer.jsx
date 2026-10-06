@@ -91,7 +91,7 @@ export default function Footer({ shopInfo }) {
                 </div>
               )}
               <span className="font-serif text-2xl font-bold text-white tracking-wider">
-                {shopInfo?.name || "JEWELLERY BOUTIQUE"}
+                {shopInfo?.name || ""}
               </span>
             </div>
             <p className="text-stone-400 text-xs sm:text-sm font-light leading-relaxed max-w-sm">
@@ -185,7 +185,7 @@ export default function Footer({ shopInfo }) {
         {/* Bottom Copyright Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500 font-light">
           <p>
-            &copy; {new Date().getFullYear()} {shopInfo?.name || "Jewellery Boutique"}. All Rights Reserved.
+            &copy; {new Date().getFullYear()}{shopInfo?.name ? ` ${shopInfo.name}.` : ""} All Rights Reserved.
           </p>
           <div className="flex items-center gap-1 text-stone-400">
             <span>Powered by</span>

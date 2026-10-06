@@ -649,47 +649,49 @@ const drawOrnamentalRule = (ctx, x, y, w, color, scale) => {
 };
 
 /**
- * Helper to wrap and draw physical showroom address text on canvas (Clean, no emoji injection)
+ * Helper to wrap and draw physical showroom address text on canvas dynamically without truncation.
+ * Auto-scales font size and wraps cleanly across up to 3 lines to fit long addresses.
  */
-const drawShowroomAddress = (ctx, addressText, startX, startY, maxWidth, lineHeight, maxLines = 2) => {
+const drawShowroomAddress = (ctx, addressText, startX, startY, maxWidth, sc, maxAllowedLines = 3) => {
   if (!addressText) return;
-  const cleanText = String(addressText).replace(/[\r\n]+/g, ", ").trim();
-  const words = cleanText.split(/\s+/).filter(Boolean);
+  const cleanText = String(addressText).replace(/[\r\n]+/g, ", ").replace(/\s+/g, " ").trim();
+  if (!cleanText) return;
 
-  const lines = [];
-  let currentLine = "";
+  const words = cleanText.split(" ").filter(Boolean);
+  const baseFontSize = Math.round(38 * sc);
+  const minFontSize = Math.round(25 * sc);
 
-  for (let i = 0; i < words.length; i++) {
-    const word = words[i];
-    const testLine = currentLine ? `${currentLine} ${word}` : word;
-    const testWidth = ctx.measureText(testLine).width;
+  const getLinesForFont = (size) => {
+    ctx.font = `300 ${size}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+    const resLines = [];
+    let curLine = "";
 
-    if (testWidth > maxWidth && currentLine) {
-      lines.push(currentLine);
-      currentLine = word;
-      if (lines.length === maxLines - 1) {
-        const remainingWords = words.slice(i);
-        let lastLine = "";
-        for (const remWord of remainingWords) {
-          const testLast = lastLine ? `${lastLine} ${remWord}` : remWord;
-          if (ctx.measureText(testLast + "...").width > maxWidth) {
-            lastLine = lastLine ? `${lastLine}...` : `${remWord.slice(0, 15)}...`;
-            break;
-          }
-          lastLine = testLast;
-        }
-        lines.push(lastLine || currentLine);
-        currentLine = "";
-        break;
+    for (let i = 0; i < words.length; i++) {
+      const w = words[i];
+      const test = curLine ? `${curLine} ${w}` : w;
+      if (ctx.measureText(test).width <= maxWidth) {
+        curLine = test;
+      } else {
+        if (curLine) resLines.push(curLine);
+        curLine = w;
       }
-    } else {
-      currentLine = testLine;
     }
+    if (curLine) resLines.push(curLine);
+    return resLines;
+  };
+
+  // Find optimal font size to fit all words within maxAllowedLines
+  let currentFontSize = baseFontSize;
+  let lines = getLinesForFont(currentFontSize);
+
+  while (lines.length > maxAllowedLines && currentFontSize > minFontSize) {
+    currentFontSize -= 2;
+    lines = getLinesForFont(currentFontSize);
   }
 
-  if (currentLine && lines.length < maxLines) {
-    lines.push(currentLine);
-  }
+  // Set final font and render lines
+  ctx.font = `300 ${currentFontSize}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+  const lineHeight = Math.round(currentFontSize * 1.25);
 
   lines.forEach((line, index) => {
     ctx.fillText(line, startX, startY + index * lineHeight);
@@ -1007,8 +1009,7 @@ const drawTemplate1_RoyalHeritage = (ctx, W, H, shopName, shopLogoImg, livePrice
   ctx.fillStyle = "#F8FAFC";
   ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
   ctx.shadowBlur = 8 * sc;
-  ctx.font = `300 ${Math.round(45 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
-  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 520 * sx, 52 * sy, 2);
+  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 630 * sx, sc, 3);
   ctx.restore();
 
   // RIGHT COLUMN (x = W - 170 * sx) - BIS 916 Hallmark Badge
@@ -1115,8 +1116,7 @@ const drawTemplate2_ModernMinimalist = (ctx, W, H, shopName, shopLogoImg, livePr
   ctx.fillStyle = "#F8FAFC";
   ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
   ctx.shadowBlur = 8 * sc;
-  ctx.font = `300 ${Math.round(45 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
-  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 520 * sx, 52 * sy, 2);
+  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 630 * sx, sc, 3);
   ctx.restore();
 
   // 3. RIGHT COLUMN: Hallmark Logo
@@ -1220,8 +1220,7 @@ const drawTemplate3_BridalEmerald = (ctx, W, H, shopName, shopLogoImg, livePrice
   ctx.fillStyle = "#F8FAFC";
   ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
   ctx.shadowBlur = 8 * sc;
-  ctx.font = `300 ${Math.round(45 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
-  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 520 * sx, 52 * sy, 2);
+  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 630 * sx, sc, 3);
   ctx.restore();
 
   // 3. RIGHT COLUMN: Hallmark Logo
@@ -1336,8 +1335,7 @@ const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrice
   ctx.fillStyle = "#F8FAFC";
   ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
   ctx.shadowBlur = 8 * sc;
-  ctx.font = `300 ${Math.round(45 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
-  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 520 * sx, 52 * sy, 2);
+  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 630 * sx, sc, 3);
   ctx.restore();
 
   // 3. RIGHT COLUMN: Hallmark Logo
@@ -1442,8 +1440,7 @@ const drawFestivalPosterOverlay = (ctx, W, H, shopName, shopLogoImg = null, shop
   ctx.fillStyle = "#F8FAFC";
   ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
   ctx.shadowBlur = 8 * sc;
-  ctx.font = `300 ${Math.round(45 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
-  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 520 * sx, 52 * sy, 2);
+  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 630 * sx, sc, 3);
   ctx.restore();
 
   // 3C. Hallmark Badge on Right
@@ -1929,10 +1926,8 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
         if (!ctx) return resolve(null);
 
-        const activeSubdomain = getTenantSubdomain();
-        const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
         const shopPrefix = getShopPrefix(activeSubdomain);
-        const shopNameStr = (shopInfo?.name || defaultShopName).toUpperCase();
+        const shopNameStr = (shopInfo?.name || "").trim().toUpperCase();
 
         let cachedLogo = "";
         try {
@@ -2041,9 +2036,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
   };
 
   const handleOpenImagePreview = (btn) => {
-    const activeSubdomain = getTenantSubdomain();
-    const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
-    const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
+    const shopName = (shopInfo?.name || "").trim().toUpperCase();
 
     let selectedAssetUrl = "";
     if (basicAssets.images && basicAssets.images.length > 0) {
@@ -2067,9 +2060,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
   };
 
   const handleOpenVideoPreview = (vid) => {
-    const activeSubdomain = getTenantSubdomain();
-    const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
-    const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
+    const shopName = (shopInfo?.name || "").trim().toUpperCase();
 
     let selectedVideoUrl = "";
     if (basicAssets.videos && basicAssets.videos.length > 0) {
@@ -2095,10 +2086,8 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
   };
 
   const triggerImageDownloadFromBlobUrl = (blobUrl, label, cardNum, templateId = 1) => {
-    const activeSubdomain = getTenantSubdomain();
-    const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
-    const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
-    const cleanName = shopName.toLowerCase().replace(/\s+/g, "_");
+    const shopName = (shopInfo?.name || "").trim().toUpperCase();
+    const cleanName = (shopName || "aadagam").toLowerCase().replace(/\s+/g, "_");
 
     const link = document.createElement("a");
     link.download = `${cleanName}_template${templateId}_${label.toLowerCase().replace(/\s+/g, "_")}_card_${cardNum}.png`;
@@ -2113,7 +2102,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
     setSuccessInfo({
       title: `${label} Downloaded Successfully!`,
-      desc: `Template #${templateId} Card for ${shopName} saved with Live Rates & Official Gold BIS 916 Hallmark!`,
+      desc: `Template #${templateId} Card${shopName ? ` for ${shopName}` : ""} saved with Live Rates & Official Gold BIS 916 Hallmark!`,
       type: "image",
     });
 
@@ -2128,9 +2117,8 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
     setSuccessInfo(null);
 
     const activeSubdomain = getTenantSubdomain();
-    const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
-    const shopNameStr = (shopInfo?.name || defaultShopName).toUpperCase();
-    const cleanName = shopNameStr.toLowerCase().replace(/\s+/g, "_");
+    const shopNameStr = (shopInfo?.name || "").trim().toUpperCase();
+    const cleanName = (shopNameStr || "aadagam").toLowerCase().replace(/\s+/g, "_");
 
     const videoPath = previewData?.previewUrl || `/status_videos/${fileName || `aadagam${videoNumber}.mp4`}`;
     const fullVideoUrl = resolveFullImageUrl(videoPath);
@@ -2395,9 +2383,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
   };
 
   const handleOpenFestivalPoster = (index = 0) => {
-    const activeSubdomain = getTenantSubdomain();
-    const defaultShopName = (getShopPrefix(activeSubdomain) || "EXCLUSIVE").toUpperCase();
-    const shopName = (shopInfo?.name || defaultShopName).toUpperCase();
+    const shopName = (shopInfo?.name || "").trim().toUpperCase();
 
     const specialList = basicAssets.specialImages || [];
     const validIdx = typeof index === "number" && index >= 0 && index < specialList.length ? index : 0;
