@@ -823,22 +823,23 @@ const drawScallopedCrestBadge = (ctx, x, y, w, h, sc = 1) => {
 const renderScallopedCrestCard = (ctx, x, y, w, h, titleStr, weightStr, priceStr, sc, sx, sy) => {
   ctx.save();
   const cxPos = x + w / 2;
+  const badgeScale = sc * (w / 390);
 
-  // 1. Floating Outer Metallic Gold Thin Wireframe Border (Offset ~9px around badge)
+  // 1. Floating Outer Metallic Gold Thin Wireframe Border
   ctx.save();
   ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
-  ctx.shadowBlur = 14 * sc;
-  ctx.shadowOffsetY = 4 * sc;
+  ctx.shadowBlur = 12 * sc;
+  ctx.shadowOffsetY = 3 * sc;
 
-  const outerOffset = 9 * sc;
+  const outerOffset = 7 * sc;
   const wireGrad = ctx.createLinearGradient(x, y, x + w, y + h);
   wireGrad.addColorStop(0, "#FFE875");
   wireGrad.addColorStop(0.5, "#D89B1B");
   wireGrad.addColorStop(1, "#A3750D");
 
   ctx.strokeStyle = wireGrad;
-  ctx.lineWidth = 2.2 * sc;
-  drawScallopedCrestBadge(ctx, x - outerOffset, y - outerOffset, w + outerOffset * 2, h + outerOffset * 2, sc * 1.04);
+  ctx.lineWidth = 1.8 * sc;
+  drawScallopedCrestBadge(ctx, x - outerOffset, y - outerOffset, w + outerOffset * 2, h + outerOffset * 2, badgeScale * 1.04);
   ctx.stroke();
   ctx.restore();
 
@@ -851,22 +852,22 @@ const renderScallopedCrestCard = (ctx, x, y, w, h, titleStr, weightStr, priceStr
 
   ctx.save();
   ctx.shadowColor = "rgba(0, 0, 0, 0.55)";
-  ctx.shadowBlur = 12 * sc;
+  ctx.shadowBlur = 10 * sc;
   ctx.fillStyle = badgeGrad;
-  drawScallopedCrestBadge(ctx, x, y, w, h, sc);
+  drawScallopedCrestBadge(ctx, x, y, w, h, badgeScale);
   ctx.fill();
   ctx.shadowBlur = 0;
 
   // 3. Crisp Dark Black/Mahogany Outline around Badge (Matches exact reference dark rim)
   ctx.strokeStyle = "#1A0E03";
-  ctx.lineWidth = 3.5 * sc;
-  drawScallopedCrestBadge(ctx, x, y, w, h, sc);
+  ctx.lineWidth = 2.8 * sc;
+  drawScallopedCrestBadge(ctx, x, y, w, h, badgeScale);
   ctx.stroke();
 
-  // 4. Subtle Inner Golden Hairline Stroke (Inset ~3px)
+  // 4. Subtle Inner Golden Hairline Stroke (Inset ~2.5px)
   ctx.strokeStyle = "rgba(255, 252, 235, 0.9)";
-  ctx.lineWidth = 1.4 * sc;
-  drawScallopedCrestBadge(ctx, x + 3 * sc, y + 3 * sc, w - 6 * sc, h - 6 * sc, sc * 0.96);
+  ctx.lineWidth = 1.2 * sc;
+  drawScallopedCrestBadge(ctx, x + 2.5 * sc, y + 2.5 * sc, w - 5 * sc, h - 5 * sc, badgeScale * 0.96);
   ctx.stroke();
   ctx.restore();
 
@@ -878,23 +879,23 @@ const renderScallopedCrestCard = (ctx, x, y, w, h, titleStr, weightStr, priceStr
   ctx.fillStyle = textColor;
 
   // Line 1: Title ("Gold Rate" / "Silver Rate")
-  ctx.font = `bold ${Math.round(44 * sc)}px Georgia, serif`;
-  ctx.fillText(titleStr, cxPos, y + 74 * sy);
+  ctx.font = `bold ${Math.round(35 * sc)}px Georgia, serif`;
+  ctx.fillText(titleStr, cxPos, y + 58 * sy);
 
   // Line 2: Weight & Purity ("1GM  22K" / "1GM  999")
-  ctx.font = `bold ${Math.round(42 * sc)}px "Outfit", "Plus Jakarta Sans", sans-serif`;
-  ctx.fillText(weightStr, cxPos, y + 130 * sy);
+  ctx.font = `bold ${Math.round(33 * sc)}px "Outfit", "Plus Jakarta Sans", sans-serif`;
+  ctx.fillText(weightStr, cxPos, y + 102 * sy);
 
-  // Line 3: Price Display ("₹ 13,710" / "₹ 245") - BIGGER VERY BIGGER (96px 900 weight)
-  let priceFontSize = Math.round(96 * sc);
+  // Line 3: Price Display ("₹ 13,710" / "₹ 245")
+  let priceFontSize = Math.round(76 * sc);
   ctx.font = `900 ${priceFontSize}px "Plus Jakarta Sans", "Outfit", sans-serif`;
-  const maxPriceW = w - 44 * sc;
+  const maxPriceW = w - 36 * sc;
   const priceW = ctx.measureText(priceStr).width;
   if (priceW > maxPriceW) {
-    priceFontSize = Math.max(Math.round(68 * sc), Math.floor(priceFontSize * (maxPriceW / priceW)));
+    priceFontSize = Math.max(Math.round(52 * sc), Math.floor(priceFontSize * (maxPriceW / priceW)));
     ctx.font = `900 ${priceFontSize}px "Plus Jakarta Sans", "Outfit", sans-serif`;
   }
-  ctx.fillText(priceStr, cxPos, y + 258 * sy);
+  ctx.fillText(priceStr, cxPos, y + 202 * sy);
 
   ctx.restore();
   ctx.restore();
@@ -943,31 +944,29 @@ const drawTemplate1_RoyalHeritage = (ctx, W, H, shopName, shopLogoImg, livePrice
     return nameGrad;
   }, "#FFE566");
 
-  // --- RATES HEADER LINE (TODAY'S GOLD RATE + DATE) AT Y = 1045px ---
-  const headerY = 1045 * sy;
+  // --- SIDE-BY-SIDE SCALLOPED CREST CARDS & RATES HEADER ---
+  const cardW = 325 * sx, cardH = 285 * sy, cardY = 1130 * sy;
+  const leftX = cx - cardW - 18 * sx;
+  const rightX = cx + 18 * sx;
+
+  // Rates Header Line
+  const headerY = 1090 * sy;
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.95)"; ctx.shadowBlur = 14 * sc;
   ctx.textAlign = "left";
   ctx.fillStyle = "#FFFFFF";
-  ctx.font = `bold ${Math.round(52 * sc)}px Georgia, "Playfair Display", serif`;
-  ctx.fillText("TODAY'S GOLD RATE", 60 * sx, headerY);
+  ctx.font = `bold ${Math.round(40 * sc)}px Georgia, "Playfair Display", serif`;
+  ctx.fillText("TODAY'S GOLD RATE", leftX, headerY);
 
   ctx.textAlign = "right";
   ctx.fillStyle = "#FFF6D4";
-  ctx.font = `bold ${Math.round(44 * sc)}px "Outfit", "Inter", sans-serif`;
-  ctx.fillText(dateStr, W - 60 * sx, headerY);
+  ctx.font = `bold ${Math.round(34 * sc)}px "Outfit", "Inter", sans-serif`;
+  ctx.fillText(dateStr, rightX + cardW, headerY);
   ctx.restore();
-
-  // --- SIDE-BY-SIDE SCALLOPED CREST CARDS (EXACT REF STYLE) ---
-  const cardY = 1080 * sy, cardH = 370 * sy, cardW = 390 * sx;
-  const leftX = cx - cardW - 25 * sx;
-  const rightX = cx + 25 * sx;
 
   // Render LEFT: 1g Gold & RIGHT: 1g Silver
   renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy);
   renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy);
-
-
 
   // --- FOOTER SECTION (2/3 LEFT: PHONE ON TOP, ADDRESS ON BOTTOM | 1/3 RIGHT: BIS 916 HALLMARK) ---
   const fY = 1640 * sy;
@@ -1060,25 +1059,24 @@ const drawTemplate2_ModernMinimalist = (ctx, W, H, shopName, shopLogoImg, livePr
   const maxLogoW = 560 * sx, maxLogoH = 340 * sy;
   drawCenteredHeaderLogoAndShopName(ctx, W, topY, shopName, shopLogoImg, maxLogoW, maxLogoH, 68, sc, sx, sy, "#FFFFFF", "#7EB8FF");
 
+  // --- SIDE-BY-SIDE SCALLOPED CREST CARDS & RATES HEADER ---
+  const cardW = 325 * sx, cardH = 285 * sy, cardY = 1130 * sy;
+  const leftX = cx - cardW - 18 * sx;
+  const rightX = cx + 18 * sx;
+
   // RATES HEADER LINE
-  const headerY = 1045 * sy;
+  const headerY = 1090 * sy;
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.95)"; ctx.shadowBlur = 14 * sc;
-  ctx.textAlign = "left"; ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(52 * sc)}px Georgia, "Playfair Display", serif`;
-  ctx.fillText("TODAY'S GOLD RATE", 60 * sx, headerY);
-  ctx.textAlign = "right"; ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(44 * sc)}px "Outfit", "Inter", sans-serif`;
-  ctx.fillText(dateStr, W - 60 * sx, headerY);
+  ctx.textAlign = "left"; ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(40 * sc)}px Georgia, "Playfair Display", serif`;
+  ctx.fillText("TODAY'S GOLD RATE", leftX, headerY);
+  ctx.textAlign = "right"; ctx.fillStyle = "#7EB8FF"; ctx.font = `bold ${Math.round(34 * sc)}px "Outfit", "Inter", sans-serif`;
+  ctx.fillText(dateStr, rightX + cardW, headerY);
   ctx.restore();
 
   // SIDE-BY-SIDE CARDS
-  const cardY = 1080 * sy, cardH = 370 * sy, cardW = 390 * sx;
-  const leftX = cx - cardW - 25 * sx;
-  const rightX = cx + 25 * sx;
-
   renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy);
   renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy);
-
-
 
   // FOOTER SECTION (2/3 LEFT: PHONE & ADDRESS | 1/3 RIGHT: BIS 916 HALLMARK)
   const fY = 1640 * sy;
@@ -1164,25 +1162,24 @@ const drawTemplate3_BridalEmerald = (ctx, W, H, shopName, shopLogoImg, livePrice
   const maxLogoW = 560 * sx, maxLogoH = 340 * sy;
   drawCenteredHeaderLogoAndShopName(ctx, W, topY, shopName, shopLogoImg, maxLogoW, maxLogoH, 68, sc, sx, sy, "#FFDA6A", "#6EE7B7");
 
+  // --- SIDE-BY-SIDE SCALLOPED CREST CARDS & RATES HEADER ---
+  const cardW = 325 * sx, cardH = 285 * sy, cardY = 1130 * sy;
+  const leftX = cx - cardW - 18 * sx;
+  const rightX = cx + 18 * sx;
+
   // RATES HEADER LINE
-  const headerY = 1045 * sy;
+  const headerY = 1090 * sy;
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.95)"; ctx.shadowBlur = 14 * sc;
-  ctx.textAlign = "left"; ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(52 * sc)}px Georgia, "Playfair Display", serif`;
-  ctx.fillText("TODAY'S GOLD RATE", 60 * sx, headerY);
-  ctx.textAlign = "right"; ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(44 * sc)}px "Outfit", "Inter", sans-serif`;
-  ctx.fillText(dateStr, W - 60 * sx, headerY);
+  ctx.textAlign = "left"; ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(40 * sc)}px Georgia, "Playfair Display", serif`;
+  ctx.fillText("TODAY'S GOLD RATE", leftX, headerY);
+  ctx.textAlign = "right"; ctx.fillStyle = "#FFDA6A"; ctx.font = `bold ${Math.round(34 * sc)}px "Outfit", "Inter", sans-serif`;
+  ctx.fillText(dateStr, rightX + cardW, headerY);
   ctx.restore();
 
   // SIDE-BY-SIDE CARDS
-  const cardY = 1080 * sy, cardH = 370 * sy, cardW = 390 * sx;
-  const leftX = cx - cardW - 25 * sx;
-  const rightX = cx + 25 * sx;
-
   renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy);
   renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy);
-
-
 
   // FOOTER SECTION (2/3 LEFT: PHONE & ADDRESS | 1/3 RIGHT: BIS 916 HALLMARK)
   const fY = 1640 * sy;
@@ -1279,21 +1276,22 @@ const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrice
   const maxLogoW = 560 * sx, maxLogoH = 340 * sy;
   drawCenteredHeaderLogoAndShopName(ctx, W, topY, shopName, shopLogoImg, maxLogoW, maxLogoH, 68, sc, sx, sy, "#F5E4C8", "#D4916A");
 
+  // --- SIDE-BY-SIDE SCALLOPED CREST CARDS & RATES HEADER ---
+  const cardW = 325 * sx, cardH = 285 * sy, cardY = 1130 * sy;
+  const leftX = cx - cardW - 18 * sx;
+  const rightX = cx + 18 * sx;
+
   // RATES HEADER LINE
-  const headerY = 1045 * sy;
+  const headerY = 1090 * sy;
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.95)"; ctx.shadowBlur = 14 * sc;
-  ctx.textAlign = "left"; ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(52 * sc)}px Georgia, "Playfair Display", serif`;
-  ctx.fillText("TODAY'S GOLD RATE", 60 * sx, headerY);
-  ctx.textAlign = "right"; ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(44 * sc)}px "Outfit", "Inter", sans-serif`;
-  ctx.fillText(dateStr, W - 60 * sx, headerY);
+  ctx.textAlign = "left"; ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(40 * sc)}px Georgia, "Playfair Display", serif`;
+  ctx.fillText("TODAY'S GOLD RATE", leftX, headerY);
+  ctx.textAlign = "right"; ctx.fillStyle = "#F5E4C8"; ctx.font = `bold ${Math.round(34 * sc)}px "Outfit", "Inter", sans-serif`;
+  ctx.fillText(dateStr, rightX + cardW, headerY);
   ctx.restore();
 
   // SIDE-BY-SIDE CARDS
-  const cardY = 1080 * sy, cardH = 370 * sy, cardW = 390 * sx;
-  const leftX = cx - cardW - 25 * sx;
-  const rightX = cx + 25 * sx;
-
   renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy);
   renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy);
 
@@ -1342,7 +1340,8 @@ const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrice
   const rightCenterY = fY + 128 * sy;
   drawRealBIS916Hallmark(ctx, W - 170 * sx, rightCenterY, sc * 0.98, "gold", hallmarkImg);
 
-  ctx.fillStyle = roseBar; ctx.fillRect(lsW, H - 6 * sy, W - lsW * 2, 6 * sy);
+  ctx.fillStyle = roseBar;
+  ctx.fillRect(lsW, H - 6 * sy, W - lsW * 2, 6 * sy);
   ctx.restore();
 };
 
