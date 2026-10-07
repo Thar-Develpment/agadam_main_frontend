@@ -1797,9 +1797,12 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
           // Extract shop logo directly from API siteInfoData response
           const apiLogo = siteRes.siteInfoData?.logo || siteRes.siteInfoData?.logoUrl;
-          loadLogoWithFallback(apiLogo || shopInfo?.logo || cachedLogo).then((img) => {
-            if (img) setLoadedShopLogo(img);
-          });
+          const targetLogo = apiLogo || shopInfo?.logo || shopInfo?.logoUrl;
+          if (targetLogo) {
+            loadLogoWithFallback(targetLogo).then((img) => {
+              if (img) setLoadedShopLogo(img);
+            });
+          }
         }
 
         if (assetsRes && assetsRes.status === 1) {
@@ -1926,6 +1929,7 @@ function WhatsAppStatusSectionInner({ shopInfo }) {
 
         if (!ctx) return resolve(null);
 
+        const activeSubdomain = getTenantSubdomain();
         const shopPrefix = getShopPrefix(activeSubdomain);
         const shopNameStr = (shopInfo?.name || "").trim().toUpperCase();
 
