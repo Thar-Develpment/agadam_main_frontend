@@ -652,17 +652,17 @@ const drawOrnamentalRule = (ctx, x, y, w, color, scale) => {
  * Helper to wrap and draw physical showroom address text on canvas dynamically without truncation.
  * Auto-scales font size and wraps cleanly across up to 3 lines to fit long addresses.
  */
-const drawShowroomAddress = (ctx, addressText, startX, startY, maxWidth, sc, maxAllowedLines = 3) => {
+const drawShowroomAddress = (ctx, addressText, startX, startY, maxWidth, sc, maxAllowedLines = 2) => {
   if (!addressText) return;
   const cleanText = String(addressText).replace(/[\r\n]+/g, ", ").replace(/\s+/g, " ").trim();
   if (!cleanText) return;
 
   const words = cleanText.split(" ").filter(Boolean);
-  const baseFontSize = Math.round(38 * sc);
-  const minFontSize = Math.round(25 * sc);
+  const baseFontSize = Math.round(54 * sc);
+  const minFontSize = Math.round(36 * sc);
 
   const getLinesForFont = (size) => {
-    ctx.font = `300 ${size}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+    ctx.font = `bold ${size}px "Inter", "Outfit", "Segoe UI", sans-serif`;
     const resLines = [];
     let curLine = "";
 
@@ -690,7 +690,7 @@ const drawShowroomAddress = (ctx, addressText, startX, startY, maxWidth, sc, max
   }
 
   // Set final font and render lines
-  ctx.font = `300 ${currentFontSize}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+  ctx.font = `bold ${currentFontSize}px "Inter", "Outfit", "Segoe UI", sans-serif`;
   const lineHeight = Math.round(currentFontSize * 1.25);
 
   lines.forEach((line, index) => {
@@ -818,14 +818,15 @@ const drawScallopedCrestBadge = (ctx, x, y, w, h, sc = 1) => {
 };
 
 /**
- * Draws the Scalloped Solid Gold Crest Rate Card (Exact match to PTR Jewellers reference image)
+ * Draws the Scalloped Solid Gold or Silver Crest Rate Card
  */
-const renderScallopedCrestCard = (ctx, x, y, w, h, titleStr, weightStr, priceStr, sc, sx, sy) => {
+const renderScallopedCrestCard = (ctx, x, y, w, h, titleStr, weightStr, priceStr, sc, sx, sy, cardType = "gold") => {
   ctx.save();
   const cxPos = x + w / 2;
   const badgeScale = sc * (w / 390);
+  const isSilver = cardType === "silver";
 
-  // 1. Floating Outer Metallic Gold Thin Wireframe Border
+  // 1. Floating Outer Metallic Thin Wireframe Border
   ctx.save();
   ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
   ctx.shadowBlur = 12 * sc;
@@ -833,9 +834,15 @@ const renderScallopedCrestCard = (ctx, x, y, w, h, titleStr, weightStr, priceStr
 
   const outerOffset = 7 * sc;
   const wireGrad = ctx.createLinearGradient(x, y, x + w, y + h);
-  wireGrad.addColorStop(0, "#FFE875");
-  wireGrad.addColorStop(0.5, "#D89B1B");
-  wireGrad.addColorStop(1, "#A3750D");
+  if (isSilver) {
+    wireGrad.addColorStop(0, "#FFFFFF");
+    wireGrad.addColorStop(0.5, "#CBD5E1");
+    wireGrad.addColorStop(1, "#94A3B8");
+  } else {
+    wireGrad.addColorStop(0, "#FFE875");
+    wireGrad.addColorStop(0.5, "#D89B1B");
+    wireGrad.addColorStop(1, "#A3750D");
+  }
 
   ctx.strokeStyle = wireGrad;
   ctx.lineWidth = 1.8 * sc;
@@ -843,12 +850,19 @@ const renderScallopedCrestCard = (ctx, x, y, w, h, titleStr, weightStr, priceStr
   ctx.stroke();
   ctx.restore();
 
-  // 2. Main Solid Gold Gradient Fill (Warm, rich gold gradient fill matching reference image)
+  // 2. Main Badge Gradient Fill (Polished Silver Gradient or Rich Solid Gold Gradient)
   const badgeGrad = ctx.createLinearGradient(x, y, x + w, y + h);
-  badgeGrad.addColorStop(0.0, "#FBE37B"); // Bright yellow gold top-left
-  badgeGrad.addColorStop(0.3, "#F7CA3B"); // Warm gold body
-  badgeGrad.addColorStop(0.7, "#D89B1B"); // Deep rich gold
-  badgeGrad.addColorStop(1.0, "#A3750D"); // Polished gold shadow bottom-right
+  if (isSilver) {
+    badgeGrad.addColorStop(0.0, "#FFFFFF"); // Pure silver highlight
+    badgeGrad.addColorStop(0.25, "#F1F5F9"); // Polished silver body
+    badgeGrad.addColorStop(0.65, "#CBD5E1"); // Rich sterling silver body
+    badgeGrad.addColorStop(1.0, "#94A3B8"); // Sleek silver metallic shadow
+  } else {
+    badgeGrad.addColorStop(0.0, "#FBE37B"); // Bright yellow gold top-left
+    badgeGrad.addColorStop(0.3, "#F7CA3B"); // Warm gold body
+    badgeGrad.addColorStop(0.7, "#D89B1B"); // Deep rich gold
+    badgeGrad.addColorStop(1.0, "#A3750D"); // Polished gold shadow bottom-right
+  }
 
   ctx.save();
   ctx.shadowColor = "rgba(0, 0, 0, 0.55)";
@@ -858,21 +872,21 @@ const renderScallopedCrestCard = (ctx, x, y, w, h, titleStr, weightStr, priceStr
   ctx.fill();
   ctx.shadowBlur = 0;
 
-  // 3. Crisp Dark Black/Mahogany Outline around Badge (Matches exact reference dark rim)
-  ctx.strokeStyle = "#1A0E03";
+  // 3. Crisp Dark Outline around Badge
+  ctx.strokeStyle = isSilver ? "#0F172A" : "#1A0E03";
   ctx.lineWidth = 2.8 * sc;
   drawScallopedCrestBadge(ctx, x, y, w, h, badgeScale);
   ctx.stroke();
 
-  // 4. Subtle Inner Golden Hairline Stroke (Inset ~2.5px)
-  ctx.strokeStyle = "rgba(255, 252, 235, 0.9)";
+  // 4. Subtle Inner Hairline Stroke (Inset ~2.5px)
+  ctx.strokeStyle = isSilver ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 252, 235, 0.9)";
   ctx.lineWidth = 1.2 * sc;
   drawScallopedCrestBadge(ctx, x + 2.5 * sc, y + 2.5 * sc, w - 5 * sc, h - 5 * sc, badgeScale * 0.96);
   ctx.stroke();
   ctx.restore();
 
-  // 5. TYPOGRAPHY & CONTENTS INSIDE BADGE (Clean dark mahogany brown `#1C0D01`)
-  const textColor = "#1C0D01";
+  // 5. TYPOGRAPHY & CONTENTS INSIDE BADGE
+  const textColor = isSilver ? "#0F172A" : "#1C0D01";
 
   ctx.save();
   ctx.textAlign = "center";
@@ -925,15 +939,7 @@ const drawTemplate1_RoyalHeritage = (ctx, W, H, shopName, shopLogoImg, livePrice
   ctx.fillStyle = "rgba(10, 2, 4, 0.22)";
   ctx.fillRect(0, 0, W, H);
 
-  // TOP HEADER SCRIM
-  const topScrim = ctx.createLinearGradient(0, 0, 0, 420 * sy);
-  topScrim.addColorStop(0, "rgba(22, 4, 10, 0.98)");
-  topScrim.addColorStop(0.7, "rgba(22, 4, 10, 0.88)");
-  topScrim.addColorStop(1, "rgba(10, 2, 4, 0)");
-  ctx.fillStyle = topScrim;
-  ctx.fillRect(0, 0, W, 420 * sy);
-
-  // --- TOP HEADER LOGO & SHOP NAME (TIGHT UNIFIED CENTERED GROUP) ---
+  // --- TOP HEADER LOGO & SHOP NAME (NO BACKGROUND COLOR) ---
   const topY = 25 * sy;
   const maxLogoW = 560 * sx, maxLogoH = 340 * sy;
   drawCenteredHeaderLogoAndShopName(ctx, W, topY, shopName, shopLogoImg, maxLogoW, maxLogoH, 68, sc, sx, sy, (c, cxPos, cyPos) => {
@@ -945,12 +951,12 @@ const drawTemplate1_RoyalHeritage = (ctx, W, H, shopName, shopLogoImg, livePrice
   }, "#FFE566");
 
   // --- SIDE-BY-SIDE SCALLOPED CREST CARDS & RATES HEADER ---
-  const cardW = 325 * sx, cardH = 285 * sy, cardY = 1130 * sy;
+  const cardW = 325 * sx, cardH = 285 * sy, cardY = 1240 * sy;
   const leftX = cx - cardW - 18 * sx;
   const rightX = cx + 18 * sx;
 
   // Rates Header Line
-  const headerY = 1090 * sy;
+  const headerY = 1200 * sy;
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.95)"; ctx.shadowBlur = 14 * sc;
   ctx.textAlign = "left";
@@ -964,12 +970,12 @@ const drawTemplate1_RoyalHeritage = (ctx, W, H, shopName, shopLogoImg, livePrice
   ctx.fillText(dateStr, rightX + cardW, headerY);
   ctx.restore();
 
-  // Render LEFT: 1g Gold & RIGHT: 1g Silver
-  renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy);
-  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy);
+  // Render LEFT: 1g Gold & RIGHT: 1g Silver (with metallic silver styling)
+  renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy, "gold");
+  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy, "silver");
 
-  // --- FOOTER SECTION (2/3 LEFT: PHONE ON TOP, ADDRESS ON BOTTOM | 1/3 RIGHT: BIS 916 HALLMARK) ---
-  const fY = 1640 * sy;
+  // --- FOOTER SECTION (PHONE ON TOP, FULL SIZE ADDRESS, SMALL 916 HALLMARK BELOW IN CORNER) ---
+  const fY = 1575 * sy;
 
   // Solid Dark Footer Bar Fill
   ctx.fillStyle = "#0F0406";
@@ -983,37 +989,41 @@ const drawTemplate1_RoyalHeritage = (ctx, W, H, shopName, shopLogoImg, livePrice
   ctx.lineTo(W - 60 * sx, fY);
   ctx.stroke();
 
-  // LEFT COLUMN (x = 70 * sx) - Phone on Top, Address on Bottom
+  // LEFT COLUMN (x = 70 * sx) - Phone on Top, Address below covering full width
   const footerLeftX = 70 * sx;
 
-  // 1. TOP LINE: Phone Icon + Phone Number (Font 72px bold style)
-  const phoneY = fY + 62 * sy;
-  drawVectorIconBadge(ctx, footerLeftX, phoneY, 30 * sc, "phone", sc, "#FFE566");
+  // 1. TOP LINE: Phone Icon + Phone Number
+  const phoneY = fY + 54 * sy;
+  drawVectorIconBadge(ctx, footerLeftX, phoneY, 28 * sc, "phone", sc, "#FFE566");
 
   ctx.save();
   ctx.textAlign = "left";
   ctx.shadowColor = "rgba(255, 229, 102, 0.6)";
   ctx.shadowBlur = 10 * sc;
   ctx.fillStyle = "#FFE566";
-  ctx.font = `bold ${Math.round(72 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
-  ctx.fillText(phone, footerLeftX + 56 * sx, phoneY + 22 * sy);
+  ctx.font = `bold ${Math.round(68 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+  ctx.fillText(phone, footerLeftX + 54 * sx, phoneY + 20 * sy);
   ctx.restore();
 
-  // 2. BOTTOM LINE: Location Pin Icon + Showroom Address (Font 45px thin style weight 300)
-  const pinY = fY + 150 * sy;
+  // 2. MIDDLE LINE: Location Pin Icon + Showroom Address (Cover full size width, increased size)
+  const pinY = fY + 128 * sy;
   drawVectorIconBadge(ctx, footerLeftX, pinY + 8 * sy, 24 * sc, "pin", sc, "#D4AF37");
+
+  const addressStartX = footerLeftX + 54 * sx;
+  const addressMaxW = W - addressStartX - 70 * sx;
 
   ctx.save();
   ctx.textAlign = "left";
-  ctx.fillStyle = "#F8FAFC";
+  ctx.fillStyle = "#FFFFFF";
   ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
   ctx.shadowBlur = 8 * sc;
-  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 630 * sx, sc, 3);
+  drawShowroomAddress(ctx, address, addressStartX, pinY + 14 * sy, addressMaxW, sc, 2);
   ctx.restore();
 
-  // RIGHT COLUMN (x = W - 170 * sx) - BIS 916 Hallmark Badge
-  const rightCenterY = fY + 128 * sy;
-  drawRealBIS916Hallmark(ctx, W - 170 * sx, rightCenterY, sc * 0.98, "gold", hallmarkImg);
+  // 3. BELOW ADDRESS: Small 916 Hallmark Logo in Bottom Corner
+  const hallmarkCenterX = W - 110 * sx;
+  const hallmarkCenterY = H - 52 * sy;
+  drawRealBIS916Hallmark(ctx, hallmarkCenterX, hallmarkCenterY, sc * 0.48, "gold", hallmarkImg);
 
   const bottomGoldGrad = ctx.createLinearGradient(0, 0, W, 0);
   bottomGoldGrad.addColorStop(0, "rgba(212,175,55,0.2)");
@@ -1047,25 +1057,18 @@ const drawTemplate2_ModernMinimalist = (ctx, W, H, shopName, shopLogoImg, livePr
   ctx.fillStyle = "rgba(2, 6, 20, 0.22)";
   ctx.fillRect(0, 0, W, H);
 
-  const topScrim2 = ctx.createLinearGradient(0, 0, 0, 420 * sy);
-  topScrim2.addColorStop(0, "rgba(4, 18, 64, 0.98)");
-  topScrim2.addColorStop(0.7, "rgba(4, 18, 64, 0.88)");
-  topScrim2.addColorStop(1, "rgba(2, 6, 20, 0)");
-  ctx.fillStyle = topScrim2;
-  ctx.fillRect(0, 0, W, 420 * sy);
-
-  // --- TOP HEADER LOGO & SHOP NAME (TIGHT UNIFIED CENTERED GROUP) ---
+  // --- TOP HEADER LOGO & SHOP NAME (NO BACKGROUND COLOR) ---
   const topY = 25 * sy;
   const maxLogoW = 560 * sx, maxLogoH = 340 * sy;
   drawCenteredHeaderLogoAndShopName(ctx, W, topY, shopName, shopLogoImg, maxLogoW, maxLogoH, 68, sc, sx, sy, "#FFFFFF", "#7EB8FF");
 
   // --- SIDE-BY-SIDE SCALLOPED CREST CARDS & RATES HEADER ---
-  const cardW = 325 * sx, cardH = 285 * sy, cardY = 1130 * sy;
+  const cardW = 325 * sx, cardH = 285 * sy, cardY = 1240 * sy;
   const leftX = cx - cardW - 18 * sx;
   const rightX = cx + 18 * sx;
 
   // RATES HEADER LINE
-  const headerY = 1090 * sy;
+  const headerY = 1200 * sy;
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.95)"; ctx.shadowBlur = 14 * sc;
   ctx.textAlign = "left"; ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(40 * sc)}px Georgia, "Playfair Display", serif`;
@@ -1075,11 +1078,11 @@ const drawTemplate2_ModernMinimalist = (ctx, W, H, shopName, shopLogoImg, livePr
   ctx.restore();
 
   // SIDE-BY-SIDE CARDS
-  renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy);
-  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy);
+  renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy, "gold");
+  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy, "silver");
 
-  // FOOTER SECTION (2/3 LEFT: PHONE & ADDRESS | 1/3 RIGHT: BIS 916 HALLMARK)
-  const fY = 1640 * sy;
+  // FOOTER SECTION (PHONE ON TOP, FULL SIZE ADDRESS, SMALL 916 HALLMARK BELOW IN CORNER)
+  const fY = 1575 * sy;
   ctx.fillStyle = "#020718";
   ctx.fillRect(0, fY, W, H - fY);
 
@@ -1093,33 +1096,37 @@ const drawTemplate2_ModernMinimalist = (ctx, W, H, shopName, shopLogoImg, livePr
   const footerLeftX = 70 * sx;
 
   // 1. TOP LINE: Phone
-  const phoneY = fY + 62 * sy;
-  drawVectorIconBadge(ctx, footerLeftX, phoneY, 30 * sc, "phone", sc, "#7EB8FF");
+  const phoneY = fY + 54 * sy;
+  drawVectorIconBadge(ctx, footerLeftX, phoneY, 28 * sc, "phone", sc, "#7EB8FF");
 
   ctx.save();
   ctx.textAlign = "left";
   ctx.shadowColor = "rgba(126, 184, 255, 0.6)";
   ctx.shadowBlur = 10 * sc;
   ctx.fillStyle = "#7EB8FF";
-  ctx.font = `bold ${Math.round(72 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
-  ctx.fillText(phone, footerLeftX + 56 * sx, phoneY + 22 * sy);
+  ctx.font = `bold ${Math.round(68 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+  ctx.fillText(phone, footerLeftX + 54 * sx, phoneY + 20 * sy);
   ctx.restore();
 
-  // 2. BOTTOM LINE: Address
-  const pinY = fY + 150 * sy;
+  // 2. MIDDLE LINE: Address covering full width, increased size
+  const pinY = fY + 128 * sy;
   drawVectorIconBadge(ctx, footerLeftX, pinY + 8 * sy, 24 * sc, "pin", sc, "#7EB8FF");
+
+  const addressStartX = footerLeftX + 54 * sx;
+  const addressMaxW = W - addressStartX - 70 * sx;
 
   ctx.save();
   ctx.textAlign = "left";
   ctx.fillStyle = "#F8FAFC";
   ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
   ctx.shadowBlur = 8 * sc;
-  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 630 * sx, sc, 3);
+  drawShowroomAddress(ctx, address, addressStartX, pinY + 14 * sy, addressMaxW, sc, 2);
   ctx.restore();
 
-  // 3. RIGHT COLUMN: Hallmark Logo
-  const rightCenterY = fY + 128 * sy;
-  drawRealBIS916Hallmark(ctx, W - 170 * sx, rightCenterY, sc * 0.98, "glass", hallmarkImg);
+  // 3. BELOW ADDRESS: Small 916 Hallmark Logo in Bottom Corner
+  const hallmarkCenterX = W - 110 * sx;
+  const hallmarkCenterY = H - 52 * sy;
+  drawRealBIS916Hallmark(ctx, hallmarkCenterX, hallmarkCenterY, sc * 0.48, "glass", hallmarkImg);
 
   const btmSlvGrad = ctx.createLinearGradient(0, 0, W, 0);
   btmSlvGrad.addColorStop(0, "rgba(180,200,255,0)"); btmSlvGrad.addColorStop(0.5, "rgba(220,235,255,0.9)"); btmSlvGrad.addColorStop(1, "rgba(180,200,255,0)");
@@ -1150,25 +1157,18 @@ const drawTemplate3_BridalEmerald = (ctx, W, H, shopName, shopLogoImg, livePrice
   ctx.fillStyle = "rgba(0, 10, 5, 0.22)";
   ctx.fillRect(0, 0, W, H);
 
-  const topScrim3 = ctx.createLinearGradient(0, 0, 0, 360 * sy);
-  topScrim3.addColorStop(0, "rgba(1, 35, 15, 0.98)");
-  topScrim3.addColorStop(0.7, "rgba(1, 35, 15, 0.88)");
-  topScrim3.addColorStop(1, "rgba(0, 10, 5, 0)");
-  ctx.fillStyle = topScrim3;
-  ctx.fillRect(0, 0, W, 420 * sy);
-
-  // --- TOP HEADER LOGO & SHOP NAME (TIGHT UNIFIED CENTERED GROUP) ---
+  // --- TOP HEADER LOGO & SHOP NAME (NO BACKGROUND COLOR) ---
   const topY = 25 * sy;
   const maxLogoW = 560 * sx, maxLogoH = 340 * sy;
   drawCenteredHeaderLogoAndShopName(ctx, W, topY, shopName, shopLogoImg, maxLogoW, maxLogoH, 68, sc, sx, sy, "#FFDA6A", "#6EE7B7");
 
   // --- SIDE-BY-SIDE SCALLOPED CREST CARDS & RATES HEADER ---
-  const cardW = 325 * sx, cardH = 285 * sy, cardY = 1130 * sy;
+  const cardW = 325 * sx, cardH = 285 * sy, cardY = 1240 * sy;
   const leftX = cx - cardW - 18 * sx;
   const rightX = cx + 18 * sx;
 
   // RATES HEADER LINE
-  const headerY = 1090 * sy;
+  const headerY = 1200 * sy;
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.95)"; ctx.shadowBlur = 14 * sc;
   ctx.textAlign = "left"; ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(40 * sc)}px Georgia, "Playfair Display", serif`;
@@ -1178,11 +1178,11 @@ const drawTemplate3_BridalEmerald = (ctx, W, H, shopName, shopLogoImg, livePrice
   ctx.restore();
 
   // SIDE-BY-SIDE CARDS
-  renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy);
-  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy);
+  renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy, "gold");
+  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy, "silver");
 
-  // FOOTER SECTION (2/3 LEFT: PHONE & ADDRESS | 1/3 RIGHT: BIS 916 HALLMARK)
-  const fY = 1640 * sy;
+  // FOOTER SECTION (PHONE ON TOP, FULL SIZE ADDRESS, SMALL 916 HALLMARK BELOW IN CORNER)
+  const fY = 1575 * sy;
   ctx.fillStyle = "#010A05";
   ctx.fillRect(0, fY, W, H - fY);
 
@@ -1196,33 +1196,37 @@ const drawTemplate3_BridalEmerald = (ctx, W, H, shopName, shopLogoImg, livePrice
   const footerLeftX = 70 * sx;
 
   // 1. TOP LINE: Phone
-  const phoneY = fY + 62 * sy;
-  drawVectorIconBadge(ctx, footerLeftX, phoneY, 30 * sc, "phone", sc, "#FFDA6A");
+  const phoneY = fY + 54 * sy;
+  drawVectorIconBadge(ctx, footerLeftX, phoneY, 28 * sc, "phone", sc, "#FFDA6A");
 
   ctx.save();
   ctx.textAlign = "left";
   ctx.shadowColor = "rgba(255, 218, 106, 0.6)";
   ctx.shadowBlur = 10 * sc;
   ctx.fillStyle = "#FFDA6A";
-  ctx.font = `bold ${Math.round(72 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
-  ctx.fillText(phone, footerLeftX + 56 * sx, phoneY + 22 * sy);
+  ctx.font = `bold ${Math.round(68 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+  ctx.fillText(phone, footerLeftX + 54 * sx, phoneY + 20 * sy);
   ctx.restore();
 
-  // 2. BOTTOM LINE: Address
-  const pinY = fY + 150 * sy;
+  // 2. MIDDLE LINE: Address covering full width, increased size
+  const pinY = fY + 128 * sy;
   drawVectorIconBadge(ctx, footerLeftX, pinY + 8 * sy, 24 * sc, "pin", sc, "#D4AF37");
+
+  const addressStartX = footerLeftX + 54 * sx;
+  const addressMaxW = W - addressStartX - 70 * sx;
 
   ctx.save();
   ctx.textAlign = "left";
   ctx.fillStyle = "#F8FAFC";
   ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
   ctx.shadowBlur = 8 * sc;
-  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 630 * sx, sc, 3);
+  drawShowroomAddress(ctx, address, addressStartX, pinY + 14 * sy, addressMaxW, sc, 2);
   ctx.restore();
 
-  // 3. RIGHT COLUMN: Hallmark Logo
-  const rightCenterY = fY + 128 * sy;
-  drawRealBIS916Hallmark(ctx, W - 170 * sx, rightCenterY, sc * 0.98, "emerald", hallmarkImg);
+  // 3. BELOW ADDRESS: Small 916 Hallmark Logo in Bottom Corner
+  const hallmarkCenterX = W - 110 * sx;
+  const hallmarkCenterY = H - 52 * sy;
+  drawRealBIS916Hallmark(ctx, hallmarkCenterX, hallmarkCenterY, sc * 0.48, "emerald", hallmarkImg);
 
   const btmGoldGrad = ctx.createLinearGradient(0, 0, W, 0);
   btmGoldGrad.addColorStop(0, "rgba(212,175,55,0.2)"); btmGoldGrad.addColorStop(0.5, "#D4AF37"); btmGoldGrad.addColorStop(1, "rgba(212,175,55,0.2)");
@@ -1253,13 +1257,6 @@ const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrice
   ctx.fillStyle = "rgba(15, 8, 4, 0.22)";
   ctx.fillRect(0, 0, W, H);
 
-  const topScrim4 = ctx.createLinearGradient(0, 0, 0, 360 * sy);
-  topScrim4.addColorStop(0, "rgba(35, 18, 6, 0.98)");
-  topScrim4.addColorStop(0.7, "rgba(35, 18, 6, 0.88)");
-  topScrim4.addColorStop(1, "rgba(15, 8, 4, 0)");
-  ctx.fillStyle = topScrim4;
-  ctx.fillRect(0, 0, W, 360 * sy);
-
   const lsW = 12 * sx;
   const lsGrad = ctx.createLinearGradient(0, 0, lsW, 0);
   lsGrad.addColorStop(0, "#A06040"); lsGrad.addColorStop(1, "#D4916A");
@@ -1271,18 +1268,18 @@ const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrice
   const roseBar = ctx.createLinearGradient(0, 0, W, 0);
   roseBar.addColorStop(0, "rgba(212,145,106,0.3)"); roseBar.addColorStop(0.5, "rgba(212,145,106,0.9)"); roseBar.addColorStop(1, "rgba(212,145,106,0.3)");
 
-  // --- TOP HEADER LOGO & SHOP NAME (TIGHT UNIFIED CENTERED GROUP) ---
+  // --- TOP HEADER LOGO & SHOP NAME (NO BACKGROUND COLOR) ---
   const topY = 25 * sy;
   const maxLogoW = 560 * sx, maxLogoH = 340 * sy;
   drawCenteredHeaderLogoAndShopName(ctx, W, topY, shopName, shopLogoImg, maxLogoW, maxLogoH, 68, sc, sx, sy, "#F5E4C8", "#D4916A");
 
   // --- SIDE-BY-SIDE SCALLOPED CREST CARDS & RATES HEADER ---
-  const cardW = 325 * sx, cardH = 285 * sy, cardY = 1130 * sy;
+  const cardW = 325 * sx, cardH = 285 * sy, cardY = 1240 * sy;
   const leftX = cx - cardW - 18 * sx;
   const rightX = cx + 18 * sx;
 
   // RATES HEADER LINE
-  const headerY = 1090 * sy;
+  const headerY = 1200 * sy;
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.95)"; ctx.shadowBlur = 14 * sc;
   ctx.textAlign = "left"; ctx.fillStyle = "#FFFFFF"; ctx.font = `bold ${Math.round(40 * sc)}px Georgia, "Playfair Display", serif`;
@@ -1292,13 +1289,11 @@ const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrice
   ctx.restore();
 
   // SIDE-BY-SIDE CARDS
-  renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy);
-  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy);
+  renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy, "gold");
+  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy, "silver");
 
-
-
-  // FOOTER SECTION (2/3 LEFT: PHONE & ADDRESS | 1/3 RIGHT: BIS 916 HALLMARK)
-  const fY = 1640 * sy;
+  // FOOTER SECTION (PHONE ON TOP, FULL SIZE ADDRESS, SMALL 916 HALLMARK BELOW IN CORNER)
+  const fY = 1575 * sy;
   ctx.fillStyle = "#0F0703";
   ctx.fillRect(0, fY, W, H - fY);
 
@@ -1312,33 +1307,37 @@ const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrice
   const footerLeftX = 70 * sx;
 
   // 1. TOP LINE: Phone
-  const phoneY = fY + 62 * sy;
-  drawVectorIconBadge(ctx, footerLeftX, phoneY, 30 * sc, "phone", sc, "#F5E4C8");
+  const phoneY = fY + 54 * sy;
+  drawVectorIconBadge(ctx, footerLeftX, phoneY, 28 * sc, "phone", sc, "#F5E4C8");
 
   ctx.save();
   ctx.textAlign = "left";
   ctx.shadowColor = "rgba(245, 228, 200, 0.6)";
   ctx.shadowBlur = 10 * sc;
   ctx.fillStyle = "#F5E4C8";
-  ctx.font = `bold ${Math.round(72 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
-  ctx.fillText(phone, footerLeftX + 56 * sx, phoneY + 22 * sy);
+  ctx.font = `bold ${Math.round(68 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+  ctx.fillText(phone, footerLeftX + 54 * sx, phoneY + 20 * sy);
   ctx.restore();
 
-  // 2. BOTTOM LINE: Address
-  const pinY = fY + 150 * sy;
+  // 2. MIDDLE LINE: Address covering full width, increased size
+  const pinY = fY + 128 * sy;
   drawVectorIconBadge(ctx, footerLeftX, pinY + 8 * sy, 24 * sc, "pin", sc, "#D4916A");
+
+  const addressStartX = footerLeftX + 54 * sx;
+  const addressMaxW = W - addressStartX - 70 * sx;
 
   ctx.save();
   ctx.textAlign = "left";
   ctx.fillStyle = "#F8FAFC";
   ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
   ctx.shadowBlur = 8 * sc;
-  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 630 * sx, sc, 3);
+  drawShowroomAddress(ctx, address, addressStartX, pinY + 14 * sy, addressMaxW, sc, 2);
   ctx.restore();
 
-  // 3. RIGHT COLUMN: Hallmark Logo
-  const rightCenterY = fY + 128 * sy;
-  drawRealBIS916Hallmark(ctx, W - 170 * sx, rightCenterY, sc * 0.98, "gold", hallmarkImg);
+  // 3. BELOW ADDRESS: Small 916 Hallmark Logo in Bottom Corner
+  const hallmarkCenterX = W - 110 * sx;
+  const hallmarkCenterY = H - 52 * sy;
+  drawRealBIS916Hallmark(ctx, hallmarkCenterX, hallmarkCenterY, sc * 0.48, "gold", hallmarkImg);
 
   ctx.fillStyle = roseBar;
   ctx.fillRect(lsW, H - 6 * sy, W - lsW * 2, 6 * sy);
@@ -1356,15 +1355,7 @@ const drawFestivalPosterOverlay = (ctx, W, H, shopName, shopLogoImg = null, shop
   const sx = W / 1080;
   const sy = H / 1920;
 
-  // 1. Top Header Scrim Gradient for text/logo contrast
-  const topScrim = ctx.createLinearGradient(0, 0, 0, 380 * sy);
-  topScrim.addColorStop(0, "rgba(10, 4, 2, 0.94)");
-  topScrim.addColorStop(0.65, "rgba(10, 4, 2, 0.65)");
-  topScrim.addColorStop(1, "rgba(10, 4, 2, 0)");
-  ctx.fillStyle = topScrim;
-  ctx.fillRect(0, 0, W, 380 * sy);
-
-  // 2. Center Top Header Logo & Shop Name (Exact same position and dimensions as WhatsApp status templates)
+  // 1. Center Top Header Logo & Shop Name (NO BACKGROUND COLOR)
   const topY = 25 * sy;
   const maxLogoW = 560 * sx;
   const maxLogoH = 340 * sy;
@@ -1386,8 +1377,8 @@ const drawFestivalPosterOverlay = (ctx, W, H, shopName, shopLogoImg = null, shop
     "#D4AF37"
   );
 
-  // 3. Bottom Footer Section with Showroom Details & Hallmark Badge
-  const fY = 1640 * sy;
+  // 2. Bottom Footer Section with Showroom Details & Hallmark Badge
+  const fY = 1575 * sy;
   const footerH = H - fY;
 
   // Dark Luxury Scrim
@@ -1415,36 +1406,40 @@ const drawFestivalPosterOverlay = (ctx, W, H, shopName, shopLogoImg = null, shop
     address = `${address}, ${shopInfo.city}`;
   }
 
-  // 3A. Phone line
+  // 2A. Phone line
   if (phone) {
-    const phoneY = fY + 62 * sy;
-    drawVectorIconBadge(ctx, footerLeftX, phoneY, 30 * sc, "phone", sc, "#FEF08A");
+    const phoneY = fY + 54 * sy;
+    drawVectorIconBadge(ctx, footerLeftX, phoneY, 28 * sc, "phone", sc, "#FEF08A");
 
     ctx.save();
     ctx.textAlign = "left";
     ctx.shadowColor = "rgba(254, 240, 138, 0.6)";
     ctx.shadowBlur = 10 * sc;
     ctx.fillStyle = "#FEF08A";
-    ctx.font = `bold ${Math.round(72 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
-    ctx.fillText(phone, footerLeftX + 56 * sx, phoneY + 22 * sy);
+    ctx.font = `bold ${Math.round(68 * sc)}px "Inter", "Outfit", "Segoe UI", sans-serif`;
+    ctx.fillText(phone, footerLeftX + 54 * sx, phoneY + 20 * sy);
     ctx.restore();
   }
 
-  // 3B. Address line
-  const pinY = fY + 150 * sy;
+  // 2B. Address line (Cover full size width, increased size)
+  const pinY = fY + 128 * sy;
   drawVectorIconBadge(ctx, footerLeftX, pinY + 8 * sy, 24 * sc, "pin", sc, "#D4AF37");
+
+  const addressStartX = footerLeftX + 54 * sx;
+  const addressMaxW = W - addressStartX - 70 * sx;
 
   ctx.save();
   ctx.textAlign = "left";
   ctx.fillStyle = "#F8FAFC";
   ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
   ctx.shadowBlur = 8 * sc;
-  drawShowroomAddress(ctx, address, footerLeftX + 56 * sx, pinY + 12 * sy, 630 * sx, sc, 3);
+  drawShowroomAddress(ctx, address, addressStartX, pinY + 14 * sy, addressMaxW, sc, 2);
   ctx.restore();
 
-  // 3C. Hallmark Badge on Right
-  const rightCenterY = fY + 128 * sy;
-  drawRealBIS916Hallmark(ctx, W - 170 * sx, rightCenterY, sc * 0.98, "gold", hallmarkImg);
+  // 2C. Hallmark Badge below address in bottom corner (reduced very small)
+  const hallmarkCenterX = W - 110 * sx;
+  const hallmarkCenterY = H - 52 * sy;
+  drawRealBIS916Hallmark(ctx, hallmarkCenterX, hallmarkCenterY, sc * 0.48, "gold", hallmarkImg);
 
   ctx.restore();
 };
