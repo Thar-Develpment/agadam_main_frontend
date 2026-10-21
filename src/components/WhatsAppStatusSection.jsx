@@ -896,7 +896,7 @@ const renderScallopedCrestCard = (ctx, x, y, w, h, titleStr, weightStr, priceStr
   ctx.font = `bold ${Math.round(35 * sc)}px Georgia, serif`;
   ctx.fillText(titleStr, cxPos, y + 58 * sy);
 
-  // Line 2: Weight & Purity ("1GM  22K" / "1GM  999")
+  // Line 2: Weight & Purity ("1GM  22K" / "1GM")
   ctx.font = `bold ${Math.round(33 * sc)}px "Outfit", "Plus Jakarta Sans", sans-serif`;
   ctx.fillText(weightStr, cxPos, y + 102 * sy);
 
@@ -972,7 +972,7 @@ const drawTemplate1_RoyalHeritage = (ctx, W, H, shopName, shopLogoImg, livePrice
 
   // Render LEFT: 1g Gold & RIGHT: 1g Silver (with metallic silver styling)
   renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy, "gold");
-  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy, "silver");
+  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM", rates.silver1gStr, sc, sx, sy, "silver");
 
   // --- FOOTER SECTION (PHONE ON TOP, FULL SIZE ADDRESS, SMALL 916 HALLMARK BELOW IN CORNER) ---
   const fY = 1575 * sy;
@@ -1079,7 +1079,7 @@ const drawTemplate2_ModernMinimalist = (ctx, W, H, shopName, shopLogoImg, livePr
 
   // SIDE-BY-SIDE CARDS
   renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy, "gold");
-  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy, "silver");
+  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM", rates.silver1gStr, sc, sx, sy, "silver");
 
   // FOOTER SECTION (PHONE ON TOP, FULL SIZE ADDRESS, SMALL 916 HALLMARK BELOW IN CORNER)
   const fY = 1575 * sy;
@@ -1179,7 +1179,7 @@ const drawTemplate3_BridalEmerald = (ctx, W, H, shopName, shopLogoImg, livePrice
 
   // SIDE-BY-SIDE CARDS
   renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy, "gold");
-  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy, "silver");
+  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM", rates.silver1gStr, sc, sx, sy, "silver");
 
   // FOOTER SECTION (PHONE ON TOP, FULL SIZE ADDRESS, SMALL 916 HALLMARK BELOW IN CORNER)
   const fY = 1575 * sy;
@@ -1290,7 +1290,7 @@ const drawTemplate4_SolitaireDark = (ctx, W, H, shopName, shopLogoImg, livePrice
 
   // SIDE-BY-SIDE CARDS
   renderScallopedCrestCard(ctx, leftX, cardY, cardW, cardH, "Gold Rate", "1GM  22K", rates.gold1gStr, sc, sx, sy, "gold");
-  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM  999", rates.silver1gStr, sc, sx, sy, "silver");
+  renderScallopedCrestCard(ctx, rightX, cardY, cardW, cardH, "Silver Rate", "1GM", rates.silver1gStr, sc, sx, sy, "silver");
 
   // FOOTER SECTION (PHONE ON TOP, FULL SIZE ADDRESS, SMALL 916 HALLMARK BELOW IN CORNER)
   const fY = 1575 * sy;
