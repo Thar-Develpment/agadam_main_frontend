@@ -336,7 +336,13 @@ function ClientStorefrontPage() {
         {/* 1. Hero Slideshow Carousel */}
         <Slideshow slides={slides} />
 
-        {/* 2. Jewellery Gallery */}
+        {/* 2. Today's Gold & Silver Rate Section */}
+        <GoldRateSection shopInfo={shopInfo} />
+
+        {/* 3. Image and Video Download Section (WhatsApp Status & Media) */}
+        <WhatsAppStatusSection shopInfo={shopInfo} />
+
+        {/* 4. Our Fine Jewellery Gallery Section */}
         <GallerySection
           categories={categories}
           images={galleryImages}
@@ -344,12 +350,6 @@ function ClientStorefrontPage() {
           onSelectCategory={(cat) => setSelectedCategory(cat)}
           shopInfo={shopInfo}
         />
-
-        {/* 3. WhatsApp Status & Video Downloads */}
-        <WhatsAppStatusSection shopInfo={shopInfo} />
-
-        {/* 4. Live Gold & Silver Market Rates */}
-        <GoldRateSection shopInfo={shopInfo} />
 
         {/* 5. About Us / Our Story Section */}
         <AboutSection aboutContent={aboutContent} galleryImages={galleryImages} shopInfo={shopInfo} />

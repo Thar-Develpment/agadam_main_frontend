@@ -56,7 +56,7 @@ export default function GallerySection({
 
 
   return (
-    <section id="gallery" className="py-16 sm:py-24 bg-[#FAF9F5] text-stone-800">
+    <section id="gallery" className="py-16 sm:py-24 bg-[#FAF9F5] text-stone-800 border-t border-stone-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         {/* Section Header */}
         <div className="max-w-3xl mx-auto mb-12 space-y-3">

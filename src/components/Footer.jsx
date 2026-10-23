@@ -135,8 +135,8 @@ export default function Footer({ shopInfo }) {
                 </a>
               </li>
               <li>
-                <a href="#gallery" className="hover:text-[#D4AF37] transition-colors">
-                  Jewellery Gallery & Categories
+                <a href="#rates" className="hover:text-[#D4AF37] transition-colors">
+                  Live Gold & Silver Rates
                 </a>
               </li>
               <li>
@@ -145,8 +145,8 @@ export default function Footer({ shopInfo }) {
                 </a>
               </li>
               <li>
-                <a href="#rates" className="hover:text-[#D4AF37] transition-colors">
-                  Live Gold & Silver Rates
+                <a href="#gallery" className="hover:text-[#D4AF37] transition-colors">
+                  Jewellery Gallery & Categories
                 </a>
               </li>
               <li>
