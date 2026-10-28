@@ -73,6 +73,7 @@ import {
 } from "../services/api";
 import { mockSlides, mockShopInfo } from "../services/mockData";
 import { getShopPrefix, getStorefrontUrl, getCleanWhatsAppNumber } from "../services/apiClient";
+import { useTrialCountdown } from "../hooks/useTrialCountdown";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -91,6 +92,20 @@ export default function AdminDashboard() {
   const [isPaymentPending, setIsPaymentPending] = useState(false);
   const [paymentPendingMessage, setPaymentPendingMessage] = useState("");
   const [superAdminWhatsApp, setSuperAdminWhatsApp] = useState("919952054493");
+  const [trialInfo, setTrialInfo] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  const countdown = useTrialCountdown(
+    trialInfo?.trial_ends_at || adminUser?.trial_ends_at,
+    trialInfo?.is_paid !== undefined ? trialInfo.is_paid : adminUser?.is_paid,
+    trialInfo?.server_time || adminUser?.server_time
+  );
+
+  useEffect(() => {
+    if (countdown?.expired && !trialInfo?.is_paid && !adminUser?.is_paid) {
+      setIsPaymentPending(true);
+    }
+  }, [countdown?.expired, trialInfo?.is_paid, adminUser?.is_paid]);
 
   // 0.1 Dashboard Stats & Live Metal Rates State
   const [dashboardStats, setDashboardStats] = useState({
@@ -190,6 +205,14 @@ export default function AdminDashboard() {
     try {
       const user = JSON.parse(currentAdmin);
       setAdminUser(user);
+      if (user.trial_ends_at || user.is_paid !== undefined) {
+        setTrialInfo({
+          is_paid: user.is_paid,
+          subscription_status: user.subscription_status || "trial",
+          trial_ends_at: user.trial_ends_at,
+          server_time: user.server_time,
+        });
+      }
     } catch (e) {
       navigate("/admin");
     }
@@ -258,6 +281,14 @@ export default function AdminDashboard() {
 
         if (siteInfoRes && siteInfoRes.siteInfoData) {
           const d = siteInfoRes.siteInfoData;
+          if (d.trial_ends_at || d.is_paid !== undefined) {
+            setTrialInfo({
+              is_paid: d.is_paid,
+              subscription_status: d.subscription_status || "trial",
+              trial_ends_at: d.trial_ends_at,
+              server_time: d.server_time,
+            });
+          }
           let socialLinks = {};
           if (d.social_urls) {
             try {
@@ -307,6 +338,14 @@ export default function AdminDashboard() {
       const res = await getSiteInfo(shopPrefix);
       if (res && res.siteInfoData) {
         const d = res.siteInfoData;
+        if (d.trial_ends_at || d.is_paid !== undefined) {
+          setTrialInfo({
+            is_paid: d.is_paid,
+            subscription_status: d.subscription_status || "trial",
+            trial_ends_at: d.trial_ends_at,
+            server_time: d.server_time,
+          });
+        }
         let socialLinks = {};
         if (d.social_urls) {
           try {
@@ -1098,6 +1137,38 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            {/* 2-Day Free Trial Header Pill Badge */}
+            {countdown && !trialInfo?.is_paid && !adminUser?.is_paid && (
+              <button
+                type="button"
+                onClick={() => setShowPaymentModal(true)}
+                title="Click to view free trial countdown and subscription activation details"
+                className={`group inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer shadow-xs hover:scale-105 active:scale-95 ${
+                  countdown.stage === "critical"
+                    ? "bg-rose-500/20 border-rose-500/60 text-rose-300 hover:bg-rose-500/30 animate-pulse"
+                    : countdown.stage === "warning"
+                    ? "bg-amber-500/15 border-amber-500/50 text-amber-300 hover:bg-amber-500/25"
+                    : "bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25"
+                }`}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full shrink-0 ${
+                    countdown.stage === "critical"
+                      ? "bg-rose-500 animate-ping"
+                      : countdown.stage === "warning"
+                      ? "bg-amber-400"
+                      : "bg-emerald-400"
+                  }`}
+                />
+                <span className="font-mono tracking-tight font-bold">
+                  {countdown.stage === "critical" ? `🚨 Trial: ${countdown.formatted}` : `⏱️ Trial: ${countdown.formatted}`}
+                </span>
+                <span className="hidden sm:inline-block text-[10px] uppercase tracking-wider opacity-75 group-hover:opacity-100 group-hover:underline ml-0.5">
+                  Activate
+                </span>
+              </button>
+            )}
+
             {dashboardStats.register_count > 0 && (
               <div className="hidden md:flex items-center gap-2 bg-stone-900 border border-stone-800 px-3 py-1.5 rounded-xl text-xs text-stone-300 font-mono">
                 <Store className="w-3.5 h-3.5 text-[#D4AF37]" />
@@ -1216,6 +1287,47 @@ export default function AdminDashboard() {
                   </span>
                 </div>
               </div>
+
+              {/* Mobile Navigation Free Trial Indicator */}
+              {countdown && !trialInfo?.is_paid && !adminUser?.is_paid && (
+                <div
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setShowPaymentModal(true);
+                  }}
+                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer shadow-xs ${
+                    countdown.stage === "critical"
+                      ? "bg-rose-50 border-rose-300 text-rose-900"
+                      : countdown.stage === "warning"
+                      ? "bg-amber-50 border-amber-300 text-amber-900"
+                      : "bg-emerald-50 border-emerald-300 text-emerald-900"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          countdown.stage === "critical"
+                            ? "bg-rose-500 animate-ping"
+                            : countdown.stage === "warning"
+                            ? "bg-amber-500"
+                            : "bg-emerald-500"
+                        }`}
+                      />
+                      2-Day Free Trial
+                    </span>
+                    <span className="text-[10px] font-bold underline text-stone-700 hover:text-stone-950">
+                      Activate Plan
+                    </span>
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-mono text-base font-extrabold tracking-tight">
+                      {countdown.formatted}
+                    </span>
+                    <span className="text-[10px] text-stone-500 font-medium">Click to activate</span>
+                  </div>
+                </div>
+              )}
 
               {/* Navigation Tabs List */}
               <div className="space-y-1 pt-1">
@@ -2831,6 +2943,126 @@ export default function AdminDashboard() {
                   <Trash2 className="w-4 h-4 text-white" />
                 )}
                 <span>Yes, Delete</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2-Day Free Trial Status & Activation Modal */}
+      {showPaymentModal && countdown && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in"
+          onClick={() => setShowPaymentModal(false)}
+        >
+          <div
+            className="bg-white border border-stone-200 rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl space-y-6 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                    countdown.stage === "critical"
+                      ? "bg-rose-100 text-rose-600"
+                      : countdown.stage === "warning"
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-[#FAF7ED] text-[#B8860B] border border-[#D4AF37]/30"
+                  }`}
+                >
+                  <Clock className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-serif text-lg font-bold text-stone-900 leading-tight">
+                    2-Day Free Trial
+                  </h3>
+                  <span className="text-xs text-stone-500 font-mono">
+                    {adminUser?.domain || `${shopPrefix}.aadagam.com`}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPaymentModal(false)}
+                className="p-1.5 rounded-xl text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
+                aria-label="Close modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Live Countdown Urgency Card */}
+            <div
+              className={`p-4 rounded-2xl border text-center transition-all ${
+                countdown.stage === "critical"
+                  ? "bg-rose-50 border-rose-300 text-rose-900"
+                  : countdown.stage === "warning"
+                  ? "bg-amber-50 border-amber-300 text-amber-900"
+                  : "bg-stone-50 border-stone-200 text-stone-800"
+              }`}
+            >
+              <span className="text-[10px] font-bold uppercase tracking-wider block opacity-75 mb-1">
+                Remaining Trial Time
+              </span>
+              <div className="text-2xl sm:text-3xl font-mono font-extrabold tracking-tight">
+                {countdown.formatted}
+              </div>
+              {(() => {
+                const expiry = trialInfo?.trial_ends_at || adminUser?.trial_ends_at;
+                const d = expiry ? new Date(expiry) : null;
+                if (!d || isNaN(d.getTime())) return null;
+                return (
+                  <div className="text-[11px] text-stone-500 font-medium mt-1">
+                    Expires on:{" "}
+                    {d.toLocaleString("en-IN", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Explanation / Features List */}
+            <div className="space-y-2.5 text-xs text-stone-600">
+              <p className="leading-relaxed">
+                Your showroom website and admin control center are active under the 48-hour free trial. Once the trial completes, your public storefront will be temporarily paused until your subscription payment is confirmed.
+              </p>
+              <div className="p-3 bg-[#FAF9F5] border border-stone-200 rounded-xl space-y-1.5 text-[11px]">
+                <div className="font-semibold text-stone-800 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
+                  <span>Permanent Activation Includes:</span>
+                </div>
+                <ul className="list-disc list-inside space-y-0.5 text-stone-600 pl-1">
+                  <li>24/7 Live public jewellery showcase</li>
+                  <li>Live daily gold & silver rates ticker</li>
+                  <li>Direct WhatsApp customer enquiries</li>
+                  <li>Unlimited product categories & gallery uploads</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2.5 pt-1">
+              <a
+                href={`https://wa.me/${superAdminWhatsApp}?text=${encodeURIComponent(
+                  `Hello Aadagam Support,\n\nI want to complete the payment and activate the subscription for my showroom website.\n\nShop Name: ${contactInfo.tamil_shop_name || adminUser?.shopName || shopPrefix}\nDomain: ${adminUser?.domain || `${shopPrefix}.aadagam.com`}\nEmail: ${adminUser?.email || ""}\n\nPlease share the payment details/UPI.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold py-3 px-5 rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-[#25D366]/25 transition-all cursor-pointer"
+              >
+                <WhatsappIcon className="w-4 h-4 fill-white" />
+                <span>Activate Subscription via WhatsApp</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => setShowPaymentModal(false)}
+                className="w-full py-2.5 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Close & Continue Exploring
               </button>
             </div>
           </div>

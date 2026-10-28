@@ -855,14 +855,19 @@ export async function adminLogin(email, password) {
     if (res.data && res.data.status === 1 && res.data.authTkn) {
       const token = res.data.authTkn;
       const decoded = parseJwt(token) || {};
+      const tenantData = res.data.tenantData || {};
 
       const userSession = {
         token,
         authTkn: token,
-        id: decoded.id || null,
+        id: decoded.id || tenantData.id || null,
         email: decoded.email || email,
-        domain: decoded.subdomain || `${getShopPrefix(email)}.aadagam.com`,
-        shopName: (decoded.subdomain ? getShopPrefix(decoded.subdomain) : "Showroom").toUpperCase(),
+        domain: decoded.subdomain || tenantData.subdomain || `${getShopPrefix(email)}.aadagam.com`,
+        shopName: (decoded.subdomain ? getShopPrefix(decoded.subdomain) : (tenantData.shop_name || "Showroom")).toUpperCase(),
+        is_paid: tenantData.is_paid !== undefined ? tenantData.is_paid : false,
+        subscription_status: tenantData.subscription_status || "trial",
+        trial_ends_at: tenantData.trial_ends_at || null,
+        server_time: tenantData.server_time || null,
       };
 
       // Store in LocalStorage for persistence across requests
