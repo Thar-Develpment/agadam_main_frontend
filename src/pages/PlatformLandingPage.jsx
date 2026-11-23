@@ -12,6 +12,7 @@ import {
   Phone,
   ExternalLink,
   MessageCircle,
+  MapPin,
 } from "lucide-react";
 
 export default function PlatformLandingPage() {
@@ -45,6 +46,8 @@ export default function PlatformLandingPage() {
 
   const formattedWhatsApp = formatIndianPhoneNumber(rawWhatsApp);
   const formattedCallPhone = formatIndianPhoneNumber(rawPhone);
+  const officeAddress = basicInfo?.address || "44, South jaganathan street, near naathamuni, villivakkam, Chennai 600049.";
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(officeAddress)}`;
 
   return (
     <div className="min-h-screen bg-white text-stone-800 font-sans selection:bg-[#783bf0] selection:text-white w-full max-w-full overflow-x-hidden">
@@ -445,31 +448,50 @@ export default function PlatformLandingPage() {
               </p>
             </div>
 
-            {/* Column 2: Get In Touch */}
+            {/* Column 2: Get In Touch & Office Address */}
             <div className="lg:col-span-6 space-y-4">
               <h4 className="font-serif font-bold text-white text-lg tracking-wider uppercase">
                 Get In Touch
               </h4>
-              <p className="text-xs sm:text-sm text-stone-300 font-normal">
-                Mobile Number for calling | WhatsApp
-              </p>
-              <div className="flex flex-wrap gap-4 pt-1">
+
+              <div className="space-y-1.5">
+                <span className="text-[11px] uppercase tracking-wider text-stone-400 font-medium">
+                  Office Address
+                </span>
                 <a
-                  href={`tel:${cleanPhone}`}
-                  className="inline-flex items-center gap-2 bg-stone-900 hover:bg-stone-800 text-white border border-stone-700 px-4 py-2.5 rounded-xl text-xs font-bold transition-all"
-                >
-                  <Phone className="w-4 h-4 text-[#783bf0]" />
-                  <span className="text-white">Call: {formattedCallPhone}</span>
-                </a>
-                <a
-                  href={whatsappUrl}
+                  href={googleMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/50 px-4 py-2.5 rounded-xl text-xs font-bold transition-all"
+                  className="flex items-start gap-2.5 text-xs sm:text-sm text-stone-300 hover:text-white transition-colors group leading-relaxed"
+                  title="View on Google Maps"
                 >
-                  <MessageCircle className="w-4 h-4 text-emerald-400" />
-                  <span>WhatsApp: {formattedWhatsApp}</span>
+                  <MapPin className="w-4 h-4 text-[#783bf0] shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                  <span>{officeAddress}</span>
                 </a>
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <p className="text-xs sm:text-sm text-stone-300 font-normal">
+                  Mobile Number for calling | WhatsApp
+                </p>
+                <div className="flex flex-wrap gap-4 pt-1">
+                  <a
+                    href={`tel:${cleanPhone}`}
+                    className="inline-flex items-center gap-2 bg-stone-900 hover:bg-stone-800 text-white border border-stone-700 px-4 py-2.5 rounded-xl text-xs font-bold transition-all"
+                  >
+                    <Phone className="w-4 h-4 text-[#783bf0]" />
+                    <span className="text-white">Call: {formattedCallPhone}</span>
+                  </a>
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/50 px-4 py-2.5 rounded-xl text-xs font-bold transition-all"
+                  >
+                    <MessageCircle className="w-4 h-4 text-emerald-400" />
+                    <span>WhatsApp: {formattedWhatsApp}</span>
+                  </a>
+                </div>
               </div>
             </div>
           </div>
